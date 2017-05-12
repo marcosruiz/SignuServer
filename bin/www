@@ -14,25 +14,25 @@ var https = require('https');
 var privateKey  = fs.readFileSync('sslcert/server.key', 'utf8');
 var certificate = fs.readFileSync('sslcert/server.crt', 'utf8');
 var credentials = {key: privateKey, cert: certificate};
+var httpsPort = normalizePort(process.env.PORT || '8000');
 
 /**
  * Get port from environment and store in Express.
  */
 
 var port = normalizePort(process.env.PORT || '3000');
-var httpsPort = normalizePort(process.env.PORT || '8443');
-app.set('port', port);
-// app.set('port', httpsPort);
+app.set('httpPort', port);
+app.set('httpsPort', httpsPort);
 
 /**
  * Create HTTP server.
  */
-var server = http.createServer(app);
+var httpServer = http.createServer(app);
 
 // Listen on provided port, on all network interfaces.
-server.listen(port);
-server.on('error', onError);
-server.on('listening', onListening);
+httpServer.listen(port);
+httpServer.on('error', onError);
+httpServer.on('listening', onListening);
 
 
 /**
@@ -40,8 +40,6 @@ server.on('listening', onListening);
  */
 var httpsServer = https.createServer(credentials, app);
 httpsServer.listen(httpsPort);
-httpsServer.on('error', onError);
-httpsServer.on('listening', onListening);
 
 /**
  * Normalize a port into a number, string, or false.
@@ -96,7 +94,7 @@ function onError(error) {
  */
 
 function onListening() {
-  var addr = server.address();
+  var addr = httpServer.address();
   var bind = typeof addr === 'string'
     ? 'pipe ' + addr
     : 'port ' + addr.port;
