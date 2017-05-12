@@ -7,6 +7,7 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
 
+
 var index = require('./routes/index');
 var users = require('./routes/users');
 var pdfs = require('./routes/pdfs');
@@ -56,6 +57,7 @@ app.use(function(err, req, res, next) {
 });
 
 // I dont know if the connection should be here
+mongoose.Promise = global.Promise; // To avoid a warning
 mongoose.connect('mongodb://localhost/test');
 
 module.exports = app;

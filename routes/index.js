@@ -7,11 +7,19 @@ router.get('/', function(req, res, next) {
 });
 
 router.get('/login', function (req, res, next) {
-    res.render('login', {title: 'Signu: Log in'})
+    res.render('login', {title: 'Signu: Log in'});
 });
 
 router.get('/signup', function(req, res, next){
-   res.render('signup', {title: 'Signu: Sign up'})
+   res.render('signup', {title: 'Signu: Sign up'});
+});
+
+router.get('/delete', function(req, res, next){
+    res.render('deleteuser', {title: 'Signu: Delete user'});
+});
+
+router.get('/update', function(req, res, next){
+    res.render('updateuser', {title: 'Signu: Edit user'});
 });
 
 module.exports = router;
