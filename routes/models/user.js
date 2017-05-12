@@ -11,6 +11,7 @@ const userSchema =  new Schema({
     password: {type: String},
     email: {type: String},
     name: {type: String},
+    lastname: {type: String},
     last_edition_date: {type:Date},
     creation_date: {type: Date},
     related_people : [{user_id: {type: ObjectId}}]
