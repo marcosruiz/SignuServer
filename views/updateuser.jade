@@ -3,7 +3,8 @@ extends layout
 block content
   h1= title
   div
-    form(action='api/users/', method='post')
+    form(action='api/users', method='post', enctype='application/x-www-form-urlencoded')
+      input(type='hidden', name='_method', value='put')
       div(data-role='fieldcontain')
         fieldset(data-role='controlgroup')
           label(for='name') name

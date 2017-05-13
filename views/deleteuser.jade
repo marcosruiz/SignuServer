@@ -4,6 +4,7 @@ block content
   h1= title
   div
     form(action='api/users/', method='delete')
+      input(type='hidden', name='_method', value='delete')
       div(id='hiddendiv',data-role='fieldcontain')
         fieldset(data-role='controlgroup')
           label(for='password') password

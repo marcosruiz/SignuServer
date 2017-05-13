@@ -98,10 +98,8 @@ router.get('/info', function(req, res, next){
     }
 });
 
-/**
- * Delete the current user if the password is correct
- */
-router.delete('/', function(req, res, next){
+
+var deleteUser = function(req, res, next){
     thisSession = req.session;
     User.findById(thisSession._id, function (err, user) {
         if(err){
@@ -122,45 +120,64 @@ router.delete('/', function(req, res, next){
             });
         }
     });
+};
 
-});
+/**
+ * Delete the current user if the password is correct
+ */
+router.delete('/', deleteUser);
+
+var putUser = function(req, res, next){
+    console.log("Editing a user");
+    thisSession = req.session;
+    User.findById(thisSession._id, function (err, user) {
+        if(err){
+            res.send("You are not logged");
+        } else{
+            if(req.body.name != null && req.body.name != ''){
+                user.name = req.body.name;
+            }
+            if(req.body.lastname != null && req.body.lastname != ''){
+                user.lastname = req.body.lastname;
+            }
+            if(req.body.email != null && req.body.email != ''){
+                user.email = req.body.email;
+            }
+            if(req.body.password != null && req.body.password != '' && req.body.password == req.body.password2){
+                user.password = req.body.password;
+            }
+            if(req.body.username != null && req.body.username != ''){
+                user.username = req.body.username;
+            }
+            user.last_edition_date = Date.now();
+
+            User.updateOne({_id : thisSession._id}, user, {}, function (err, num) {
+                if(err){
+                    res.send("Something was wrong");
+                } else{
+                    res.send(num);
+                }
+            })
+        }
+    });
+}
 
 /**
  * Edit the current user
  */
-router.put('/', function(req, res, next){
-    console.log("Editing a user");
-    thisSession = req.session;
-    User.findById(thisSession._id, function (err, user) {
-       if(err){
-           res.send("You are not logged");
-       } else{
-           if(req.body.name != null && req.body.name != ''){
-               user.name = req.body.name;
-           }
-           if(req.body.lastname != null && req.body.lastname != ''){
-               user.lastname = req.body.lastname;
-           }
-           if(req.body.email != null && req.body.email != ''){
-               user.email = req.body.email;
-           }
-           if(req.body.password != null && req.body.password != '' && req.body.password == req.body.password2){
-               user.password = req.body.password;
-           }
-           if(req.body.username != null && req.body.username != ''){
-               user.username = req.body.username;
-           }
-           user.last_edition_date = Date.now();
+router.put('/', putUser);
 
-           User.updateOne({_id : thisSession._id}, user, {}, function (err, num) {
-               if(err){
-                   res.send("Something was wrong");
-               } else{
-                   res.send(num);
-               }
-           })
-       }
-    });
+/**
+ * This is need to HTML form works fine
+ */
+router.post('/', function (req, res, next) {
+    if(req.body._method == 'delete'){
+        deleteUser(req, res, next);
+    } else if(req.body._method == 'put'){
+        putUser(req, res, next);
+    } else {
+        res.send("Something was wrong");
+    }
 });
 
 module.exports = router;
