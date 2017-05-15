@@ -271,6 +271,4 @@ describe('Users', function () {
                 });
         });
     });
-
-
 });

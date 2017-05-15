@@ -22,4 +22,8 @@ router.get('/update', function(req, res, next){
     res.render('updateuser', {title: 'Signu: Edit user'});
 });
 
+router.get('/uploadfile', function (req, res, next) {
+    res.render('uploadfile', {title: 'Signu: Upload file'});
+})
+
 module.exports = router;

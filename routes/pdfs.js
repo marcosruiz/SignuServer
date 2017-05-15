@@ -5,48 +5,34 @@
 var express = require('express');
 var router = express.Router();
 var fs = require('fs');
-const formidable = require('formidable');
-const path = require('path')
+var Pdf = require('./models/pdf');
+const path = require('path');
+var multer = require('multer');
+var upload = multer({ dest: 'uploads/'});
+var HttpStatus = require('http-status-codes');
 
-router.get('/', function(req, res, next){
-    res.send("TODO Devolver pdf");
+
+router.get('/:id', function(req, res, next){
+    res.download("uploads/" + req.params.id, "download.pdf");
 });
 
-// var updateFile = function(req, res, next){
-//     var fstream;
-//     req.pipe(req.busboy);
-//     req.busboy.on('file', function (fieldname, file, filename) {
-//         console.log("Uploading: " + filename);
-//         fstream = fs.createWriteStream(__dirname + '/files/' + filename);
-//         file.pipe(fstream);
-//         fstream.on('end', function () {
-//             res.send('ok');
-//         });
-//     });
-// };
-
-function uploadMedia (req, res, next) { // router.post(url, function(req,res,next){
-    var fileName = 'prueba';
-    var fileExt = 'pdf';
-
-    var form = new formidable.IncomingForm()
-    form.multiples = true
-    form.keepExtensions = true
-    form.uploadDir = uploadDir
-    form.parse(req, function (err, fields, files){
-        if (err){
-            res.send(err);
-        } else{
-            res.json({ uploaded: true })
+router.post('/', upload.single('pdf'), function(req, res, next){
+    console.log(req.file);
+    newPdf = new Pdf({
+        "original_name" : req.file.originalname,
+        "mime_type" : req.file.mimetype,
+        "file_name" : req.file.filename,
+        "is_full_signed" : false,
+        "creation_date" : new Date(),
+        "someone_is_signing" : false
+    });
+    newPdf.save(function(err, pdf){
+        if(err){
+            res.send("Error");
+        }else{
+            res.json(pdf);
         }
     });
-    form.on('fileBegin', function (name, file) {
-        file.path = __dirname + '/' + name;
-    })
-}
-
-router.post('/', function(req, res, next){
-    uploadMedia(req, res, next);
 });
 
 router.put('/', function(req, res, next){

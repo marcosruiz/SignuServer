@@ -7,15 +7,18 @@ const Schema = mongoose.Schema;
 var ObjectId = Schema.ObjectId;
 
 
-const pdfSchema =  new Schema({
-    original_name_pdf: {type: String},
+const pdfSchema = new Schema({
+    original_name: {type: String},
     creator_id: {type: ObjectId},
-    is_completely_signed: {type: Boolean},
+    mime_type: {type: String},
+    is_full_signed: {type: Boolean},
+    file_name: {type: String, required: true, unique: true},
     someone_is_signing: {type: Boolean}, // this could be a Date
     id_user_signing: {type: ObjectId},
-    signers : [{signer_id: {type: ObjectId}, is_signed: {type: Boolean}, signature_date: {type: Date}}]
+    creation_date : {type: Date},
+    signers: [{signer_id: {type: ObjectId}, is_signed: {type: Boolean}, signature_date: {type: Date}}]
 });
 
 var Pdf = mongoose.model('Pdf', pdfSchema);
 
-module.exports = User;
+module.exports = Pdf;
