@@ -110,13 +110,19 @@ router.post('/login', function (req, res, next) {
  * Log out: Close the current session
  */
 router.post('/logout', function (req, res, next) {
-    req.session.destroy(function (err) {
-        if (err) {
-            sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
-        } else {
-            res.redirect('/');
-        }
-    });
+    var thisSession = req.session;
+    if(thisSession != null){
+        thisSession.destroy(function (err) {
+            if (err) {
+                sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+            } else {
+                res.json({"message" : "Logged out correctly"});
+            }
+        });
+    } else{
+        sendStandardError(HttpStatus.FORBIDDEN);
+    }
+
 });
 
 /**
@@ -124,16 +130,21 @@ router.post('/logout', function (req, res, next) {
  */
 router.get('/info', function (req, res, next) {
     thisSession = req.session;
-    if (thisSession._id == null || thisSession._id == '') {
-        res.send("You are not logged");
+    if (thisSession._id == null) {
+        sendStandardError(res, HttpStatus.FORBIDDEN);
     } else {
         User.findById(thisSession._id, function (err, user) {
             if (err) {
                 sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
             } else {
-                user._id = undefined;
-                user.password = undefined;
-                res.json(user);
+                if(user != null){
+                    user._id = undefined;
+                    user.password = undefined;
+                    res.json(user);
+                } else{
+                    sendStandardError(res, HttpStatus.NOT_FOUND);
+                }
+
             }
         });
     }
@@ -151,35 +162,40 @@ function sendStandardError(res, status) {
 
 var deleteUser = function (req, res, next) {
     thisSession = req.session;
-    User.findById(thisSession._id, function (err, user) {
-        if (err) {
-            sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
-        } else {
-            user.comparePassword(req.body.password, function (err, isMatch) {
-                if (err) {
-                    sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
-                } else {
-                    if(isMatch){
-                        User.findByIdAndRemove(thisSession._id, function (err) {
-                            if (err) {
-                                sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
-                            } else {
-                                res.send("Deleted user");
-                            }
-                        });
-                    } else{
-                        res.code(HttpStatus.UNAUTHORIZED).json({
-                            "error": {
-                                "code": HttpStatus.UNAUTHORIZED,
-                                "message": "The password is incorrect"
-                            }
-                        });
-                    }
+    if(thisSession._id != null){
+        User.findById(thisSession._id, function (err, user) {
+            if (err) {
+                sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+            } else {
+                user.comparePassword(req.body.password, function (err, isMatch) {
+                    if (err) {
+                        sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+                    } else {
+                        if(isMatch){
+                            User.findByIdAndRemove(thisSession._id, function (err) {
+                                if (err) {
+                                    sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+                                } else {
+                                    res.json({"message" : "User deleted"});
+                                }
+                            });
+                        } else{
+                            res.code(HttpStatus.UNAUTHORIZED).json({
+                                "error": {
+                                    "code": HttpStatus.UNAUTHORIZED,
+                                    "message": "The password is incorrect"
+                                }
+                            });
+                        }
 
-                }
-            });
-        }
-    });
+                    }
+                });
+            }
+        });
+    } else{
+        sendStandardError(res, HttpStatus.FORBIDDEN);
+    }
+
 };
 
 /**
@@ -188,38 +204,55 @@ var deleteUser = function (req, res, next) {
 router.delete('/', deleteUser);
 
 var putUser = function (req, res, next) {
-    console.log("Editing a user");
     thisSession = req.session;
-    User.findById(thisSession._id, function (err, user) {
-        if (err) {
-            sendStandardError(res, HttpStatus.FORBIDDEN);
-        } else {
-            if (req.body.name != null && req.body.name != '') {
-                user.name = req.body.name;
-            }
-            if (req.body.lastname != null && req.body.lastname != '') {
-                user.lastname = req.body.lastname;
-            }
-            if (req.body.email != null && req.body.email != '') {
-                user.email = req.body.email;
-            }
-            if (req.body.password != null && req.body.password != '' && req.body.password == req.body.password2) {
-                user.password = req.body.password;
-            }
-            if (req.body.username != null && req.body.username != '') {
-                user.username = req.body.username;
-            }
-            user.last_edition_date = Date.now();
+    if(thisSession._id != null){
+        User.findById(thisSession._id, function (err, user) {
+            if (err) {
+                sendStandardError(res, HttpStatus.FORBIDDEN);
+            } else {
+                if(user!=null){
+                    if (req.body.name != null && req.body.name != '') {
+                        user.name = req.body.name;
+                    }
+                    if (req.body.lastname != null && req.body.lastname != '') {
+                        user.lastname = req.body.lastname;
+                    }
+                    if (req.body.email != null && req.body.email != '') {
+                        user.email = req.body.email;
+                    }
+                    if (req.body.password != null && req.body.password != '' && req.body.password == req.body.password2) {
+                        user.password = req.body.password;
+                    }
+                    if (req.body.username != null && req.body.username != '') {
+                        user.username = req.body.username;
+                    }
+                    user.last_edition_date = Date.now();
 
-            User.updateOne({_id: thisSession._id}, user, {}, function (err, num) {
-                if (err) {
-                    sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
-                } else {
-                    res.send(num);
+                    User.updateOne({_id: thisSession._id}, user, {}, function (err, num) {
+                        if (err) {
+                            sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+                        } else {
+                            User.findById(thisSession._id, function(err, user){
+                                if(err){
+                                    sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+                                } else{
+                                    user.password = undefined;
+                                    user._id = undefined;
+                                    res.json(user);
+                                }
+                            });
+                        }
+                    })
+                }else{
+                    sendStandardError(res, HttpStatus.NOT_FOUND);
                 }
-            })
-        }
-    });
+
+            }
+        });
+    } else{
+        sendStandardError(res, HttpStatus.FORBIDDEN);
+    }
+
 }
 
 /**
