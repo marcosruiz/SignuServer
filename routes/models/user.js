@@ -17,7 +17,8 @@ const userSchema =  new Schema({
     lastname: {type: String},
     last_edition_date: {type:Date},
     creation_date: {type: Date},
-    related_people : [{user_id: {type: ObjectId}}]
+    related_people : [{user_id: {type : ObjectId}}],
+    pdfs_to_sign : [{pdf_id : {type : ObjectId}}]
 });
 
 userSchema.pre('save', function(next) {

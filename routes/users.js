@@ -2,38 +2,50 @@ var express = require('express');
 var router = express.Router();
 var User = require('./models/user');
 var bcrypt = require('bcrypt');
+var HttpStatus = require('http-status-codes');
 
 /* GET users listing. */
 var thisSession;
+
 
 /**
  * Create a new user
  */
 router.post('/signup', function (req, res, next) {
     // thisSession = req.session; // Uncomment if you want to start a session
-    if(req.body.password == req.body.password2){
+    if (req.body.password == req.body.password2) {
         thisUser = new User({
-            "username" : req.body.username,
-            "password" : req.body.password,
-            "email" : req.body.email,
-            "name" : req.body.name,
-            "lastname" : req.body.lastname,
-            "creation_date" : Date.now(),
-            "last_edition_date" : Date.now()
-        })
+            "username": req.body.username,
+            "password": req.body.password,
+            "email": req.body.email,
+            "name": req.body.name,
+            "lastname": req.body.lastname,
+            "creation_date": Date.now(),
+            "last_edition_date": Date.now()
+        });
 
         thisUser.save(function (err, user) {
-            if(err){
-                res.send(err);
-            }else{
+            if (err) {
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+                    "error": {
+                        "code": HttpStatus.INTERNAL_SERVER_ERROR,
+                        "message": err.message
+                    }
+                });
+            } else {
                 // thisSession._id = user._id; // Uncomment if you want to start a session
                 user._id = undefined;
                 user.password = undefined;
                 res.json(user);
             }
         });
-    } else{
-        res.send("Passwords don't match");
+    } else {
+        res.code(HttpStatus.UNAUTHORIZED).json({
+            "error": {
+                "code": HttpStatus.UNAUTHORIZED,
+                "message": "Passwords do not match"
+            }
+        });
     }
 })
 
@@ -42,25 +54,54 @@ router.post('/signup', function (req, res, next) {
  * it starts a new session
  * it returns info of user if password is correct
  */
-router.post('/login', function(req, res, next) {
+router.post('/login', function (req, res, next) {
     thisSession = req.session;
     thisUser = {
-        "email" : req.body.email
+        "email": req.body.email
     };
     User.findOne(thisUser, function (err, user) {
-        if(err){
-            res.send("This email don't exist");
-        }else{
-            user.comparePassword(req.body.password, function(err, isMatch){
-                if(err){
-                    res.send("The password is incorrect");
-                } else{
-                    thisSession._id = user._id;
-                    user._id = undefined;
-                    user.password = undefined;
-                    res.json(user);
+        if (err) {
+            res.code(HttpStatus.INTERNAL_SERVER_ERROR).json({
+                "error": {
+                    "code": HttpStatus.INTERNAL_SERVER_ERROR,
+                    "message": "Error to connect to database"
                 }
             });
+        } else {
+            if (user != null) {
+                user.comparePassword(req.body.password, function (err, isMatch) {
+                    if (err) {
+                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+                            "error": {
+                                "code": HttpStatus.INTERNAL_SERVER_ERROR,
+                                "message": "Error to compare passwords"
+                            }
+                        });
+                    } else {
+                        if (isMatch) {
+                            thisSession._id = user._id;
+                            user._id = undefined;
+                            user.password = undefined;
+                            res.json(user);
+                        } else {
+                            res.status(HttpStatus.UNAUTHORIZED).json({
+                                "error": {
+                                    "code": HttpStatus.UNAUTHORIZED,
+                                    "message": "Incorrect password"
+                                }
+                            });
+                        }
+                    }
+                });
+            } else {
+                res.status(HttpStatus.NOT_FOUND).json({
+                    "error": {
+                        "code": HttpStatus.NOT_FOUND,
+                        "message": "User not found"
+                    }
+                });
+            }
+
         }
     });
 });
@@ -68,11 +109,11 @@ router.post('/login', function(req, res, next) {
 /**
  * Log out: Close the current session
  */
-router.post('/logout', function(req, res, next){
-    req.session.destroy(function(err){
-        if(err){
-            console.log(err);
-        }else{
+router.post('/logout', function (req, res, next) {
+    req.session.destroy(function (err) {
+        if (err) {
+            sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+        } else {
             res.redirect('/');
         }
     });
@@ -81,15 +122,15 @@ router.post('/logout', function(req, res, next){
 /**
  * Return info of the user in session
  */
-router.get('/info', function(req, res, next){
+router.get('/info', function (req, res, next) {
     thisSession = req.session;
-    if(thisSession._id == null || thisSession._id==''){
+    if (thisSession._id == null || thisSession._id == '') {
         res.send("You are not logged");
-    } else{
+    } else {
         User.findById(thisSession._id, function (err, user) {
-            if(err){
-                res.send(err);
-            }else{
+            if (err) {
+                sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+            } else {
                 user._id = undefined;
                 user.password = undefined;
                 res.json(user);
@@ -99,23 +140,42 @@ router.get('/info', function(req, res, next){
 });
 
 
-var deleteUser = function(req, res, next){
+function sendStandardError(res, status) {
+    res.status(status).json({
+        "error": {
+            "code": status,
+            "message": HttpStatus.getStatusText(status)
+        }
+    });
+}
+
+var deleteUser = function (req, res, next) {
     thisSession = req.session;
     User.findById(thisSession._id, function (err, user) {
-        if(err){
-            res.send(err);
-        } else{
-            user.comparePassword(req.body.password, function(err, isMatch){
-                if(err){
-                    res.send("The password is incorrect");
-                } else{
-                    User.findByIdAndRemove(thisSession._id, function (err) {
-                        if(err){
-                            res.send(err);
-                        } else{
-                            res.send("Deleted user");
-                        }
-                    });
+        if (err) {
+            sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+        } else {
+            user.comparePassword(req.body.password, function (err, isMatch) {
+                if (err) {
+                    sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+                } else {
+                    if(isMatch){
+                        User.findByIdAndRemove(thisSession._id, function (err) {
+                            if (err) {
+                                sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+                            } else {
+                                res.send("Deleted user");
+                            }
+                        });
+                    } else{
+                        res.code(HttpStatus.UNAUTHORIZED).json({
+                            "error": {
+                                "code": HttpStatus.UNAUTHORIZED,
+                                "message": "The password is incorrect"
+                            }
+                        });
+                    }
+
                 }
             });
         }
@@ -127,34 +187,34 @@ var deleteUser = function(req, res, next){
  */
 router.delete('/', deleteUser);
 
-var putUser = function(req, res, next){
+var putUser = function (req, res, next) {
     console.log("Editing a user");
     thisSession = req.session;
     User.findById(thisSession._id, function (err, user) {
-        if(err){
-            res.send("You are not logged");
-        } else{
-            if(req.body.name != null && req.body.name != ''){
+        if (err) {
+            sendStandardError(res, HttpStatus.FORBIDDEN);
+        } else {
+            if (req.body.name != null && req.body.name != '') {
                 user.name = req.body.name;
             }
-            if(req.body.lastname != null && req.body.lastname != ''){
+            if (req.body.lastname != null && req.body.lastname != '') {
                 user.lastname = req.body.lastname;
             }
-            if(req.body.email != null && req.body.email != ''){
+            if (req.body.email != null && req.body.email != '') {
                 user.email = req.body.email;
             }
-            if(req.body.password != null && req.body.password != '' && req.body.password == req.body.password2){
+            if (req.body.password != null && req.body.password != '' && req.body.password == req.body.password2) {
                 user.password = req.body.password;
             }
-            if(req.body.username != null && req.body.username != ''){
+            if (req.body.username != null && req.body.username != '') {
                 user.username = req.body.username;
             }
             user.last_edition_date = Date.now();
 
-            User.updateOne({_id : thisSession._id}, user, {}, function (err, num) {
-                if(err){
-                    res.send("Something was wrong");
-                } else{
+            User.updateOne({_id: thisSession._id}, user, {}, function (err, num) {
+                if (err) {
+                    sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+                } else {
                     res.send(num);
                 }
             })
@@ -171,12 +231,12 @@ router.put('/', putUser);
  * This is need to HTML form works fine
  */
 router.post('/', function (req, res, next) {
-    if(req.body._method == 'delete'){
+    if (req.body._method == 'delete') {
         deleteUser(req, res, next);
-    } else if(req.body._method == 'put'){
+    } else if (req.body._method == 'put') {
         putUser(req, res, next);
     } else {
-        res.send("Something was wrong");
+        sendStandardError(res, HttpStatus.BAD_REQUEST);
     }
 });
 

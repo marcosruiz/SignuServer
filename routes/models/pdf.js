@@ -11,7 +11,8 @@ const pdfSchema =  new Schema({
     original_name_pdf: {type: String},
     creator_id: {type: ObjectId},
     is_completely_signed: {type: Boolean},
-    someone_is_signing: {type: Boolean},
+    someone_is_signing: {type: Boolean}, // this could be a Date
+    id_user_signing: {type: ObjectId},
     signers : [{signer_id: {type: ObjectId}, is_signed: {type: Boolean}, signature_date: {type: Date}}]
 });
 

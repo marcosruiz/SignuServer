@@ -3,19 +3,30 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "start": "node ./bin/www"
+    "start": "SET NODE_ENV=dev && node bin/www",
+    "test": "mocha --timeout 10000"
   },
   "dependencies": {
     "bcrypt": "^1.0.2",
     "body-parser": "~1.17.1",
+    "config": "^1.26.1",
+    "connect-busboy": "0.0.2",
     "cookie-parser": "~1.4.3",
     "debug": "~2.6.3",
     "express": "~4.15.2",
     "express-session": "^1.15.2",
+    "formidable": "^1.1.1",
+    "http-status-codes": "^1.1.6",
     "jade": "~1.11.0",
     "mongodb": "^2.2.26",
     "mongoose": "^4.9.8",
     "morgan": "~1.8.1",
+    "path": "^0.12.7",
     "serve-favicon": "~2.4.2"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "chai-http": "^3.0.0",
+    "mocha": "^3.4.1"
   }
 }
