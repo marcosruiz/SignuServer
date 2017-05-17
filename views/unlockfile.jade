@@ -1,0 +1,13 @@
+extends layout
+
+block content
+  h1= title
+  div
+    form(action='api/pdfs/unlock', method='post')
+      input(type='hidden', name='_method', value='put')
+      div(data-role='fieldcontain')
+        fieldset(data-role='controlgroup')
+          label(for='pdf_id') pdf_id
+            input(id='pdf_id',type='text',name='pdf_id')
+      div(data-role='fieldcontain')
+        input(type='submit',value='Unlock file',data-transition='fade', data-theme='c')

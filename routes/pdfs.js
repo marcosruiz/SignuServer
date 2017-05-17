@@ -1,7 +1,7 @@
 /**
  * Created by Marcos on 11/05/2017.
  */
-
+"use strict";
 var express = require('express');
 var router = express.Router();
 var fs = require('fs');
@@ -10,89 +10,219 @@ const path = require('path');
 var multer = require('multer');
 var upload = multer({dest: 'uploads/'});
 var HttpStatus = require('http-status-codes');
-//var CheckPreconditions = require("check-preconditions");
-//var check = CheckPreconditions.check;
-
+var sendStandardError = require('./index').sendStandardError;
+var thisSession;
+var newPdf;
 
 router.get('/:id', function (req, res, next) {
     Pdf.findById(req.params.id, function (err, pdf) {
         if (err) {
             sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
         } else {
-            res.download("uploads/" + req.params.id, pdf.original_name);
+            res.download(pdf.path, pdf.original_name);
         }
     });
 });
 
-
-router.post('/', upload.single('pdf'), function (req, res, next) {
-    thisSession = req.session;
-    newPdf = new Pdf({
-        "original_name": req.file.originalname,
-        "mime_type": req.file.mimetype,
-        "file_name": req.file.filename,
-        "destination": req.file.destination,
-        "path": req.file.path,
-        "encoding": req.file.encoding,
-        "is_full_signed": false,
-        "creation_date": new Date(),
-        "someone_is_signing": false,
-        "owner_id": thisSession._id
-    });
-    newPdf.save(function (err, pdf) {
-        if (err) {
-            res.send("Error");
-        } else {
-            res.json(pdf);
-        }
-    });
-});
-
-router.put('/', function (req, res, next) {
-    // req.assert("session._id", "You are not logged").isMongoId();
-    var thisSession = req.session;
-    if(thisSession == null || thisSession == undefined || thisSession._id == undefined){
-        sendStandardError(res, HttpStatus.UNAUTHORIZED);
-        return;
+router.post('/unlock', function(req, res, next){
+    if (req.body._method == 'put') {
+        unlockPdf(req, res);
     }
-    // req.checkBody("email", "Enter a valid email address").optional().isEmail();
-    // req.checkBody("pdf_id", "Enter a valid pdf_id").isMongoId();
-    //
-    // var errors = req.validationErrors();
-    // if (errors) {
-    //     res.status(HttpStatus.BAD_REQUEST).json({"error": {"code": HttpStatus.BAD_REQUEST, "messages": errors}});
-    //     return;
-    // }
-    //res.status(200).send("ok");
 });
 
-router.delete('/', function (req, res, next) {
+function unlockPdf(req, res) {
+//TODO delete id_pdf from user collection
+    //TODO unlock pdf in 10 min
     thisSession = req.session;
-    check(thisSession._id).is.not.an.undefined();
-    Pdf.findById(req.body.pdf_id, function (err, pdf) {
-        if (err) {
-            res.send("No pdf found")
-        } else {
-            if (thisSession._id == pdf.owner_id) {
-                fs.unlink(pdf.path, function (err, result) {
-                    if (err) {
-                        res.send("It could not be deleted")
-                    } else {
-                        Pdf.findByIdAndRemove(req.body.pdf_id, function (err, result) {
-                            if (err) {
-                                res.send("It couldnt be deleted in database");
-                            } else {
-                                res.send("Deleted");
-                                // TODO hay que eliminar este pdf de todos los usuarios
-                            }
-                        })
-                    }
-                })
+    if (thisSession._id == undefined) {
+        sendStandardError(res, HttpStatus.UNAUTHORIZED);
+    } else {
+        var newPdf = {
+            "someone_is_signing": true,
+            "user_id_signing": thisSession._id
+        };
+        console.log(req.body.pdf_id);
+        Pdf.findOneAndUpdate({
+            "_id": req.body.pdf_id,
+            "someone_is_signing": false
+        }, newPdf, {new: true}, function (err, pdf) {
+            if (err) {
+                sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+            } else if (pdf == null) {
+                sendStandardError(res, HttpStatus.LOCKED);
             } else {
-                res.send("You are not the owner");
+                setTimeout(lockPdf, 10000, pdf._id); // 1 segundo de delay
+                res.json(pdf);
             }
+        });
+    }
+}
+/**
+ * This unlock pdf 10 minutes for this user
+ */
+router.put('/unlock', function (req, res, next) {
+    unlockPdf(req, res);
+});
+
+function lockPdf(pdf_id) {
+    console.log("No one is signing now");
+    newPdf = {"someone_is_signing": false};
+    Pdf.findByIdAndUpdate(pdf_id, newPdf, {new: true}, function (err, pdf) {
+        if (err) {
+
+        } else if (pdf == null) {
+
+        } else {
+            console.log(pdf);
         }
     });
+}
+
+/**
+ * Upload a new PDF
+ */
+function postPdf(req, res) {
+// TODO signers is mocked
+    thisSession = req.session;
+    if (thisSession._id == undefined) {
+        sendStandardError(res, HttpStatus.UNAUTHORIZED);
+    } else {
+        newPdf = new Pdf({
+            "original_name": req.file.originalname,
+            "mime_type": req.file.mimetype,
+            "file_name": req.file.filename,
+            "destination": req.file.destination,
+            "path": req.file.path,
+            "encoding": req.file.encoding,
+            "is_full_signed": false,
+            "total_signatures": 1,
+            "current_signatures": 0,
+            "creation_date": new Date(),
+            "someone_is_signing": false,
+            "owner_id": thisSession._id,
+            "signers": [{"signer_id": thisSession._id, "is_signed": false}]
+        });
+        newPdf.save(function (err, pdf) {
+            if (err) {
+                res.send("Error");
+            } else {
+                res.json(pdf);
+            }
+        });
+    }
+}
+
+/**
+ * This is necesary for HTML forms work fine
+ */
+router.post('/', upload.single('pdf'), function (req, res, next) {
+    if (req.body._method == 'delete') {
+        deletePdf(req, res, next); // Delete pdf
+    } else if (req.body._method == 'put') {
+        putPdf(req, res, next); // Update pdf
+    } else {
+        postPdf(req, res, next); // Upload pdf
+    }
+});
+
+function putPdf(req, res) {
+    thisSession = req.session;
+    req.checkBody("pdf_id", "Enter a valid pdf_id").isMongoId();
+    var err = req.validationErrors();
+    if (thisSession._id == undefined) {
+        sendStandardError(res, HttpStatus.UNAUTHORIZED);
+    } else if (err) {
+        sendStandardError(res, HttpStatus.BAD_REQUEST);
+    } else {
+        Pdf.findById(req.body.pdf_id, function (err, pdf) {
+            if (err) {
+                sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+            } else if (pdf == null) {
+                sendStandardError(res, HttpStatus.NOT_FOUND);
+            } else if (!pdf.someone_is_signing) {
+                sendStandardError(res, HttpStatus.LOCKED);
+            } else if (pdf.someone_is_signing && pdf.user_id_signing != thisSession._id) {
+                sendStandardError(res, HttpStatus.LOCKED);
+            } else if (pdf.total_signatues == pdf.current_signatures) {
+                sendStandardError(res, HttpStatus.FORBIDDEN);
+            } else {
+                var index = pdf.signers.indexOf(thisSession._id);
+                if (index < 0) {
+                    sendStandardError(res, HttpStatus.FORBIDDEN);
+                } else if (pdf.signers[index].is_signed) {
+                    sendStandardError(res, HttpStatus.FORBIDDEN);
+                } else {
+                    // Delete old file
+                    fs.unlink(pdf.path, function (err) {
+                        if (err) {
+                            sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+                        } else {
+                            // Update database
+                            pdf.path = req.file.path;
+                            pdf.file_name = req.file.filename;
+                            pdf.destination = req.file.destination;
+                            pdf.encoding = req.file.encoding;
+                            pdf.mime_type = req.file.mimetype;
+                            pdf.current_signatures = pdf.current_signatures + 1;
+                            pdf.someone_is_signing = false;
+                            pdf.signers[index].signer_id = thisSession._id;
+                            pdf.signers[index].is_signed = true;
+                            pdf.signers[index].signature_date = Date.now();
+                            Pdf.updateOne({_id: pdf._id}, pdf, function (err, num) {
+                                if (err) {
+                                    sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+                                } else {
+                                    res.json(pdf);
+                                }
+                            });
+                        }
+                    });
+                }
+            }
+        });
+    }
+}
+
+/**
+ * Update a PDF with one more signature
+ */
+router.put('/', upload.single('pdf'), function (req, res, next) {
+    putPdf(req, res);
+});
+
+function deletePdf(req, res) {
+    thisSession = req.session;
+    if (thisSession._id == undefined) {
+        sendStandardError(res, HttpStatus.UNAUTHORIZED);
+    } else {
+        Pdf.findById(req.body.pdf_id, function (err, pdf) {
+            if (err) {
+                res.send("No pdf found")
+            } else {
+                if (thisSession._id == pdf.owner_id) {
+                    fs.unlink(pdf.path, function (err, result) {
+                        if (err) {
+                            res.send("It could not be deleted")
+                        } else {
+                            Pdf.findByIdAndRemove(req.body.pdf_id, function (err, result) {
+                                if (err) {
+                                    res.send("It couldnt be deleted in database");
+                                } else {
+                                    res.send("Deleted");
+                                    // TODO hay que eliminar este pdf de todos los usuarios
+                                }
+                            });
+                        }
+                    });
+                } else {
+                    res.send("You are not the owner");
+                }
+            }
+        });
+    }
+}
+router.delete('/', function (req, res, next) {
+    deletePdf(req, res);
 });
 
 router.get('/status/:id', function (req, res, next) {

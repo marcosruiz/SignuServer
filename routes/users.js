@@ -3,8 +3,7 @@ var router = express.Router();
 var User = require('./models/user');
 var bcrypt = require('bcrypt');
 var HttpStatus = require('http-status-codes');
-var index = require('./index');
-var sendStandardError = index.sendStandardError;
+var sendStandardError = require('./index').sendStandardError;
 
 /* GET users listing. */
 var thisSession;
@@ -114,7 +113,7 @@ router.post('/login', function (req, res, next) {
 router.post('/logout', function (req, res, next) {
     var thisSession = req.session;
     console.log(thisSession);
-    if(thisSession._id != null){
+    if(thisSession._id != undefined){
         thisSession.destroy(function (err) {
             if (err) {
                 sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -133,7 +132,7 @@ router.post('/logout', function (req, res, next) {
  */
 router.get('/info', function (req, res, next) {
     thisSession = req.session;
-    if (thisSession._id == null) {
+    if (thisSession._id == undefined) {
         sendStandardError(res, HttpStatus.FORBIDDEN);
     } else {
         User.findById(thisSession._id, function (err, user) {
@@ -156,7 +155,7 @@ router.get('/info', function (req, res, next) {
 
 var deleteUser = function (req, res, next) {
     thisSession = req.session;
-    if(thisSession._id != null){
+    if(thisSession._id != undefined){
         User.findById(thisSession._id, function (err, user) {
             if (err) {
                 sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -199,7 +198,7 @@ router.delete('/', deleteUser);
 
 var putUser = function (req, res, next) {
     thisSession = req.session;
-    if(thisSession._id != null){
+    if(thisSession._id != undefined){
         User.findById(thisSession._id, function (err, user) {
             if (err) {
                 sendStandardError(res, HttpStatus.FORBIDDEN);
@@ -255,7 +254,7 @@ var putUser = function (req, res, next) {
 router.put('/', putUser);
 
 /**
- * This is need to HTML form works fine
+ * This is necesary for HTML forms work fine
  */
 router.post('/', function (req, res, next) {
     if (req.body._method == 'delete') {

@@ -10,13 +10,14 @@ const pdfSchema = new Schema({
     original_name: {type: String},
     owner_id: {type: ObjectId},
     mime_type: {type: String},
-    is_full_signed: {type: Boolean},
+    total_signatues: {type: Number},
+    current_signatures : {type: Number},
     file_name: {type: String, required: true, unique: true},
     path : {type: String},
     destination : {type: String},
     encoding : {type: String},
     someone_is_signing: {type: Boolean}, // this could be a Date
-    id_user_signing: {type: ObjectId},
+    user_id_signing: {type: ObjectId},
     creation_date : {type: Date},
     signers: [{signer_id: {type: ObjectId}, is_signed: {type: Boolean}, signature_date: {type: Date}}]
 });

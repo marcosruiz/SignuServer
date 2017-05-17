@@ -27,6 +27,14 @@ router.get('/uploadfile', function (req, res, next) {
     res.render('uploadfile', {title: 'Signu: Upload file'});
 });
 
+router.get('/updatefile', function (req, res, next) {
+    res.render('updatefile', {title: 'Signu: Update file'});
+});
+
+router.get('/unlockfile', function (req, res, next) {
+    res.render('unlockfile', {title: 'Signu: Unlock file'});
+});
+
 router.sendStandardError = function sendStandardError (res, status) {
     res.status(status).json({
         "error": {
