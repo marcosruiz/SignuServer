@@ -6,13 +6,15 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 var ObjectId = Schema.ObjectId;
 
-
 const pdfSchema = new Schema({
     original_name: {type: String},
-    creator_id: {type: ObjectId},
+    owner_id: {type: ObjectId},
     mime_type: {type: String},
     is_full_signed: {type: Boolean},
     file_name: {type: String, required: true, unique: true},
+    path : {type: String},
+    destination : {type: String},
+    encoding : {type: String},
     someone_is_signing: {type: Boolean}, // this could be a Date
     id_user_signing: {type: ObjectId},
     creation_date : {type: Date},

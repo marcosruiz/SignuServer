@@ -1,5 +1,6 @@
 var express = require('express');
 var router = express.Router();
+var HttpStatus = require('http-status-codes');
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
@@ -24,6 +25,16 @@ router.get('/update', function(req, res, next){
 
 router.get('/uploadfile', function (req, res, next) {
     res.render('uploadfile', {title: 'Signu: Upload file'});
-})
+});
+
+router.sendStandardError = function sendStandardError (res, status) {
+    res.status(status).json({
+        "error": {
+            "code": status,
+            "message": HttpStatus.getStatusText(status)
+        }
+    });
+};
 
 module.exports = router;
+

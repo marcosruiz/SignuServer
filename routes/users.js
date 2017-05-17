@@ -3,6 +3,8 @@ var router = express.Router();
 var User = require('./models/user');
 var bcrypt = require('bcrypt');
 var HttpStatus = require('http-status-codes');
+var index = require('./index');
+var sendStandardError = index.sendStandardError;
 
 /* GET users listing. */
 var thisSession;
@@ -40,7 +42,7 @@ router.post('/signup', function (req, res, next) {
             }
         });
     } else {
-        res.code(HttpStatus.UNAUTHORIZED).json({
+        res.status(HttpStatus.UNAUTHORIZED).json({
             "error": {
                 "code": HttpStatus.UNAUTHORIZED,
                 "message": "Passwords do not match"
@@ -61,7 +63,7 @@ router.post('/login', function (req, res, next) {
     };
     User.findOne(thisUser, function (err, user) {
         if (err) {
-            res.code(HttpStatus.INTERNAL_SERVER_ERROR).json({
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
                 "error": {
                     "code": HttpStatus.INTERNAL_SERVER_ERROR,
                     "message": "Error to connect to database"
@@ -111,7 +113,8 @@ router.post('/login', function (req, res, next) {
  */
 router.post('/logout', function (req, res, next) {
     var thisSession = req.session;
-    if(thisSession != null){
+    console.log(thisSession);
+    if(thisSession._id != null){
         thisSession.destroy(function (err) {
             if (err) {
                 sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -120,7 +123,7 @@ router.post('/logout', function (req, res, next) {
             }
         });
     } else{
-        sendStandardError(HttpStatus.FORBIDDEN);
+        sendStandardError(res, HttpStatus.FORBIDDEN);
     }
 
 });
@@ -151,15 +154,6 @@ router.get('/info', function (req, res, next) {
 });
 
 
-function sendStandardError(res, status) {
-    res.status(status).json({
-        "error": {
-            "code": status,
-            "message": HttpStatus.getStatusText(status)
-        }
-    });
-}
-
 var deleteUser = function (req, res, next) {
     thisSession = req.session;
     if(thisSession._id != null){
@@ -180,7 +174,7 @@ var deleteUser = function (req, res, next) {
                                 }
                             });
                         } else{
-                            res.code(HttpStatus.UNAUTHORIZED).json({
+                            res.status(HttpStatus.UNAUTHORIZED).json({
                                 "error": {
                                     "code": HttpStatus.UNAUTHORIZED,
                                     "message": "The password is incorrect"
