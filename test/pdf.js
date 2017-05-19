@@ -57,14 +57,14 @@ function checkError(res) {
     res.body.error.should.have.property('message');
     res.body.error.should.have.property('code');
 }
-var newUser, testUser, newPdf, testPdf;
+var testUser, testPdf;
 
 describe('Pdfs', function () {
     "use strict";
     before(function (done) { //Before each test we empty the database and let a test user
         User.remove({}, function (err) {
             // Add a test user
-            newUser = new User({
+            var newUser = new User({
                 "username": "test",
                 "password": "test",
                 "email": "test@test",
@@ -91,12 +91,14 @@ describe('Pdfs', function () {
             //This stay void
         });
 
+        //TODO DELETE ALL TEST FILES
+
     });
     /**
      * Test /POST route
      */
     describe('POST tests', function () {
-        it('it should POST a pdf', function (done) {
+        it('it should POST/UPLOAD a pdf', function (done) {
             var user = {
                 email: "test@test",
                 password: "test"
@@ -140,7 +142,34 @@ describe('Pdfs', function () {
                         });
                 });
         });
-        it('it should NOT POST a pdf due to you are not logged', function (done) {
+        it('it should UPDATE/SIGN a PDF', function (done) {
+            var user = {
+                email: "test@test",
+                password: "test"
+            };
+            var pdf = {
+                signers : [testUser._id]
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    checkIsUser(res);
+                    agent.put('/api/pdfs/unlock/' + testPdf._id)
+                        .end(function(err, res){
+                            agent.put('/api/pdfs/' + testPdf._id)
+                                .set('content-type', 'multipart/form-data')
+                                .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
+                                .end(function (err, res) {
+                                    checkIsPdf(res);
+                                    res.body.signers.length.should.be.eql(1);
+                                    res.body.signers.pop().is_signed.should.be.eql(true);
+                                    done();
+                                });
+                        });
+                });
+        });
+        it('it should NOT POST/ NOT UPLOAD a pdf due to you are not logged', function (done) {
             var pdf = {
                 "signers" : [testUser._id]
             };
@@ -155,4 +184,26 @@ describe('Pdfs', function () {
                 });
         });
     });
+
+    describe('GET tests', function () {
+        it('it should GET INFO of a pdf', function (done) {
+            var user = {
+                email: "test@test",
+                password: "test"
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    checkIsUser(res);
+                    agent.get('/api/pdfs/status/' + testPdf._id)
+                        .end(function(err, res){
+                            checkIsPdf(res);
+                            done();
+                        });
+                });
+        });
+
+    });
+
 });
