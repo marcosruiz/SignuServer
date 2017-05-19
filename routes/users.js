@@ -113,15 +113,15 @@ router.post('/login', function (req, res, next) {
 router.post('/logout', function (req, res, next) {
     var thisSession = req.session;
     console.log(thisSession);
-    if(thisSession._id != undefined){
+    if (thisSession._id != undefined) {
         thisSession.destroy(function (err) {
             if (err) {
                 sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
             } else {
-                res.json({"message" : "Logged out correctly"});
+                res.json({"message": "Logged out correctly"});
             }
         });
-    } else{
+    } else {
         sendStandardError(res, HttpStatus.FORBIDDEN);
     }
 
@@ -139,11 +139,11 @@ router.get('/info', function (req, res, next) {
             if (err) {
                 sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
             } else {
-                if(user != null){
+                if (user != null) {
                     user._id = undefined;
                     user.password = undefined;
                     res.json(user);
-                } else{
+                } else {
                     sendStandardError(res, HttpStatus.NOT_FOUND);
                 }
 
@@ -155,7 +155,7 @@ router.get('/info', function (req, res, next) {
 
 var deleteUser = function (req, res, next) {
     thisSession = req.session;
-    if(thisSession._id != undefined){
+    if (thisSession._id != undefined) {
         User.findById(thisSession._id, function (err, user) {
             if (err) {
                 sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -164,15 +164,15 @@ var deleteUser = function (req, res, next) {
                     if (err) {
                         sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
                     } else {
-                        if(isMatch){
+                        if (isMatch) {
                             User.findByIdAndRemove(thisSession._id, function (err) {
                                 if (err) {
                                     sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
                                 } else {
-                                    res.json({"message" : "User deleted"});
+                                    res.json({"message": "User deleted"});
                                 }
                             });
-                        } else{
+                        } else {
                             res.status(HttpStatus.UNAUTHORIZED).json({
                                 "error": {
                                     "code": HttpStatus.UNAUTHORIZED,
@@ -185,7 +185,7 @@ var deleteUser = function (req, res, next) {
                 });
             }
         });
-    } else{
+    } else {
         sendStandardError(res, HttpStatus.FORBIDDEN);
     }
 
@@ -198,12 +198,12 @@ router.delete('/', deleteUser);
 
 var putUser = function (req, res, next) {
     thisSession = req.session;
-    if(thisSession._id != undefined){
+    if (thisSession._id != undefined) {
         User.findById(thisSession._id, function (err, user) {
             if (err) {
                 sendStandardError(res, HttpStatus.FORBIDDEN);
             } else {
-                if(user!=null){
+                if (user != null) {
                     if (req.body.name != null && req.body.name != '') {
                         user.name = req.body.name;
                     }
@@ -225,10 +225,10 @@ var putUser = function (req, res, next) {
                         if (err) {
                             sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
                         } else {
-                            User.findById(thisSession._id, function(err, user){
-                                if(err){
+                            User.findById(thisSession._id, function (err, user) {
+                                if (err) {
                                     sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
-                                } else{
+                                } else {
                                     user.password = undefined;
                                     user._id = undefined;
                                     res.json(user);
@@ -236,13 +236,13 @@ var putUser = function (req, res, next) {
                             });
                         }
                     })
-                }else{
+                } else {
                     sendStandardError(res, HttpStatus.NOT_FOUND);
                 }
 
             }
         });
-    } else{
+    } else {
         sendStandardError(res, HttpStatus.FORBIDDEN);
     }
 
@@ -265,5 +265,14 @@ router.post('/', function (req, res, next) {
         sendStandardError(res, HttpStatus.BAD_REQUEST);
     }
 });
+
+router.signPdf = function (user_id, pdf_id, callback) {
+    User.findByIdAndUpdate(user_id, {
+        $pull: {"pdfs_to_sign": {"pdf_id": pdf_id}},
+        $push: {"pdfs_signed": {"pdf_id": pdf_id}}
+    }, {safe: true, new: true}, callback);
+};
+
+
 
 module.exports = router;

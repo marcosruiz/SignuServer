@@ -51,7 +51,7 @@ function unlockPdf(req, res) {
             } else if (pdf == null) {
                 sendStandardError(res, HttpStatus.LOCKED);
             } else {
-                setTimeout(lockPdf, 10000, pdf._id); // 1 segundo de delay
+                setTimeout(lockPdf, 60000, pdf._id); // 60 segundos de delay
                 res.json(pdf);
             }
         });
@@ -67,22 +67,13 @@ router.put('/unlock', function (req, res, next) {
 function lockPdf(pdf_id) {
     console.log("No one is signing now");
     newPdf = {"someone_is_signing": false};
-    Pdf.findByIdAndUpdate(pdf_id, newPdf, {new: true}, function (err, pdf) {
-        if (err) {
-
-        } else if (pdf == null) {
-
-        } else {
-            console.log(pdf);
-        }
-    });
+    Pdf.findByIdAndUpdate(pdf_id, newPdf, {new: true});
 }
 
 /**
  * Upload a new PDF
  */
 function postPdf(req, res) {
-// TODO signers is mocked
     thisSession = req.session;
     if (thisSession._id == undefined) {
         sendStandardError(res, HttpStatus.UNAUTHORIZED);
@@ -95,18 +86,57 @@ function postPdf(req, res) {
             "path": req.file.path,
             "encoding": req.file.encoding,
             "is_full_signed": false,
-            "total_signatures": 1,
+            "total_signatures": 0,
             "current_signatures": 0,
             "creation_date": new Date(),
             "someone_is_signing": false,
             "owner_id": thisSession._id,
-            "signers": [{"signer_id": thisSession._id, "is_signed": false}]
+            "signers" : []
         });
+        console.log(req.body);
+
         newPdf.save(function (err, pdf) {
             if (err) {
-                res.send("Error");
+                sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
             } else {
                 res.json(pdf);
+            }
+        });
+    }
+}
+router.patch('/addsigners/:pdf_id', upload.single('pdf'), addSignersToPdf);
+
+function addSignersToPdf(req, res, next){
+    thisSession = req.session;
+    if (thisSession._id == undefined) {
+        sendStandardError(res, HttpStatus.UNAUTHORIZED);
+    } else {
+        Pdf.findById(req.params.pdf_id, function(err, pdf){
+            if(err){
+                sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+            }else if(pdf.owner_id != thisSession._id){
+                sendStandardError(res, HttpStatus.FORBIDDEN);
+            }else{
+                newPdf = {
+                    "total_signatures" : 0,
+                    "signers" : []
+                };
+                req.body.signers.forEach(function (id) {
+                    var item= {
+                        "user_id" : id,
+                        "is_signed" : false
+                    }
+                    newPdf.total_signatures = newPdf.total_signatures + 1;
+                    newPdf.signers.push(item);
+                });
+                Pdf.findByIdAndUpdate(req.params.pdf_id, newPdf, {new : true}, function(err, pdf){
+                    if(err){
+                        console.log(err);
+                        sendStandardError(res, HttpStatus.NOT_FOUND);
+                    }else{
+                        res.json(pdf);
+                    }
+                });
             }
         });
     }
@@ -168,7 +198,7 @@ function putPdf(req, res) {
                             pdf.signers[index].signer_id = thisSession._id;
                             pdf.signers[index].is_signed = true;
                             pdf.signers[index].signature_date = Date.now();
-                            Pdf.updateOne({_id: pdf._id}, pdf, function (err, num) {
+                            Pdf.findByIdAndUpdate(pdf._id, pdf, {new: true}, function (err, pdf) {
                                 if (err) {
                                     sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
                                 } else {

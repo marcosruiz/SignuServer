@@ -5,8 +5,11 @@
 //During the test the env variable is set to test
 process.env.NODE_ENV = 'test';
 
-var mongoose = require("mongoose");
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
+var ObjectId = Schema.ObjectId;
 var User = require('../routes/models/user');
+var usersRoutes = require('../routes/users');
 
 //Require the dev-dependencies
 var chai = require('chai');
@@ -26,10 +29,10 @@ function checkIsUser(res) {
     res.body.should.have.property('username');
     res.body.should.have.property('pdfs_to_sign');
     res.body.pdfs_to_sign.should.be.an.Array;
-    res.body.pdfs_to_sign.length.should.be.eql(0);
+    // res.body.pdfs_to_sign.length.should.be.eql(0);
     res.body.should.have.property('related_people');
     res.body.related_people.should.be.an.Array;
-    res.body.related_people.length.should.be.eql(0);
+    // res.body.related_people.length.should.be.eql(0);
 }
 
 function checkError(res) {
@@ -39,6 +42,8 @@ function checkError(res) {
     res.body.error.should.have.property('code');
 }
 describe('Users', function () {
+    var testUser;
+    var pdfToSignTest = ObjectId("591c93566182a7043ca08d60");
     beforeEach(function (done) { //Before each test we empty the database and let a test user
         User.remove({}, function (err) {
 
@@ -50,11 +55,17 @@ describe('Users', function () {
                 "name": "test",
                 "lastname": "test",
                 "creation_date": Date.now(),
-                "last_edition_date": Date.now()
+                "last_edition_date": Date.now(),
+                "pdfs_to_sign" : [{"pdf_id" : pdfToSignTest}],
+                "pdfs_signed" : [],
+                "pdfs_owned" : [],
+                "related_people" : []
             });
             newUser.save(function (err, user) {
                 if (err) {
                     console.log(err);
+                } else{
+                    testUser = user;
                 }
                 done();
             });
@@ -269,6 +280,28 @@ describe('Users', function () {
                     checkError(res);
                     done();
                 });
+        });
+    });
+
+    describe('from PDFS_TO_SIGN to PDFS_SIGNED tests', function () {
+        it('it should sign a PDF in users collection', function (done) {
+            User.findById(testUser._id, function(err, user){
+                "use strict";
+                user.should.have.property('_id');
+                user.pdfs_to_sign.length.should.be.eql(1);
+                user.pdfs_signed.length.should.be.eql(0);
+                usersRoutes.signPdf(testUser._id, pdfToSignTest, function (err, user) {
+                    user.should.have.property("_id");
+                    user.pdfs_to_sign.length.should.be.eql(0);
+                    user.pdfs_signed.length.should.be.eql(1);
+                    done();
+                });
+            })
+
+        });
+        it('it should NOT sign a PDF in users collection', function (done) {
+            "use strict";
+            done();
         });
     });
 });
