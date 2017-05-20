@@ -8,7 +8,8 @@ var fs = require('fs');
 var Pdf = require('./models/pdf');
 const path = require('path');
 var multer = require('multer');
-var upload = multer({dest: 'uploads/'});
+var config = require('config');
+var upload = multer({dest: config.uploads_dir});
 var HttpStatus = require('http-status-codes');
 var sendStandardError = require('./index').sendStandardError;
 var thisSession;
@@ -18,13 +19,29 @@ var newPdf;
  * Download pdf
  */
 router.get('/:pdf_id', function (req, res, next) {
-    Pdf.findById(req.params.pdf_id, function (err, pdf) {
-        if (err) {
-            sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
-        } else {
-            res.download(pdf.path, pdf.original_name);
-        }
-    });
+    thisSession = req.session;
+    if (thisSession._id == undefined) {
+        sendStandardError(res, HttpStatus.UNAUTHORIZED);
+    } else {
+        Pdf.findById(req.params.pdf_id, function (err, pdf) {
+            if (err) {
+                sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+            } else {
+                if (pdf.owner_id == thisSession._id) {
+                    res.download(pdf.path, pdf.original_name);
+                } else {
+                    var isSigner = pdf.signers.some(function (signer) {
+                        return signer.user_id == thisSession._id;
+                    });
+                    if (isSigner) {
+                        res.download(pdf.path, pdf.original_name);
+                    } else {
+                        sendStandardError(res, HttpStatus.UNAUTHORIZED);
+                    }
+                }
+            }
+        });
+    }
 });
 
 router.post('/unlock', function (req, res, next) {
@@ -47,7 +64,6 @@ function unlockPdf(req, res) {
             "someone_is_signing": true,
             "user_id_signing": thisSession._id
         };
-        console.log(req.params.pdf_id);
         Pdf.findOneAndUpdate({
             "_id": req.params.pdf_id,
             "someone_is_signing": false
@@ -103,7 +119,6 @@ function postPdf(req, res) {
             "owner_id": thisSession._id,
             "signers": []
         });
-        console.log(req.body);
 
         newPdf.save(function (err, pdf) {
             if (err) {
@@ -147,7 +162,6 @@ function addSignersToPdf(req, res, next) {
                 });
                 Pdf.findByIdAndUpdate(req.params.pdf_id, newPdf, {new: true}, function (err, pdf) {
                     if (err) {
-                        console.log(err);
                         sendStandardError(res, HttpStatus.NOT_FOUND);
                     } else {
                         res.json(pdf);
@@ -201,7 +215,7 @@ function putPdf(req, res) {
                     return item.user_id == thisSession._id;
                 });
                 var actualSigner = arraySigner[0];
-                var index  = pdf.signers.indexOf(actualSigner);
+                var index = pdf.signers.indexOf(actualSigner);
                 if (arraySigner.length < 1) {
                     sendStandardError(res, HttpStatus.FORBIDDEN);
                 } else if (actualSigner.is_signed) {
@@ -210,6 +224,7 @@ function putPdf(req, res) {
                     // Delete old file
                     fs.unlink(pdf.path, function (err) {
                         if (err) {
+                            console.log(err);
                             sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
                         } else {
                             // Update database
@@ -258,25 +273,26 @@ function deletePdf(req, res) {
     } else {
         Pdf.findById(req.params.pdf_id, function (err, pdf) {
             if (err) {
-                res.send("No pdf found")
+                sendStandardError(res, HttpStatus.NOT_FOUND);
             } else {
                 if (thisSession._id == pdf.owner_id) {
                     fs.unlink(pdf.path, function (err, result) {
                         if (err) {
-                            res.send("It could not be deleted")
+                            sendStandardError(res, HttpStatus.NOT_FOUND);
                         } else {
                             Pdf.findByIdAndRemove(req.params.pdf_id, function (err, result) {
                                 if (err) {
-                                    res.send("It couldnt be deleted in database");
+                                    sendStandardError(res, HttpStatus.NOT_FOUND);
                                 } else {
-                                    res.send("Deleted");
+                                    res.json({'message': 'Pdf deleted'});
                                     // TODO hay que eliminar este pdf de todos los usuarios
+
                                 }
                             });
                         }
                     });
                 } else {
-                    res.send("You are not the owner");
+                    sendStandardError(res, HttpStatus.UNAUTHORIZED);
                 }
             }
         });

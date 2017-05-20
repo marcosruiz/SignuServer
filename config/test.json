@@ -1,3 +1,5 @@
 {
-  "DBHost": "mongodb://localhost/test"
+  "DBHost": "mongodb://localhost/test",
+  "uploads_dir" : "uploads-test/",
+  "downloads_dir" : "downloads-test/"
 }
