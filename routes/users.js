@@ -266,12 +266,6 @@ router.post('/', function (req, res, next) {
     }
 });
 
-router.signPdf = function (user_id, pdf_id, callback) {
-    User.findByIdAndUpdate(user_id, {
-        $pull: {"pdfs_to_sign": {"pdf_id": pdf_id}},
-        $push: {"pdfs_signed": {"pdf_id": pdf_id}}
-    }, {safe: true, new: true}, callback);
-};
 
 
 

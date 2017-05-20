@@ -147,6 +147,7 @@ describe('Pdfs', function () {
                                 owner_id: testUser._id,
                                 mime_type: "application/pdf",
                                 total_signatures: 1,
+                                with_stamp: false,
                                 current_signatures: 1,
                                 file_name: "test2",
                                 path: config.uploads_dir + "test2",

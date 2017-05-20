@@ -16,7 +16,7 @@ const userSchema =  new Schema({
     name: {type: String},
     lastname: {type: String},
     last_edition_date: {type:Date},
-    creation_date: {type: Date},
+    creation_date: {type: Date, default: Date.now()},
     related_people : [{user_id: {type : ObjectId}}],
     pdfs_to_sign : [{pdf_id : {type : ObjectId}}],
     pdfs_signed : [{pdf_id : {type : ObjectId}}],

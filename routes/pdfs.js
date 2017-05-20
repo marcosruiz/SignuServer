@@ -6,6 +6,7 @@ var express = require('express');
 var router = express.Router();
 var fs = require('fs');
 var Pdf = require('./models/pdf');
+var User = require('./models/user');
 const path = require('path');
 var multer = require('multer');
 var config = require('config');
@@ -147,10 +148,12 @@ function addSignersToPdf(req, res, next) {
                 sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
             } else if (pdf.owner_id != thisSession._id) {
                 sendStandardError(res, HttpStatus.FORBIDDEN);
-            } else {
+            } else if(pdf.with_stamp && pdf.total_signatures != 0){
+                sendStandardError(res, HttpStatus.FORBIDDEN);
+            }  else {
                 newPdf = {
-                    "total_signatures": 0,
-                    "signers": []
+                    "total_signatures": pdf.total_signatures,
+                    "signers": pdf.signers
                 };
                 req.body.signers.forEach(function (id) {
                     var item = {
@@ -280,13 +283,12 @@ function deletePdf(req, res) {
                         if (err) {
                             sendStandardError(res, HttpStatus.NOT_FOUND);
                         } else {
-                            Pdf.findByIdAndRemove(req.params.pdf_id, function (err, result) {
+                            Pdf.findByIdAndRemove(req.params.pdf_id, function (err, pdf) {
                                 if (err) {
                                     sendStandardError(res, HttpStatus.NOT_FOUND);
                                 } else {
                                     res.json({'message': 'Pdf deleted'});
-                                    // TODO hay que eliminar este pdf de todos los usuarios
-
+                                    deletePdfOfAllUsers(pdf);
                                 }
                             });
                         }
@@ -314,5 +316,28 @@ router.get('/status/:id', function (req, res, next) {
         }
     });
 });
+
+/////////////////////////////////
+// User collection management //
+////////////////////////////////
+
+function deletePdfOfAllUsers(pdf) {
+    User.findByIdAndUpdate(pdf.owner_id, {$pull: {"pdfs_owned": {"pdf_id": pdf._id}}}, {safe: true});
+    pdf.signers.forEach(function (signer) {
+        if (signer.is_signed) {
+            User.findByIdAndUpdate(signer.user_id, {$pull: {"pdfs_to_sign": {"pdf_id": pdf._id}}}, {safe: true});
+        } else {
+            User.findByIdAndUpdate(signer.user_id, {$pull: {"pdfs_signed": {"pdf_id": pdf._id}}}, {safe: true});
+        }
+    });
+    User.findByIdAndUpdate()
+};
+
+function signPdf(user_id, pdf_id, callback) {
+    User.findByIdAndUpdate(user_id, {
+        $pull: {"pdfs_to_sign": {"pdf_id": pdf_id}},
+        $push: {"pdfs_signed": {"pdf_id": pdf_id}}
+    }, {safe: true, new: true}, callback);
+};
 
 module.exports = router;
