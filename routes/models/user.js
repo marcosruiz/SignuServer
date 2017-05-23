@@ -18,9 +18,10 @@ const userSchema =  new Schema({
     last_edition_date: {type:Date},
     creation_date: {type: Date, default: Date.now()},
     related_people : [{user_id: {type : ObjectId}}],
-    pdfs_to_sign : [{pdf_id : {type : ObjectId}}],
-    pdfs_signed : [{pdf_id : {type : ObjectId}}],
+    pdfs_to_sign : [{pdf_id : {type : ObjectId}}], // TODO remove
+    pdfs_signed : [{pdf_id : {type : ObjectId}}], // TODO remove
     pdfs_owned : [{pdf_id : {type : ObjectId}}]
+    //pdfs : [{pdf_id : {type : ObjectId}, signed : {type : Boolean}}]
 });
 
 userSchema.pre('save', function(next) {

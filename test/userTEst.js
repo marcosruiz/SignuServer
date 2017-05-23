@@ -17,29 +17,29 @@ var chaiHttp = require('chai-http');
 var server = require('../app');
 var should = chai.should();
 var HttpStatus = require('http-status-codes');
+var AppStatus = require('../routes/app-err-codes-en');
 
 chai.use(chaiHttp);
 //Our parent block
 function checkIsUser(res) {
     res.should.have.status(200);
     res.body.should.be.a('object');
-    res.body.should.have.property('name');
-    res.body.should.have.property('lastname');
-    res.body.should.have.property('email');
-    res.body.should.have.property('username');
-    res.body.should.have.property('pdfs_to_sign');
-    res.body.pdfs_to_sign.should.be.an.Array;
+    res.body.data.should.have.property('name');
+    res.body.data.should.have.property('lastname');
+    res.body.data.should.have.property('email');
+    res.body.data.should.have.property('username');
+    res.body.data.should.have.property('pdfs_to_sign');
+    res.body.data.pdfs_to_sign.should.be.an.Array;
     // res.body.pdfs_to_sign.length.should.be.eql(0);
-    res.body.should.have.property('related_people');
-    res.body.related_people.should.be.an.Array;
+    res.body.data.should.have.property('related_people');
+    res.body.data.related_people.should.be.an.Array;
     // res.body.related_people.length.should.be.eql(0);
 }
 
 function checkError(res) {
     res.body.should.be.a('object');
-    res.body.should.have.property('error');
-    res.body.error.should.have.property('message');
-    res.body.error.should.have.property('code');
+    res.body.should.have.property('message');
+    res.body.should.have.property('code');
 }
 describe('Users', function () {
     var testUser;
@@ -69,7 +69,6 @@ describe('Users', function () {
                 }
                 done();
             });
-
         });
 
     });
@@ -103,11 +102,10 @@ describe('Users', function () {
                 .post('/api/users/signup')
                 .send(user)
                 .end(function (err, res) {
-                    res.should.have.status(HttpStatus.INTERNAL_SERVER_ERROR);
+                    res.should.have.status(HttpStatus.BAD_REQUEST);
                     res.body.should.be.a('object');
-                    res.body.should.have.property('error');
-                    res.body.error.should.have.property('message');
-                    res.body.error.should.have.property('code');
+                    res.body.should.have.property('message');
+                    res.body.should.have.property('code', AppStatus.BAD_REQUEST);
                     done();
                 });
         });
@@ -124,6 +122,7 @@ describe('Users', function () {
                 .send(user)
                 .end(function (err, res) {
                     checkIsUser(res);
+                    console.log(res.body);
                     done();
                 });
         });
@@ -136,11 +135,10 @@ describe('Users', function () {
                 .post('/api/users/login')
                 .send(user)
                 .end(function (err, res) {
-                    res.should.have.status(404);
+                    res.should.have.status(HttpStatus.UNAUTHORIZED);
                     res.body.should.be.a('object');
-                    res.body.should.have.property('error');
-                    res.body.error.should.have.property('message');
-                    res.body.error.should.have.property('code');
+                    res.body.should.have.property('message');
+                    res.body.should.have.property('code', AppStatus.USER_NOT_FOUND);
                     done();
                 });
         });
@@ -155,6 +153,7 @@ describe('Users', function () {
                 .end(function (err, res) {
                     res.should.have.status(HttpStatus.UNAUTHORIZED);
                     checkError(res);
+                    res.body.should.have.property('code', AppStatus.INCORRECT_PASS);
                     done();
                 });
         });
@@ -178,18 +177,20 @@ describe('Users', function () {
                     agent.put('/api/users/')
                         .send(editedUser)
                         .end(function (err, res) {
+                            console.log(res.body);
                             checkIsUser(res);
-                            res.body.should.have.property('lastname', 'editedTest');
+                            res.body.data.should.have.property('lastname', 'editedTest');
                             done();
                         });
                 });
         });
-        it('it should NOT EDIT a user', function (done) {
+        it('it should NOT EDIT a user cause I am not logged', function (done) {
             var agent = chai.request.agent(server);
             agent.put('/api/users')
                 .end(function (err, res) {
-                    res.should.have.status(HttpStatus.FORBIDDEN);
+                    res.should.have.status(HttpStatus.UNAUTHORIZED);
                     checkError(res);
+                    res.body.should.have.property('code', AppStatus.NOT_LOGGED);
                     done();
                 });
         });
@@ -216,8 +217,9 @@ describe('Users', function () {
             var agent = chai.request.agent(server);
             agent.get('/api/users/info')
                 .end(function (err, res) {
-                    res.should.have.status(HttpStatus.FORBIDDEN);
+                    res.should.have.status(HttpStatus.UNAUTHORIZED);
                     checkError(res);
+                    res.body.should.have.property('code', AppStatus.NOT_LOGGED);
                     done();
                 });
         });
@@ -246,8 +248,9 @@ describe('Users', function () {
             var agent = chai.request.agent(server);
             agent.delete('/api/users/')
                 .end(function (err, res) {
-                    res.should.have.status(HttpStatus.FORBIDDEN);
+                    res.should.have.status(HttpStatus.UNAUTHORIZED);
                     checkError(res);
+                    res.body.should.have.property('code', AppStatus.NOT_LOGGED);
                     done();
                 });
         });
@@ -276,8 +279,9 @@ describe('Users', function () {
             var agent = chai.request.agent(server);
             agent.delete('/api/users/')
                 .end(function (err, res) {
-                    res.should.have.status(HttpStatus.FORBIDDEN);
+                    res.should.have.status(HttpStatus.UNAUTHORIZED);
                     checkError(res);
+                    res.body.should.have.property('code', AppStatus.NOT_LOGGED);
                     done();
                 });
         });
