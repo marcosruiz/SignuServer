@@ -24,15 +24,15 @@ chai.use(chaiHttp);
 function checkIsUser(res) {
     res.should.have.status(200);
     res.body.should.be.a('object');
-    res.body.data.should.have.property('name');
-    res.body.data.should.have.property('lastname');
-    res.body.data.should.have.property('email');
-    res.body.data.should.have.property('username');
-    res.body.data.should.have.property('pdfs_to_sign');
-    res.body.data.pdfs_to_sign.should.be.an.Array;
+    res.body.user.should.have.property('name');
+    res.body.user.should.have.property('lastname');
+    res.body.user.should.have.property('email');
+    res.body.user.should.have.property('username');
+    res.body.user.should.have.property('pdfs_sign');
+    res.body.user.pdfs_sign.should.be.an.Array;
     // res.body.pdfs_to_sign.length.should.be.eql(0);
-    res.body.data.should.have.property('related_people');
-    res.body.data.related_people.should.be.an.Array;
+    res.body.user.should.have.property('related_people');
+    res.body.user.related_people.should.be.an.Array;
     // res.body.related_people.length.should.be.eql(0);
 }
 
@@ -54,17 +54,18 @@ describe('Users', function () {
                 "email": "test@test",
                 "name": "test",
                 "lastname": "test",
+                "activated": true,
                 "creation_date": Date.now(),
                 "last_edition_date": Date.now(),
-                "pdfs_to_sign" : [{"pdf_id" : pdfToSignTest}],
-                "pdfs_signed" : [],
-                "pdfs_owned" : [],
-                "related_people" : []
+                "pdfs_to_sign": [{"pdf_id": pdfToSignTest}],
+                "pdfs_signed": [],
+                "pdfs_owned": [],
+                "related_people": []
             });
             newUser.save(function (err, user) {
                 if (err) {
                     console.log(err);
-                } else{
+                } else {
                     testUser = user;
                 }
                 done();
@@ -78,10 +79,8 @@ describe('Users', function () {
     describe('SINGUP tests', function () {
         it('it should POST a user', function (done) {
             var user = {
-                email: "pass@pass",
+                email: "sobrenombre@gmail.com",
                 username: "pass",
-                password: "pass",
-                password2: "pass",
                 name: "pass",
                 lastname: "pass"
             };
@@ -89,7 +88,9 @@ describe('Users', function () {
                 .post('/api/users/signup')
                 .send(user)
                 .end(function (err, res) {
-                    checkIsUser(res);
+                    console.log(res.body);
+                    res.body.should.have.property('code', 0);
+                    res.body.should.have.property('message');
                     done();
                 });
         });
@@ -121,6 +122,7 @@ describe('Users', function () {
                 .post('/api/users/login')
                 .send(user)
                 .end(function (err, res) {
+                    console.log(res.body);
                     checkIsUser(res);
                     console.log(res.body);
                     done();
@@ -174,19 +176,19 @@ describe('Users', function () {
             agent.post('/api/users/login')
                 .send(user)
                 .end(function (err, res) {
-                    agent.put('/api/users/')
+                    agent.patch('/api/users/')
                         .send(editedUser)
                         .end(function (err, res) {
                             console.log(res.body);
                             checkIsUser(res);
-                            res.body.data.should.have.property('lastname', 'editedTest');
+                            res.body.user.should.have.property('lastname', 'editedTest');
                             done();
                         });
                 });
         });
         it('it should NOT EDIT a user cause I am not logged', function (done) {
             var agent = chai.request.agent(server);
-            agent.put('/api/users')
+            agent.patch('/api/users')
                 .end(function (err, res) {
                     res.should.have.status(HttpStatus.UNAUTHORIZED);
                     checkError(res);
@@ -225,8 +227,8 @@ describe('Users', function () {
         });
     });
 
-    describe('DELETE user tests', function () {
-        it('it should DELETE a user', function (done) {
+    describe('DESACTIVATE user tests', function () {
+        it('it should DESACTIVATE a user', function (done) {
             var user = {
                 email: "test@test",
                 password: "test"
@@ -235,22 +237,24 @@ describe('Users', function () {
             agent.post('/api/users/login')
                 .send(user)
                 .end(function (err, res) {
-                    agent.delete('/api/users')
+                    agent.patch('/api/users/desactivate')
                         .send(user)
                         .end(function (err, res) {
                             res.should.have.status(HttpStatus.OK);
-                            res.body.should.have.property('message', 'User deleted');
+                            res.body.should.have.property('code', 0);
+                            res.body.should.have.property('message');
                             done();
                         });
                 });
         });
-        it('it should NOT DELETE a user', function (done) {
+        it('it should NOT DESACTIVATE a user', function (done) {
             var agent = chai.request.agent(server);
-            agent.delete('/api/users/')
+            agent.patch('/api/users/desactivate')
                 .end(function (err, res) {
                     res.should.have.status(HttpStatus.UNAUTHORIZED);
                     checkError(res);
                     res.body.should.have.property('code', AppStatus.NOT_LOGGED);
+                    res.body.should.have.property('message');
                     done();
                 });
         });
@@ -277,35 +281,13 @@ describe('Users', function () {
         });
         it('it should NOT LOGOUT a user', function (done) {
             var agent = chai.request.agent(server);
-            agent.delete('/api/users/')
+            agent.post('/api/users/logout')
                 .end(function (err, res) {
                     res.should.have.status(HttpStatus.UNAUTHORIZED);
                     checkError(res);
                     res.body.should.have.property('code', AppStatus.NOT_LOGGED);
                     done();
                 });
-        });
-    });
-
-    describe('from PDFS_TO_SIGN to PDFS_SIGNED tests', function () {
-        it('it should sign a PDF in users collection', function (done) {
-            User.findById(testUser._id, function(err, user){
-                "use strict";
-                user.should.have.property('_id');
-                user.pdfs_to_sign.length.should.be.eql(1);
-                user.pdfs_signed.length.should.be.eql(0);
-                usersRoutes.signPdf(testUser._id, pdfToSignTest, function (err, user) {
-                    user.should.have.property("_id");
-                    user.pdfs_to_sign.length.should.be.eql(0);
-                    user.pdfs_signed.length.should.be.eql(1);
-                    done();
-                });
-            })
-
-        });
-        it('it should NOT sign a PDF in users collection', function (done) {
-            "use strict";
-            done();
         });
     });
 });

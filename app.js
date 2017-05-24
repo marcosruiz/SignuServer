@@ -7,11 +7,11 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
 var expressValidator = require('express-validator');
-
 var index = require('./routes/index');
 var users = require('./routes/users');
 var pdfs = require('./routes/pdfs');
 var config = require('config');
+var nodemailer = require('nodemailer');
 
 var app = express();
 

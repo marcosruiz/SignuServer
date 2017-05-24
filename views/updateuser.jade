@@ -4,7 +4,7 @@ block content
   h1= title
   div
     form(action='api/users', method='post', enctype='application/x-www-form-urlencoded')
-      input(type='hidden', name='_method', value='put')
+      input(type='hidden', name='_method', value='patch')
       div(data-role='fieldcontain')
         fieldset(data-role='controlgroup')
           label(for='name') name
@@ -13,10 +13,6 @@ block content
         fieldset(data-role='controlgroup')
           label(for='lastname') lastname
             input(id='lastname',type='text',value='',placeholder='Lastname',name='lastname')
-      div(data-role='fieldcontain')
-        fieldset(data-role='controlgroup')
-          label(for='email') email
-            input(id='email',type='text',value='',placeholder='Email',name='email')
       div(data-role='fieldcontain')
         fieldset(data-role='controlgroup')
           label(for='password') password

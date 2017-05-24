@@ -16,6 +16,10 @@ statusCodes[exports.BAD_REQUEST = 1003] = "Bad request";
 statusCodes[exports.DATABASE_ERROR = 1004] = "Database error";
 statusCodes[exports.NOT_LOGGED = 1005] = "You are not logged";
 statusCodes[exports.USER_NOT_FOUND = 1006] = "User not found";
+statusCodes[exports.PASS_NOT_MATCH = 1007] = "Passwords do not match";
+statusCodes[exports.AC_NOT_MATCH = 1008] = "Activation codes do not match";
+statusCodes[exports.USER_DESACTIVATED = 1009] = "This user is desactivated";
+
 
 
 

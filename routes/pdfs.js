@@ -148,9 +148,9 @@ function addSignersToPdf(req, res, next) {
                 sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
             } else if (pdf.owner_id != thisSession._id) {
                 sendStandardError(res, HttpStatus.FORBIDDEN);
-            } else if(pdf.with_stamp && pdf.total_signatures != 0){
+            } else if (pdf.with_stamp && pdf.total_signatures != 0) {
                 sendStandardError(res, HttpStatus.FORBIDDEN);
-            }  else {
+            } else {
                 newPdf = {
                     "total_signatures": pdf.total_signatures,
                     "signers": pdf.signers
@@ -173,6 +173,16 @@ function addSignersToPdf(req, res, next) {
             }
         });
     }
+}
+
+function generateRandomString() {
+    var text = "";
+    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+    for (var i = 0; i < 5; i++)
+        text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+    return text;
 }
 
 /**

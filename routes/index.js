@@ -35,6 +35,10 @@ router.get('/unlockfile', function (req, res, next) {
     res.render('unlockfile', {title: 'Signu: Unlock file'});
 });
 
+router.get('/activateuser', function (req, res, next) {
+    res.render('activateuser', {title: 'Signu: Activate user'});
+});
+
 router.sendStandardError = function sendStandardError (res, status) {
     res.status(status).json({
         "error": {
