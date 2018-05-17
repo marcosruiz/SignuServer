@@ -1,11 +1,11 @@
 var express = require('express');
 var router = express.Router();
 var nodemailer = require('nodemailer');
-var User = require('./models/user');
-var Pdf = require('./models/pdf');
+var User = require('../public/routes/models/user');
+var Pdf = require('../public/routes/models/pdf');
 var bcrypt = require('bcrypt');
 var HttpStatus = require('http-status-codes');
-var AppStatus = require('./app-err-codes-en');
+var AppStatus = require('../public/routes/app-err-codes-en');
 var sendStandardError = require('./index').sendStandardError;
 
 /* GET users listing. */

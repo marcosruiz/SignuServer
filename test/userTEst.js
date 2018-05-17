@@ -8,7 +8,7 @@ process.env.NODE_ENV = 'test';
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 var ObjectId = Schema.ObjectId;
-var User = require('../routes/models/user');
+var User = require('../public/routes/models/user');
 var usersRoutes = require('../routes/users');
 
 //Require the dev-dependencies
@@ -17,7 +17,7 @@ var chaiHttp = require('chai-http');
 var server = require('../app');
 var should = chai.should();
 var HttpStatus = require('http-status-codes');
-var AppStatus = require('../routes/app-err-codes-en');
+var AppStatus = require('../public/routes/app-err-codes-en');
 
 chai.use(chaiHttp);
 //Our parent block
@@ -88,9 +88,9 @@ describe('Users', function () {
                 .post('/api/users/signup')
                 .send(user)
                 .end(function (err, res) {
-                    console.log(res.body);
                     res.body.should.have.property('code', 0);
                     res.body.should.have.property('message');
+                    console.log(res.body);
                     done();
                 });
         });
@@ -122,9 +122,7 @@ describe('Users', function () {
                 .post('/api/users/login')
                 .send(user)
                 .end(function (err, res) {
-                    console.log(res.body);
                     checkIsUser(res);
-                    console.log(res.body);
                     done();
                 });
         });

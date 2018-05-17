@@ -12,7 +12,7 @@ var multer = require('multer');
 var config = require('config');
 var upload = multer({dest: config.uploads_dir});
 var HttpStatus = require('http-status-codes');
-var sendStandardError = require('./index').sendStandardError;
+var sendStandardError = require('../../routes/index').sendStandardError;
 var thisSession;
 var newPdf;
 
