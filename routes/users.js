@@ -1,3 +1,5 @@
+"use strict";
+
 var express = require('express');
 var router = express.Router();
 var nodemailer = require('nodemailer');
@@ -21,7 +23,6 @@ function getJsonAppError(code) {
 }
 
 function checkUser(user) {
-    "use strict";
     // Update pdfs
     if (user.pdfs_sign != undefined) {
         user.pdfs_sign.forEach(function (pdf_id) {
@@ -58,6 +59,7 @@ router.post('/signup', function (req, res, next) {
         res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
     } else {
         var randomString = generateRandomString(5);
+        var thisUser;
         thisUser = new User({
             "username": req.body.username,
             "email": req.body.email,
@@ -66,7 +68,7 @@ router.post('/signup', function (req, res, next) {
             "creation_date": Date.now(),
             "last_edition_date": Date.now(),
             "activated": false,
-            "activation_code": randomString
+            "password": randomString
         });
         thisUser.save(function (err, user) {
             if (err) {
@@ -98,28 +100,57 @@ function generateRandomString(length) {
 }
 
 function sendEmail(email, randomString) {
-    var transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: 'sobrenombre@gmail.com',
-            pass: 'YecaARe20dEGo'
+    // Read file email.txt with email and password
+    var i = 0;
+    var inputFile = "./routes/email.txt";
+    var fromEmail;
+    var fromPass;
+
+    var fs = require('fs'),
+        readline = require('readline'),
+        instream = fs.createReadStream(inputFile),
+        outstream = new (require('stream'))(),
+        rl = readline.createInterface(instream, outstream);
+
+    rl.on('line', function (line) {
+        if(i==1){
+            fromEmail = line;
+        } else if(i ==2){
+            fromPass = line;
         }
+        i++;
     });
 
-    var mailOptions = {
-        from: 'sobrenombre@gmail.com',
-        to: email,
-        subject: 'Activate your user in Signu',
-        text: 'Here you have your activation code to finish your autentication: ' + randomString + '. Check it in /activateuser',
-    };
+    rl.on('close', function (line) {
+        console.log('done reading file.');
 
-    transporter.sendMail(mailOptions, function (error, info) {
-        if (error) {
-            console.log(error);
-        } else {
-            console.log('Email sent: ' + info.response);
-        }
+        // Send mail
+        var transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: fromEmail,
+                pass: fromPass
+            },
+            tls: { rejectUnauthorized: false}
+        });
+
+        var mailOptions = {
+            from: fromEmail,
+            to: email,
+            subject: 'Activate your user in Signu',
+            text: 'Here you have your activation code to finish your autentication: ' + randomString + '. Check it in /activateuser',
+        };
+
+        transporter.sendMail(mailOptions, function (error, info) {
+            if (error) {
+                console.log(error);
+            } else {
+                console.log('Email sent: ' + info.response);
+            }
+        });
     });
+
+
 }
 
 router.post('/authemail', function (req, res, next) {
@@ -197,6 +228,7 @@ function authUser(req, res, next) {
  */
 router.post('/login', function (req, res, next) {
     thisSession = req.session;
+    var thisUser;
     thisUser = {
         "email": req.body.email
     };

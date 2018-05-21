@@ -1,0 +1,3 @@
+# Here you have your email and password one in each line
+putYourEmailHere@gmail.com
+putYourPassHere
