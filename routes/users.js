@@ -14,7 +14,6 @@ var sendStandardError = require('./index').sendStandardError;
 var thisSession;
 
 function getJsonAppError(code) {
-    "use strict";
     var res = {
         "code": code,
         "message": AppStatus.getStatusText(code)
@@ -35,6 +34,7 @@ function checkUser(user) {
             });
         });
     }
+    // Update related users
     if (user.related_users != undefined) {
         user.related_users.forEach(function (pdf_id) {
             Pdf.findById(pdf_id, function (err, pdf) {
@@ -50,7 +50,6 @@ function checkUser(user) {
     return;
 }
 
-
 /**
  * Create a new user
  */
@@ -61,7 +60,6 @@ router.post('/signup', function (req, res, next) {
         var randomString = generateRandomString(5);
         var thisUser;
         thisUser = new User({
-            "username": req.body.username,
             "email": req.body.email,
             "name": req.body.name,
             "lastname": req.body.lastname,
@@ -79,7 +77,7 @@ router.post('/signup', function (req, res, next) {
             } else {
                 // thisSession._id = user._id; // Uncomment if you want to start a session
                 sendEmail(req.body.email, randomString);
-                // TODO desactivate user at 24 hours
+                // TODO desactivate user at 24 hours??
                 user._id = undefined;
                 res.json({
                     "code": AppStatus.SUCCESS,
@@ -138,7 +136,7 @@ function sendEmail(email, randomString) {
             from: fromEmail,
             to: email,
             subject: 'Activate your user in Signu',
-            text: 'Here you have your activation code to finish your autentication: ' + randomString + '. Check it in /activateuser',
+            text: 'Here you have your password to finish your autentication: ' + randomString + '. Check it in /activateuser. We recommend you to change your password after your first login',
         };
 
         transporter.sendMail(mailOptions, function (error, info) {
@@ -240,13 +238,15 @@ router.post('/login', function (req, res, next) {
                 res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
             } else if (user == undefined) {
                 res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
-            } else if (!user.activated) {
-                res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_DESACTIVATED))
             } else {
                 user.comparePassword(req.body.password, function (err, isMatch) {
                     if (err) {
                         res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.INCORRECT_PASS));
                     } else if (isMatch) {
+                        if(!user.activated){
+                            user.activated = true;
+                            User.findByIdAndUpdate(user._id,  {activated: true});
+                        }
                         thisSession._id = user._id;
                         checkUser(user);
                         user._id = undefined;
@@ -350,7 +350,9 @@ router.get('/info', function (req, res, next) {
     }
 });
 
-
+/**
+ * Desactivate a user: put to false activated flag
+ */
 var desactivateUser = function (req, res, next) {
     thisSession = req.session;
     if (thisSession._id != undefined) {
@@ -393,10 +395,7 @@ router.post('/desactivate', function (req, res, next) {
 });
 
 /**
- * Edit user
- * @param req
- * @param res
- * @param next
+ * Edit user (name, lastname or password)
  */
 var editUser = function (req, res, next) {
     thisSession = req.session;
@@ -415,9 +414,6 @@ var editUser = function (req, res, next) {
                     if (req.body.password != null && req.body.password != '' && req.body.password == req.body.password2) {
                         user.password = req.body.password;
                     }
-                    if (req.body.username != null && req.body.username != '') {
-                        user.username = req.body.username;
-                    }
                     user.last_edition_date = Date.now();
 
                     User.updateOne({_id: thisSession._id}, user, {}, function (err, num) {
@@ -427,7 +423,6 @@ var editUser = function (req, res, next) {
                             User.findById(thisSession._id, function (err, user) {
                                 if (err) {
                                     res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.INTERNAL_ERROR));
-                                    ;
                                 } else {
                                     user.password = undefined;
                                     user._id = undefined;
@@ -451,7 +446,7 @@ var editUser = function (req, res, next) {
 }
 
 /**
- * Edit the current user
+ * Edit the current user (name, lastname or password)
  */
 router.patch('/', editUser);
 
