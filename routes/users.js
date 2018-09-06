@@ -70,7 +70,7 @@ router.post('/signup', function (req, res, next) {
         });
         thisUser.save(function (err, user) {
             if (err) {
-                console.log(err);
+                // console.log(err);
                 res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
             } else if (user == undefined) {
                 res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
@@ -88,6 +88,11 @@ router.post('/signup', function (req, res, next) {
     }
 });
 
+/**
+ * Return a String of the length lenght
+ * @param length
+ * @returns {string}
+ */
 function generateRandomString(length) {
     var text = "";
     var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -97,6 +102,11 @@ function generateRandomString(length) {
     return text;
 }
 
+/**
+ * Sends an email to email with randomString as content
+ * @param email
+ * @param randomString
+ */
 function sendEmail(email, randomString) {
     // Read file email.txt with email and password
     var i = 0;
@@ -161,6 +171,12 @@ router.patch('/authemail', function (req, res, next) {
     authUser(req, res, next);
 });
 
+/**
+ *
+ * @param req
+ * @param res
+ * @param next
+ */
 function genNewAC(req, res, next) {
     req.body.email;
     var code = generateRandomString(5);
@@ -181,6 +197,7 @@ router.patch('/newac', genNewAC)
 router.post('/newac')
 
 function authUser(req, res, next) {
+    //TODO this check should be in the front-end
     if (req.body.password != req.body.password2) {
         res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.NOT_MATCH_PASS));
     } else {
@@ -220,6 +237,11 @@ function authUser(req, res, next) {
 }
 
 /**
+ * Sign up with facebook
+ */
+router.post('/signupwithfacebook')
+
+/**
  * Log in:
  * it starts a new session
  * it returns info of user if password is correct
@@ -244,8 +266,13 @@ router.post('/login', function (req, res, next) {
                         res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.INCORRECT_PASS));
                     } else if (isMatch) {
                         if(!user.activated){
-                            user.activated = true;
-                            User.findByIdAndUpdate(user._id,  {activated: true});
+                            User.findByIdAndUpdate(user._id, {activated: true},{new: true}, function (err) {
+                                if (err) {
+                                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                                } else {
+                                    //res.json({"code": AppStatus.SUCCESS, "message": "User activated"});
+                                }
+                            });
                         }
                         thisSession._id = user._id;
                         checkUser(user);
@@ -287,6 +314,7 @@ router.post('/login', function (req, res, next) {
                                 });
                             }
                         });
+
                     } else {
                         res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.INCORRECT_PASS));
                     }

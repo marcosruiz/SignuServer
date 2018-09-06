@@ -26,14 +26,11 @@ function checkIsPdf(res) {
     res.body.should.have.property('original_name');
     res.body.should.have.property('owner_id');
     res.body.should.have.property('mime_type');
-    res.body.should.have.property('total_signatures');
-    res.body.should.have.property('current_signatures');
     res.body.should.have.property('file_name');
     res.body.should.have.property('path');
     res.body.should.have.property('destination');
     res.body.should.have.property('encoding');
-    res.body.should.have.property('someone_is_signing');
-    // res.body.should.have.property('user_id_signing');
+    res.body.should.have.property('with_stamp');
     res.body.should.have.property('creation_date');
     res.body.should.have.property('signers');
     res.body.signers.should.be.an.Array;
@@ -41,15 +38,14 @@ function checkIsPdf(res) {
 
 function checkIsUser(res) {
     res.should.have.status(HttpStatus.OK);
-    res.body.should.be.a('object');
-    res.body.should.have.property('name');
-    res.body.should.have.property('lastname');
-    res.body.should.have.property('email');
-    res.body.should.have.property('username');
-    res.body.should.have.property('pdfs_to_sign');
-    res.body.pdfs_to_sign.should.be.an.Array;
-    res.body.should.have.property('related_people');
-    res.body.related_people.should.be.an.Array;
+    res.body.user.should.be.a('object');
+    res.body.user.should.have.property('name');
+    res.body.user.should.have.property('lastname');
+    res.body.user.should.have.property('email');
+    res.body.user.should.have.property('pdfs_to_sign');
+    res.body.user.pdfs_to_sign.should.be.an.Array;
+    res.body.user.should.have.property('related_people');
+    res.body.user.related_people.should.be.an.Array;
 }
 
 function checkError(res) {
@@ -77,8 +73,7 @@ describe('Pdfs', function () {
         // Add users and pdfs
         User.remove({}, function (err) {
             // Owner
-            var newUser = new User({
-                "username": "test",
+            var newUser1 = new User({
                 "password": "test",
                 "email": "test@test",
                 "name": "test",
@@ -92,7 +87,6 @@ describe('Pdfs', function () {
             });
             // Signer
             var newUser2 = new User({
-                "username": "test2",
                 "password": "test2",
                 "email": "test2@test2",
                 "name": "test2",
@@ -106,7 +100,6 @@ describe('Pdfs', function () {
             });
             // Independient user
             var newUser3 = new User({
-                "username": "test3",
                 "password": "test3",
                 "email": "test3@test3",
                 "name": "test3",
@@ -120,7 +113,7 @@ describe('Pdfs', function () {
             });
 
             // Adding users
-            newUser.save(function (err, user) {
+            newUser1.save(function (err, user) {
                 testUser = user;
                 newUser2.save(function (err, user) {
                     testUser2 = user;
@@ -131,45 +124,40 @@ describe('Pdfs', function () {
                                 original_name: "original_name",
                                 owner_id: testUser._id,
                                 mime_type: "application/pdf",
-                                total_signatures: 1,
-                                current_signatures: 0,
                                 file_name: "test",
                                 path: config.uploads_dir + "test",
                                 destination: config.uploads_dir,
                                 encoding: "7bit",
-                                someone_is_signing: false,
-                                user_id_signing: undefined,
+                                is_any_user_signing: undefined,
                                 creation_date: Date.now(),
-                                signers: [{user_id: testUser2._id, is_signed: false, signature_date: undefined}]
+                                signers: [{_id: testUser2._id,
+                                    is_signed: false,
+                                    signature_date: undefined}]
                             });
                             var newPdf2 = new Pdf({
                                 original_name: "original_name",
                                 owner_id: testUser._id,
                                 mime_type: "application/pdf",
-                                total_signatures: 1,
                                 with_stamp: false,
-                                current_signatures: 1,
                                 file_name: "test2",
                                 path: config.uploads_dir + "test2",
                                 destination: config.uploads_dir,
                                 encoding: "7bit",
-                                someone_is_signing: false,
-                                user_id_signing: undefined,
+                                is_any_user_signing: undefined,
                                 creation_date: Date.now(),
-                                signers: [{user_id: testUser2._id, is_signed: true, signature_date: Date.now()}]
+                                signers: [{_id: testUser2._id,
+                                    is_signed: true,
+                                    signature_date: Date.now()}]
                             });
                             var newPdf3 = new Pdf({
                                 original_name: "original_name",
                                 owner_id: testUser._id,
                                 mime_type: "application/pdf",
-                                total_signatures: 0,
-                                current_signatures: 0,
                                 file_name: "test3",
                                 path: config.uploads_dir + "test3",
                                 destination: config.uploads_dir,
                                 encoding: "7bit",
-                                someone_is_signing: false,
-                                user_id_signing: undefined,
+                                is_any_user_signing: undefined,
                                 creation_date: Date.now(),
                                 signers: []
                             });
@@ -177,20 +165,19 @@ describe('Pdfs', function () {
                                 original_name: "original_name",
                                 owner_id: testUser._id,
                                 mime_type: "application/pdf",
-                                total_signatures: 2,
-                                current_signatures: 1,
                                 file_name: "test4",
                                 path: config.uploads_dir + "test4",
                                 destination: config.uploads_dir,
                                 encoding: "7bit",
-                                someone_is_signing: false,
-                                user_id_signing: undefined,
+                                is_any_user_signing: undefined,
                                 creation_date: Date.now(),
-                                signers: [{
-                                    user_id: testUser2._id,
+                                signers: [{_id: testUser2._id,
                                     is_signed: true,
                                     signature_date: Date.now()
-                                }, {user_id: testUser._id, is_signed: false, signature_date: undefined}]
+                                }, {_id: testUser._id,
+                                    is_signed: false,
+                                    signature_date: undefined}],
+                                with_stamp: true
                             });
                             newPdf.save(function (err, pdf) {
                                 if (err) {
@@ -250,6 +237,7 @@ describe('Pdfs', function () {
             agent.post('/api/users/login')
                 .send(user)
                 .end(function (err, res) {
+                    checkIsUser(res);
                     agent.post('/api/pdfs/')
                         .set('content-type', 'multipart/form-data')
                         .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
@@ -282,17 +270,73 @@ describe('Pdfs', function () {
                         });
                 });
         });
-        it('it should NOT POST/ NOT UPLOAD a pdf due to you are not logged', function (done) {
+        it('it should NOT ADD a signer to a PDF cause is already a signer', function (done) {
+            var user = {
+                email: "test@test",
+                password: "test"
+            };
+            var pdf = {
+                signers: [testUser2._id]
+            };
             var agent = chai.request.agent(server);
-            agent.post('/api/pdfs/')
-                .set('content-type', 'multipart/form-data')
-                .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
+            agent.post('/api/users/login')
+                .send(user)
                 .end(function (err, res) {
-                    checkError(res);
-                    res.should.have.status(HttpStatus.UNAUTHORIZED);
-                    done();
+                    checkIsUser(res);
+                    agent.patch('/api/pdfs/addsigners/' + testPdf2._id)
+                        .send(pdf)
+                        .end(function (err, res) {
+                            checkIsPdf(res);
+                            res.body.signers.length.should.be.eql(1);
+                            done();
+                        });
                 });
         });
+        it('it should NOT ADD a signer to a PDF cause it has stamp', function (done) {
+            var user = {
+                email: "test@test",
+                password: "test"
+            };
+            var pdf = {
+                signers: [testUser3._id]
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    checkIsUser(res);
+                    agent.patch('/api/pdfs/addsigners/' + testPdf4._id)
+                        .send(pdf)
+                        .end(function (err, res) {
+                            checkError(res);
+                            // res.should.have.status(HttpStatus.UNAUTHORIZED);
+                            done();
+                        });
+                });
+        });
+        it('it should NOT ADD a signer to a PDF cause I am not the owner', function (done) {
+            var user = {
+                email: "test3@test3",
+                password: "test3"
+            };
+            var pdf = {
+                signers: [testUser3._id]
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    checkIsUser(res);
+                    agent.patch('/api/pdfs/addsigners/' + testPdf3._id)
+                        .send(pdf)
+                        .end(function (err, res) {
+                            checkError(res);
+                            // res.should.have.status(HttpStatus.UNAUTHORIZED);
+                            done();
+                        });
+                });
+        });
+
         it('it should NOT UPDATE/SIGN a PDF cause I am the owner but I am not a signer', function (done) {
             var user = {
                 email: "test@test",
@@ -306,10 +350,12 @@ describe('Pdfs', function () {
                 .send(user)
                 .end(function (err, res) {
                     checkIsUser(res);
-                    agent.put('/api/pdfs/unlock/' + testPdf._id)
+                    agent.put('/api/pdfs/unlock/' +testPdf._id)
                         .end(function (err, res) {
-                            agent.put('/api/pdfs/' + testPdf._id)
+                            agent.post('/api/pdfs/')
                                 .set('content-type', 'multipart/form-data')
+                                .field('pdf_id', testPdf._id.toString())
+                                .field('_method', 'put')
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                 .end(function (err, res) {
                                     checkError(res);
@@ -324,18 +370,18 @@ describe('Pdfs', function () {
                 email: "test2@test2",
                 password: "test2"
             };
-            var pdf = {
-                signers: [testUser._id]
-            };
             var agent = chai.request.agent(server);
             agent.post('/api/users/login')
                 .send(user)
                 .end(function (err, res) {
                     checkIsUser(res);
+                    var tempPdf = {pdf_id: testPdf._id};
                     agent.put('/api/pdfs/unlock/' + testPdf._id)
                         .end(function (err, res) {
-                            agent.put('/api/pdfs/' + testPdf._id)
+                            agent.post('/api/pdfs/')
                                 .set('content-type', 'multipart/form-data')
+                                .field('pdf_id', testPdf._id.toString())
+                                .field('_method', 'put')
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                 .end(function (err, res) {
                                     checkIsPdf(res);
@@ -358,7 +404,9 @@ describe('Pdfs', function () {
                     checkIsUser(res);
                     agent.put('/api/pdfs/unlock/' + testPdf2._id)
                         .end(function (err, res) {
-                            agent.put('/api/pdfs/' + testPdf2._id)
+                            agent.post('/api/pdfs/')
+                                .field('pdf_id', testPdf2._id.toString())
+                                .field('_method', 'put')
                                 .set('content-type', 'multipart/form-data')
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                 .end(function (err, res) {
@@ -381,7 +429,9 @@ describe('Pdfs', function () {
                     checkIsUser(res);
                     agent.put('/api/pdfs/unlock/' + testPdf4._id)
                         .end(function (err, res) {
-                            agent.put('/api/pdfs/' + testPdf4._id)
+                            agent.post('/api/pdfs/')
+                                .field('pdf_id',testPdf4._id.toString())
+                                .field('_method', 'put')
                                 .set('content-type', 'multipart/form-data')
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                 .end(function (err, res) {
@@ -407,7 +457,9 @@ describe('Pdfs', function () {
                     checkIsUser(res);
                     agent.put('/api/pdfs/unlock/' + testPdf._id)
                         .end(function (err, res) {
-                            agent.put('/api/pdfs/' + testPdf._id)
+                            agent.post('/api/pdfs/')
+                                .field('pdf_id',testPdf._id.toString())
+                                .field('_method', 'put')
                                 .set('content-type', 'multipart/form-data')
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                 .end(function (err, res) {
@@ -550,6 +602,7 @@ describe('Pdfs', function () {
                     agent.delete('/api/pdfs/' + testPdf._id)
                         .end(function (err, res) {
                             res.should.have.status(HttpStatus.OK);
+                            console.log(res.body);
                             res.body.should.have.property('message', 'Pdf deleted');
                             done();
                         });

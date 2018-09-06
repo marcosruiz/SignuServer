@@ -1,4 +1,5 @@
 {
   "DBHost": "mongodb://localhost/dev",
-  "uploads_dir" : "uploads-dev/"
+  "uploads_dir" : "uploads-dev/",
+  "downloads_dir" : "downloads-dev/"
 }

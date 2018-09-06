@@ -1,0 +1,37 @@
+extends layout
+
+script.
+    console.log("I am in the client");
+
+block content
+  h1= title
+  div
+    form(action='api/users/signupfacebook', method='post')
+      div(data-role='fieldcontain')
+        input(type='submit',value='Sign up with Facebook',data-transition='fade', data-theme='c')
+
+script.
+  window.fbAsyncInit = function () {
+      FB.init({
+          appId: '246411869239300',
+          cookie: true,
+          xfbml: true,
+          version: 'v3.0'
+      });
+
+      FB.AppEvents.logPageView();
+
+  };
+
+  (function (d, s, id) {
+      var js, fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) {
+          return;
+      }
+      js = d.createElement(s);
+      js.id = id;
+      js.src = "https://connect.facebook.net/en_US/sdk.js";
+      fjs.parentNode.insertBefore(js, fjs);
+  }(document, 'script', 'facebook-jssdk'));
+
+

@@ -15,9 +15,13 @@ Server to manage PDFs and users of Signu mobile app
 - Start project
 - Voila!
 
--If you want to let your google account send mails, go there and put ON the less secure options.
+-If you want to let your google account send mails, go there and put ON the less secure options or use an application password
 
 https://myaccount.google.com/lesssecureapps?pli=1
+
+## API
+
+
 
 
 

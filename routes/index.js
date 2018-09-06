@@ -15,6 +15,10 @@ router.get('/signup', function(req, res, next){
    res.render('signup', {title: 'Signu: Sign up'});
 });
 
+router.get('/signupfacebook', function(req, res, next){
+    res.render('signupfacebook', {title: 'Signu: Sign up with facebook'});
+});
+
 router.get('/delete', function(req, res, next){
     res.render('deleteuser', {title: 'Signu: Delete user'});
 });
@@ -33,10 +37,6 @@ router.get('/updatefile', function (req, res, next) {
 
 router.get('/unlockfile', function (req, res, next) {
     res.render('unlockfile', {title: 'Signu: Unlock file'});
-});
-
-router.get('/activateuser', function (req, res, next) {
-    res.render('activateuser', {title: 'Signu: Activate user'});
 });
 
 router.sendStandardError = function sendStandardError (res, status) {

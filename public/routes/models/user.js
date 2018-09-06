@@ -10,17 +10,17 @@ var SALT_WORK_FACTOR = 10;
 
 
 const userSchema =  new Schema({
-    password: {type: String},
-    activation_code: {type: String},
+    password: {type: String, required: true},
     email: {type: String, required: true, unique: true},
-    activated : {type: Boolean, required: true, default: false},
-    name: {type: String},
+    activated : {type: Boolean, default: false, required: true},
+    name: {type: String, required: true},
     lastname: {type: String},
     last_edition_date: {type:Date},
     creation_date: {type: Date, required: true, default: Date.now()},
-    related_people : [{user_id: {type : ObjectId}}],
-    pdfs_owned : [{pdf_id : {type : ObjectId}}],
-    pdfs_sign : [{pdf_id : {type : ObjectId}}]
+    related_people : [{_id: {type : ObjectId, ref: 'User'}}],
+    pdfs_owned : [{_id : {type : ObjectId, ref: 'Pdf'}}],
+    pdfs_to_sign : [{_id : {type : ObjectId, ref: 'Pdf'}}],
+    pdfs_signed : [{_id : {type : ObjectId, ref: 'Pdf'}}]
 });
 
 userSchema.pre('save', function(next) {
@@ -74,6 +74,7 @@ userSchema.methods.compareActivationCode = function(candidateCode, cb) {
         cb(null, isMatch);
     });
 };
+
 var User = mongoose.model('User', userSchema);
 
 module.exports = User;

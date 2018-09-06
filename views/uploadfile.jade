@@ -10,4 +10,10 @@ block content
           label(for='pdf') pdf
             input(id='pdf',type='file',name='pdf')
       div(data-role='fieldcontain')
+        fieldset(data-role='controlgroup') signer[0]
+          input(id='signers[0]',type='text',name='signers[0]')
+      div(data-role='fieldcontain')
+        fieldset(data-role='controlgroup') signer[1]
+          input(id='signers[1]',type='text',name='signers[1]')
+      div(data-role='fieldcontain')
         input(type='submit',value='Upload file',data-transition='fade', data-theme='c')

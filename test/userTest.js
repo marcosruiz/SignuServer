@@ -27,9 +27,10 @@ function checkIsUser(res) {
     res.body.user.should.have.property('name');
     res.body.user.should.have.property('lastname');
     res.body.user.should.have.property('email');
-    res.body.user.should.have.property('username');
-    res.body.user.should.have.property('pdfs_sign');
-    res.body.user.pdfs_sign.should.be.an.Array;
+    res.body.user.should.have.property('pdfs_to_sign');
+    res.body.user.should.have.property('pdfs_owned');
+    res.body.user.should.have.property('pdfs_signed');
+    res.body.user.pdfs_to_sign.should.be.an.Array;
     // res.body.pdfs_to_sign.length.should.be.eql(0);
     res.body.user.should.have.property('related_people');
     res.body.user.related_people.should.be.an.Array;
@@ -42,33 +43,53 @@ function checkError(res) {
     res.body.should.have.property('code');
 }
 describe('Users', function () {
-    var testUser;
-    var pdfToSignTest = ObjectId("591c93566182a7043ca08d60");
-    beforeEach(function (done) { //Before each test we empty the database and let a test user
+    var testUser1;
+    var testUser2;
+    beforeEach(function (done) { //Before each test we empty the database and let test1@test and test2@test users
         User.remove({}, function (err) {
 
-            // Add a test user
-            newUser = new User({
-                "username": "test",
+            // Add a test1@test user
+            newUser1 = new User({
                 "password": "test",
-                "email": "test@test",
+                "email": "test@test.com",
                 "name": "test",
                 "lastname": "test",
-                "activated": true,
+                "activated": false,
                 "creation_date": Date.now(),
                 "last_edition_date": Date.now(),
-                "pdfs_to_sign": [{"pdf_id": pdfToSignTest}],
+                "pdfs_to_sign": [],
                 "pdfs_signed": [],
                 "pdfs_owned": [],
                 "related_people": []
             });
-            newUser.save(function (err, user) {
+            newUser1.save(function (err, user) {
                 if (err) {
                     console.log(err);
                 } else {
-                    testUser = user;
+                    testUser1 = user;
+                    newUser2 = new User({
+                        "password": "test2",
+                        "email": "test2@test.com",
+                        "name": "test2",
+                        "lastname": "test2",
+                        "activated": false,
+                        "creation_date": Date.now(),
+                        "last_edition_date": Date.now(),
+                        "pdfs_to_sign": [],
+                        "pdfs_signed": [],
+                        "pdfs_owned": [],
+                        "related_people": [{_id: user._id}]
+                    });
+                    newUser2.save(function(err, user){
+                        if (err) {
+                            console.log(err);
+                        } else {
+                            testUser2 = user;
+                        }
+                        done();
+                    });
                 }
-                done();
+
             });
         });
 
@@ -80,9 +101,8 @@ describe('Users', function () {
         it('it should POST a user', function (done) {
             var user = {
                 email: "sobrenombre@gmail.com",
-                username: "pass",
-                name: "pass",
-                lastname: "pass"
+                name: "TestName",
+                lastname: "TestLastName"
             };
             chai.request(server)
                 .post('/api/users/signup')
@@ -115,7 +135,7 @@ describe('Users', function () {
     describe('LOGIN tests', function () {
         it('it should LOGIN a user', function (done) {
             var user = {
-                email: "test@test",
+                email: "test@test.com",
                 password: "test"
             };
             chai.request(server)
@@ -144,7 +164,7 @@ describe('Users', function () {
         });
         it('it should NOT LOGIN a user due to the password', function (done) {
             var user = {
-                email: "test@test",
+                email: "test@test.com",
                 password: "wrong"
             };
             chai.request(server)
@@ -162,11 +182,11 @@ describe('Users', function () {
     describe('EDIT user tests', function () {
         it('it should EDIT a user', function (done) {
             var user = {
-                email: "test@test",
+                email: "test@test.com",
                 password: "test"
             };
             var editedUser = {
-                email: "test@test",
+                email: "test@test.com",
                 password: "test",
                 lastname: "editedTest"
             };
@@ -177,7 +197,6 @@ describe('Users', function () {
                     agent.patch('/api/users/')
                         .send(editedUser)
                         .end(function (err, res) {
-                            console.log(res.body);
                             checkIsUser(res);
                             res.body.user.should.have.property('lastname', 'editedTest');
                             done();
@@ -199,7 +218,7 @@ describe('Users', function () {
     describe('GET user tests', function () {
         it('it should GET a user', function (done) {
             var user = {
-                email: "test@test",
+                email: "test@test.com",
                 password: "test"
             };
             var agent = chai.request.agent(server);
@@ -228,7 +247,7 @@ describe('Users', function () {
     describe('DESACTIVATE user tests', function () {
         it('it should DESACTIVATE a user', function (done) {
             var user = {
-                email: "test@test",
+                email: "test@test.com",
                 password: "test"
             };
             var agent = chai.request.agent(server);
@@ -261,7 +280,7 @@ describe('Users', function () {
     describe('LOGOUT user tests', function () {
         it('it should LOGOUT a user', function (done) {
             var user = {
-                email: "test@test",
+                email: "test@test.com",
                 password: "test"
             };
             var agent = chai.request.agent(server);
