@@ -336,35 +336,6 @@ describe('Pdfs', function () {
                         });
                 });
         });
-
-        it('it should NOT UPDATE/SIGN a PDF cause I am the owner but I am not a signer', function (done) {
-            var user = {
-                email: "test@test",
-                password: "test"
-            };
-            var pdf = {
-                signers: [testUser._id]
-            };
-            var agent = chai.request.agent(server);
-            agent.post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
-                    checkIsUser(res);
-                    agent.put('/api/pdfs/unlock/' +testPdf._id)
-                        .end(function (err, res) {
-                            agent.post('/api/pdfs/')
-                                .set('content-type', 'multipart/form-data')
-                                .field('pdf_id', testPdf._id.toString())
-                                .field('_method', 'put')
-                                .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
-                                .end(function (err, res) {
-                                    checkError(res);
-                                    res.should.have.status(HttpStatus.FORBIDDEN);
-                                    done();
-                                });
-                        });
-                });
-        });
         it('it should UPDATE/SIGN a PDF', function (done) {
             var user = {
                 email: "test2@test2",
@@ -378,10 +349,9 @@ describe('Pdfs', function () {
                     var tempPdf = {pdf_id: testPdf._id};
                     agent.put('/api/pdfs/unlock/' + testPdf._id)
                         .end(function (err, res) {
-                            agent.post('/api/pdfs/')
-                                .set('content-type', 'multipart/form-data')
+                            agent.put('/api/pdfs/' + testPdf._id.toString())
+                                .field('content-type', 'multipart/form-data')
                                 .field('pdf_id', testPdf._id.toString())
-                                .field('_method', 'put')
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                 .end(function (err, res) {
                                     checkIsPdf(res);
@@ -404,10 +374,9 @@ describe('Pdfs', function () {
                     checkIsUser(res);
                     agent.put('/api/pdfs/unlock/' + testPdf2._id)
                         .end(function (err, res) {
-                            agent.post('/api/pdfs/')
+                            agent.put('/api/pdfs/' + testPdf2._id.toString())
                                 .field('pdf_id', testPdf2._id.toString())
-                                .field('_method', 'put')
-                                .set('content-type', 'multipart/form-data')
+                                .field('content-type', 'multipart/form-data')
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                 .end(function (err, res) {
                                     checkError(res);
@@ -428,11 +397,11 @@ describe('Pdfs', function () {
                 .end(function (err, res) {
                     checkIsUser(res);
                     agent.put('/api/pdfs/unlock/' + testPdf4._id)
+                        .set('pdf_id', testPdf4._id.toString())
                         .end(function (err, res) {
-                            agent.post('/api/pdfs/')
+                            agent.put('/api/pdfs/' + testPdf4._id)
                                 .field('pdf_id',testPdf4._id.toString())
-                                .field('_method', 'put')
-                                .set('content-type', 'multipart/form-data')
+                                .field('content-type', 'multipart/form-data')
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                 .end(function (err, res) {
                                     checkError(res);
@@ -442,7 +411,7 @@ describe('Pdfs', function () {
                         });
                 });
         });
-        it('it should NOT UPDATE/SIGN a PDF cause I am  not the owner and I am not a signer', function (done) {
+        it('it should NOT UPDATE/SIGN a PDF cause I am not the owner and I am not a signer', function (done) {
             var user = {
                 email: "test3@test3",
                 password: "test3"
@@ -456,11 +425,39 @@ describe('Pdfs', function () {
                 .end(function (err, res) {
                     checkIsUser(res);
                     agent.put('/api/pdfs/unlock/' + testPdf._id)
+                        .field('pdf_id',testPdf._id.toString())
+                        .field('content-type', 'multipart/form-data')
                         .end(function (err, res) {
-                            agent.post('/api/pdfs/')
+                            agent.put('/api/pdfs/' + testPdf._id.toString())
                                 .field('pdf_id',testPdf._id.toString())
-                                .field('_method', 'put')
-                                .set('content-type', 'multipart/form-data')
+                                .field('content-type', 'multipart/form-data')
+                                .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
+                                .end(function (err, res) {
+                                    checkError(res);
+                                    res.should.have.status(HttpStatus.FORBIDDEN);
+                                    done();
+                                });
+                        });
+                });
+        });
+        it('it should NOT UPDATE/SIGN a PDF cause I am the owner but I am not a signer', function (done) {
+            var user = {
+                email: "test@test",
+                password: "test"
+            };
+            var pdf = {
+                signers: [testUser._id]
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    checkIsUser(res);
+                    agent.put('/api/pdfs/unlock/' +testPdf._id)
+                        .end(function (err, res) {
+                            agent.put('/api/pdfs/' + testPdf._id.toString())
+                                .field('content-type', 'multipart/form-data')
+                                .field('pdf_id', testPdf._id.toString())
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                 .end(function (err, res) {
                                     checkError(res);
