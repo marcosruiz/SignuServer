@@ -15,7 +15,7 @@ var HttpStatus = require('http-status-codes');
 var sendStandardError = require('./index').sendStandardError;
 var thisSession;
 var newPdf;
-var LOCK_TIME = Date.UTC(0, 0, 0, 0, 1, 0, 0);
+var LOCK_TIME = 60000; // 60 seg
 
 /**
  * Download pdf
@@ -28,6 +28,8 @@ router.get('/:pdf_id', function (req, res, next) {
         PdfModel.findById(req.params.pdf_id, function (err, pdf) {
             if (err) {
                 sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+            } else if(pdf == null){
+                sendStandardError(res, HttpStatus.NOT_FOUND);
             } else {
                 if (pdf.owner_id.toString() == thisSession._id) {
                     res.download(pdf.path, pdf.original_name);
@@ -63,14 +65,13 @@ function unlockPdf(req, res) {
 
         var isAnyUserSigning = {success: false};
         PdfModel.findById(req.params.pdf_id, function (err, pdf) {
+            var timeDiff = (Date.now() - pdf.is_any_user_signing.when);
             if (err) {
                 sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
             } else if (pdf == null || pdf == undefined) {
                 sendStandardError(res, HttpStatus.NOT_FOUND);
-            } else if (pdf.is_any_user_signing._id == undefined || pdf.is_any_user_signing._id == null || true || (Date.now() - pdf.is_any_user_signing.when) >= LOCK_TIME || pdf.is_any_user_signing.success == true) {
+            } else if (pdf.is_any_user_signing._id == undefined || pdf.is_any_user_signing._id == null || timeDiff >= LOCK_TIME || pdf.is_any_user_signing.success == true) {
                 // Everything OK: no one more is trying to sign this pdf
-                // Is not worth use timeouts cause I want a server without state
-                //setTimeout(lockPdf, 60000, pdf._id); // 60 sec of delay
                 var newPdf = {
                     is_any_user_signing: {_id: thisSession._id, when: Date.now(), success: false}
                 };
@@ -78,7 +79,7 @@ function unlockPdf(req, res) {
                     if (err) {
                         sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
                     } else if (pdf == null || pdf == undefined) {
-                        sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+                        sendStandardError(res, HttpStatus.NOT_FOUND);
                     } else {
                         res.json(pdf);
                     }
@@ -91,7 +92,7 @@ function unlockPdf(req, res) {
 }
 
 router.post('/unlock', function (req, res, next) {
-    if (req.body._method == 'put') {
+    if (req.body._method == 'patch') {
         unlockPdf(req, res);
     }
 });
@@ -99,7 +100,7 @@ router.post('/unlock', function (req, res, next) {
 /**
  * This unlock pdf 1 minute for this user
  */
-router.put('/unlock/:pdf_id', function (req, res, next) {
+router.patch('/unlock/:pdf_id', function (req, res, next) {
     unlockPdf(req, res);
 });
 
@@ -174,8 +175,10 @@ function addSignersToPdf(req, res, next) {
         PdfModel.findById(req.params.pdf_id, function (err, pdf) {
             if (err) {
                 sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+            } else if (pdf == null || pdf == undefined) {
+                sendStandardError(res, HttpStatus.NOT_FOUND);
             } else if (pdf.owner_id.toString() != thisSession._id) {
-                sendStandardError(res, HttpStatus.FORBIDDEN);
+                sendStandardError(res, HttpStatus.UNAUTHORIZED);
             } else if (pdf.with_stamp && pdf.total_signatures != 0) {
                 sendStandardError(res, HttpStatus.FORBIDDEN);
             } else {
@@ -195,6 +198,8 @@ function addSignersToPdf(req, res, next) {
                 });
                 PdfModel.findByIdAndUpdate(req.params.pdf_id, newPdf, {new: true}, function (err, pdf) {
                     if (err) {
+                        sendStandardError(res, HttpStatus.NOT_FOUND);
+                    } else if (pdf == null || pdf == undefined) {
                         sendStandardError(res, HttpStatus.NOT_FOUND);
                     } else {
                         res.json(pdf);
@@ -238,8 +243,8 @@ function generateRandomString() {
 router.post('/', upload.single('pdf'), function (req, res, next) {
     if (req.body._method == 'delete') {
         deletePdf(req, res, next); // Delete pdf
-    } else if (req.body._method == 'put') {
-        putPdf(req, res, next); // Update pdf
+    } else if (req.body._method == 'patch') {
+        patchPdf(req, res, next); // Update pdf
     } else {
         postPdf(req, res, next); // Upload pdf
     }
@@ -250,7 +255,7 @@ router.post('/', upload.single('pdf'), function (req, res, next) {
  * @param req
  * @param res
  */
-function putPdf(req, res) {
+function patchPdf(req, res) {
     thisSession = req.session;
     // req.checkParms("pdf_id", "Enter a valid pdf_id").isMongoId();
     var err = req.validationErrors();
@@ -260,16 +265,17 @@ function putPdf(req, res) {
         sendStandardError(res, HttpStatus.BAD_REQUEST);
     } else {
         PdfModel.findById(req.body.pdf_id, function (err, pdf) {
+            var timeDiff = (Date.now() - pdf.is_any_user_signing.when);
             if (err) {
                 sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
-            } else if (pdf == null) {
+            } else if (pdf == null || pdf == undefined) {
                 sendStandardError(res, HttpStatus.NOT_FOUND);
             } else if (pdf.is_any_user_signing == null || pdf.is_any_user_signing == undefined) {
-                sendStandardError(res, HttpStatus.LOCKED);
-            } else if (pdf.is_any_user_signing._id.toString() != thisSession._id) {
-                sendStandardError(res, HttpStatus.LOCKED);
-            } else if (Date.now() - pdf.is_any_user_signing.when <= LOCK_TIME) {
-                sendStandardError(res, HttpStatus.LOCKED);
+                sendStandardError(res, HttpStatus.UNAUTHORIZED);
+            } else if (pdf.is_any_user_signing._id != thisSession._id) {
+                sendStandardError(res, HttpStatus.UNAUTHORIZED);
+            } else if (timeDiff >= LOCK_TIME) {
+                sendStandardError(res, HttpStatus.UNAUTHORIZED);
             } else {
                 var arraySigner = pdf.signers.filter(function (item) {
                     return item._id == thisSession._id;
@@ -294,11 +300,14 @@ function putPdf(req, res) {
                             // pdf.encoding = req.file.encoding;
                             // pdf.mime_type = req.file.mimetype;
                             // pdf.signers[index].signer_id = thisSession._id;
+                            pdf.is_any_user_signing.success = true;
                             pdf.signers[index].is_signed = true;
                             pdf.signers[index].signature_date = Date.now();
                             PdfModel.findByIdAndUpdate(pdf._id, pdf, {new: true}, function (err, pdf) {
                                 if (err) {
                                     sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+                                } else if (pdf == null || pdf == undefined) {
+                                    sendStandardError(res, HttpStatus.NOT_FOUND);
                                 } else {
                                     res.json(pdf);
                                 }
@@ -314,8 +323,8 @@ function putPdf(req, res) {
 /**
  * Update a PDF with one more signature
  */
-router.put('/:pdf_id', upload.single('pdf'), function (req, res, next) {
-    putPdf(req, res);
+router.patch('/:pdf_id', upload.single('pdf'), function (req, res, next) {
+    patchPdf(req, res);
 });
 
 /**
@@ -331,25 +340,27 @@ function deletePdf(req, res) {
         PdfModel.findById(req.params.pdf_id, function (err, pdf) {
             if (err) {
                 sendStandardError(res, HttpStatus.NOT_FOUND);
-            } else {
-                if (thisSession._id == pdf.owner_id.toString()) {
-                    fs.unlink(pdf.path, function (err, result) {
-                        if (err) {
-                            sendStandardError(res, HttpStatus.NOT_FOUND);
-                        } else {
-                            PdfModel.findByIdAndRemove(req.params.pdf_id, function (err, pdf) {
-                                if (err) {
-                                    sendStandardError(res, HttpStatus.NOT_FOUND);
-                                } else {
-                                    res.json({'message': 'Pdf deleted'});
-                                    deletePdfOfAllUsers(pdf);
-                                }
-                            });
-                        }
-                    });
-                } else {
-                    sendStandardError(res, HttpStatus.UNAUTHORIZED);
-                }
+            } else if (pdf == null || pdf == undefined) {
+                sendStandardError(res, HttpStatus.NOT_FOUND);
+            } else if(thisSession._id != pdf.owner_id.toString()){
+                sendStandardError(res, HttpStatus.UNAUTHORIZED);
+            }else{
+                fs.unlink(pdf.path, function (err, result) {
+                    if (err) {
+                        sendStandardError(res, HttpStatus.NOT_FOUND);
+                    } else {
+                        PdfModel.findByIdAndRemove(req.params.pdf_id, function (err, pdf) {
+                            if (err) {
+                                sendStandardError(res, HttpStatus.NOT_FOUND);
+                            } else if (pdf == null || pdf == undefined) {
+                                sendStandardError(res, HttpStatus.NOT_FOUND);
+                            } else {
+                                res.json({'message': 'Pdf deleted'});
+                                // deletePdfOfAllUsers(pdf);
+                            }
+                        });
+                    }
+                });
             }
         });
     }
@@ -366,6 +377,8 @@ router.get('/status/:id', function (req, res, next) {
     PdfModel.findById(req.params.id, function (err, pdf) {
         if (err) {
             sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+        } else if (pdf == null || pdf == undefined) {
+            sendStandardError(res, HttpStatus.NOT_FOUND);
         } else {
             res.send(pdf);
         }

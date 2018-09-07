@@ -54,14 +54,15 @@ function checkError(res) {
     res.body.error.should.have.property('message');
     res.body.error.should.have.property('code');
 }
-var testUser, testUser2, testUser3, testPdf, testPdf2, testPdf3, testPdf4;
+
+var testUser, testUser2, testUser3, testPdf, testPdf2, testPdf3, testPdf4, testPdf5;
 
 describe('Pdfs', function () {
     "use strict";
     /**
      * We prepare 3 users and 1 file
      */
-    beforeEach(function (done) { //Before each test we empty the database and let a test user
+    beforeEach(function (done) { //Before each test we empty the database and let the test users and pdfs
         // Delete all test files
         var arrayFiles = fs.readdirSync(config.uploads_dir);
         var i;
@@ -130,9 +131,11 @@ describe('Pdfs', function () {
                                 encoding: "7bit",
                                 is_any_user_signing: undefined,
                                 creation_date: Date.now(),
-                                signers: [{_id: testUser2._id,
+                                signers: [{
+                                    _id: testUser2._id,
                                     is_signed: false,
-                                    signature_date: undefined}]
+                                    signature_date: undefined
+                                }]
                             });
                             var newPdf2 = new Pdf({
                                 original_name: "original_name",
@@ -145,9 +148,11 @@ describe('Pdfs', function () {
                                 encoding: "7bit",
                                 is_any_user_signing: undefined,
                                 creation_date: Date.now(),
-                                signers: [{_id: testUser2._id,
+                                signers: [{
+                                    _id: testUser2._id,
                                     is_signed: true,
-                                    signature_date: Date.now()}]
+                                    signature_date: Date.now()
+                                }]
                             });
                             var newPdf3 = new Pdf({
                                 original_name: "original_name",
@@ -171,12 +176,36 @@ describe('Pdfs', function () {
                                 encoding: "7bit",
                                 is_any_user_signing: undefined,
                                 creation_date: Date.now(),
-                                signers: [{_id: testUser2._id,
+                                signers: [{
+                                    _id: testUser2._id,
                                     is_signed: true,
                                     signature_date: Date.now()
-                                }, {_id: testUser._id,
+                                }, {
+                                    _id: testUser._id,
                                     is_signed: false,
-                                    signature_date: undefined}],
+                                    signature_date: undefined
+                                }],
+                                with_stamp: true
+                            });
+                            var newPdf5 = new Pdf({
+                                original_name: "original_name",
+                                owner_id: testUser._id,
+                                mime_type: "application/pdf",
+                                file_name: "test5",
+                                path: config.uploads_dir + "test5",
+                                destination: config.uploads_dir,
+                                encoding: "7bit",
+                                is_any_user_signing: undefined,
+                                creation_date: Date.now(),
+                                signers: [{
+                                    _id: testUser2._id,
+                                    is_signed: false,
+                                    signature_date: undefined
+                                }, {
+                                    _id: testUser._id,
+                                    is_signed: false,
+                                    signature_date: undefined
+                                }],
                                 with_stamp: true
                             });
                             newPdf.save(function (err, pdf) {
@@ -199,6 +228,13 @@ describe('Pdfs', function () {
                                                             console.log(err);
                                                         } else {
                                                             testPdf4 = pdf;
+                                                            newPdf5.save(function (err, pdf) {
+                                                                if (err) {
+                                                                    console.log(err);
+                                                                } else {
+                                                                    testPdf5 = pdf;
+                                                                }
+                                                            });
                                                         }
                                                     });
                                                 }
@@ -209,6 +245,8 @@ describe('Pdfs', function () {
                                     fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test'));
                                     fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test2'));
                                     fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test3'));
+                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test4'));
+                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test5'));
                                     done();
                                 }
                             });
@@ -248,6 +286,25 @@ describe('Pdfs', function () {
                         });
                 });
         });
+
+        it('it should NOT POST/UPLOAD a PDF cause I am not logged', function (done) {
+            var pdf = {
+                signers: [testUser._id]
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/pdfs/')
+                .set('content-type', 'multipart/form-data')
+                .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
+                .end(function (err, res) {
+                    checkError(res);
+
+                    done();
+                });
+        });
+
+    });
+
+    describe('PATCH.ADDSIGNER tests', function () {
         it('it should ADD a signer to a PDF', function (done) {
             var user = {
                 email: "test@test",
@@ -331,11 +388,27 @@ describe('Pdfs', function () {
                         .send(pdf)
                         .end(function (err, res) {
                             checkError(res);
-                            // res.should.have.status(HttpStatus.UNAUTHORIZED);
+                            res.should.have.status(HttpStatus.UNAUTHORIZED);
                             done();
                         });
                 });
         });
+        it('it should NOT ADD a signer to a PDF cause I am not logged', function (done) {
+            var pdf = {
+                signers: [testUser3._id]
+            };
+            var agent = chai.request.agent(server);
+            agent.patch('/api/pdfs/addsigners/' + testPdf3._id)
+                .send(pdf)
+                .end(function (err, res) {
+                    checkError(res);
+                    res.should.have.status(HttpStatus.UNAUTHORIZED);
+                    done();
+                });
+        });
+    });
+
+    describe('PATCH.SIGN tests', function () {
         it('it should UPDATE/SIGN a PDF', function (done) {
             var user = {
                 email: "test2@test2",
@@ -347,9 +420,9 @@ describe('Pdfs', function () {
                 .end(function (err, res) {
                     checkIsUser(res);
                     var tempPdf = {pdf_id: testPdf._id};
-                    agent.put('/api/pdfs/unlock/' + testPdf._id)
+                    agent.patch('/api/pdfs/unlock/' + testPdf._id)
                         .end(function (err, res) {
-                            agent.put('/api/pdfs/' + testPdf._id.toString())
+                            agent.patch('/api/pdfs/' + testPdf._id.toString())
                                 .field('content-type', 'multipart/form-data')
                                 .field('pdf_id', testPdf._id.toString())
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
@@ -372,13 +445,14 @@ describe('Pdfs', function () {
                 .send(user)
                 .end(function (err, res) {
                     checkIsUser(res);
-                    agent.put('/api/pdfs/unlock/' + testPdf2._id)
+                    agent.patch('/api/pdfs/unlock/' + testPdf2._id)
                         .end(function (err, res) {
-                            agent.put('/api/pdfs/' + testPdf2._id.toString())
+                            agent.patch('/api/pdfs/' + testPdf2._id.toString())
                                 .field('pdf_id', testPdf2._id.toString())
                                 .field('content-type', 'multipart/form-data')
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                 .end(function (err, res) {
+                                    console.log(res.body);
                                     checkError(res);
                                     res.should.have.status(HttpStatus.FORBIDDEN);
                                     done();
@@ -396,11 +470,11 @@ describe('Pdfs', function () {
                 .send(user)
                 .end(function (err, res) {
                     checkIsUser(res);
-                    agent.put('/api/pdfs/unlock/' + testPdf4._id)
+                    agent.patch('/api/pdfs/unlock/' + testPdf4._id)
                         .set('pdf_id', testPdf4._id.toString())
                         .end(function (err, res) {
-                            agent.put('/api/pdfs/' + testPdf4._id)
-                                .field('pdf_id',testPdf4._id.toString())
+                            agent.patch('/api/pdfs/' + testPdf4._id)
+                                .field('pdf_id', testPdf4._id.toString())
                                 .field('content-type', 'multipart/form-data')
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                 .end(function (err, res) {
@@ -424,12 +498,12 @@ describe('Pdfs', function () {
                 .send(user)
                 .end(function (err, res) {
                     checkIsUser(res);
-                    agent.put('/api/pdfs/unlock/' + testPdf._id)
-                        .field('pdf_id',testPdf._id.toString())
+                    agent.patch('/api/pdfs/unlock/' + testPdf._id)
+                        .field('pdf_id', testPdf._id.toString())
                         .field('content-type', 'multipart/form-data')
                         .end(function (err, res) {
-                            agent.put('/api/pdfs/' + testPdf._id.toString())
-                                .field('pdf_id',testPdf._id.toString())
+                            agent.patch('/api/pdfs/' + testPdf._id.toString())
+                                .field('pdf_id', testPdf._id.toString())
                                 .field('content-type', 'multipart/form-data')
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                 .end(function (err, res) {
@@ -453,9 +527,9 @@ describe('Pdfs', function () {
                 .send(user)
                 .end(function (err, res) {
                     checkIsUser(res);
-                    agent.put('/api/pdfs/unlock/' +testPdf._id)
+                    agent.patch('/api/pdfs/unlock/' + testPdf._id)
                         .end(function (err, res) {
-                            agent.put('/api/pdfs/' + testPdf._id.toString())
+                            agent.patch('/api/pdfs/' + testPdf._id.toString())
                                 .field('content-type', 'multipart/form-data')
                                 .field('pdf_id', testPdf._id.toString())
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
@@ -467,11 +541,136 @@ describe('Pdfs', function () {
                         });
                 });
         });
+        it('it should NOT UPDATE/SIGN a PDF cause I did not unlock', function (done) {
+            var user = {
+                email: "test2@test2",
+                password: "test2"
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    checkIsUser(res);
+                    var tempPdf = {pdf_id: testPdf._id};
+                    agent.patch('/api/pdfs/' + testPdf._id.toString())
+                        .field('content-type', 'multipart/form-data')
+                        .field('pdf_id', testPdf._id.toString())
+                        .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
+                        .end(function (err, res) {
+                            checkError(res);
+                            res.should.have.status(HttpStatus.UNAUTHORIZED);
+                            done();
+                        });
+                });
+        });
+        it('it should NOT UPDATE/SIGN a PDF cause is unlocked for other user', function (done) {
+            var user1 = {
+                email: "test@test",
+                password: "test"
+            };
+            var user2 = {
+                email: "test2@test2",
+                password: "test2"
+            };
+            var agent1 = chai.request.agent(server);
+            var agent2 = chai.request.agent(server);
+            agent1.post('/api/users/login')
+                .send(user1)
+                .end(function (err, res) {
+                    checkIsUser(res);
+                    var tempPdf = {pdf_id: testPdf5._id};
+                    agent2.post('/api/users/login')
+                        .send(user2)
+                        .end(function (err, res) {
+                            checkIsUser(res);
+                            var tempPdf = {pdf_id: testPdf5._id};
+                            agent1.patch('/api/pdfs/unlock/' + testPdf5._id)
+                                .end(function (err, res) {
+                                    checkIsPdf(res);
+                                    agent2.patch('/api/pdfs/unlock/' + testPdf5._id)
+                                        .end(function (err, res) {
+                                            checkError(res);
+                                            //res.should.have.status(HttpStatus.LOCKED);
+                                            agent2.patch('/api/pdfs/' + testPdf5._id.toString())
+                                                .field('content-type', 'multipart/form-data')
+                                                .field('pdf_id', testPdf5._id.toString())
+                                                .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
+                                                .end(function (err, res) {
+                                                    checkError(res);
+                                                    res.should.have.status(HttpStatus.UNAUTHORIZED);
+                                                    agent1.patch('/api/pdfs/' + testPdf5._id.toString())
+                                                        .field('content-type', 'multipart/form-data')
+                                                        .field('pdf_id', testPdf5._id.toString())
+                                                        .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
+                                                        .end(function (err, res) {
+                                                            checkIsPdf(res);
+                                                            res.body.signers.length.should.be.eql(2);
+                                                            (res.body.signers[0].is_signed * res.body.signers[1].is_signed).should.be.eql(0);
+                                                            done();
+                                                        });
+                                                });
+                                        });
 
+                                });
+                        });
+                });
+        });
+        it('it should UPDATE/SIGN a PDF in less than 50 sec', function (done) {
+            var user1 = {
+                email: "test@test",
+                password: "test"
+            };
+            var user2 = {
+                email: "test2@test2",
+                password: "test2"
+            };
+            var agent1 = chai.request.agent(server);
+            var agent2 = chai.request.agent(server);
+            agent1.post('/api/users/login')
+                .send(user1)
+                .end(function (err, res) {
+                    checkIsUser(res);
+                    var tempPdf = {pdf_id: testPdf5._id};
+                    agent2.post('/api/users/login')
+                        .send(user2)
+                        .end(function (err, res) {
+                            checkIsUser(res);
+                            var tempPdf = {pdf_id: testPdf5._id};
+                            agent1.patch('/api/pdfs/unlock/' + testPdf5._id)
+                                .end(function (err, res) {
+                                    checkIsPdf(res);
+                                    agent1.patch('/api/pdfs/' + testPdf5._id.toString())
+                                        .field('content-type', 'multipart/form-data')
+                                        .field('pdf_id', testPdf5._id.toString())
+                                        .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
+                                        .end(function (err, res) {
+                                            checkIsPdf(res);
+                                            res.body.signers.length.should.be.eql(2);
+                                            (res.body.signers[0].is_signed * res.body.signers[1].is_signed).should.be.eql(0);
+                                            agent2.patch('/api/pdfs/unlock/' + testPdf5._id)
+                                                .end(function (err, res) {
+                                                    checkIsPdf(res);
+                                                    //res.should.have.status(HttpStatus.LOCKED);
+                                                    agent2.patch('/api/pdfs/' + testPdf5._id.toString())
+                                                        .field('content-type', 'multipart/form-data')
+                                                        .field('pdf_id', testPdf5._id.toString())
+                                                        .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
+                                                        .end(function (err, res) {
+                                                            checkIsPdf(res);
+                                                            res.body.signers.length.should.be.eql(2);
+                                                            res.body.signers.pop().is_signed.should.be.eql(true);
+                                                            res.body.signers.pop().is_signed.should.be.eql(true);
+                                                            done();
+                                                        });
+                                                });
+                                        });
+                                });
+                        });
+                });
+        });
     });
-
     describe('GET tests', function () {
-        it('it should GET INFO of a pdf', function (done) {
+        it('it should GET INFO of a PDF', function (done) {
             var user = {
                 email: "test@test",
                 password: "test"
@@ -483,7 +682,57 @@ describe('Pdfs', function () {
                     checkIsUser(res);
                     agent.get('/api/pdfs/status/' + testPdf._id)
                         .end(function (err, res) {
+                            console.log(res.body);
                             checkIsPdf(res);
+                            done();
+                        });
+                });
+        });
+        it('it should GET INFO of a PDF but I am not logged', function (done) {
+            var user = {
+                email: "test@test",
+                password: "test"
+            };
+            var agent = chai.request.agent(server);
+            agent.get('/api/pdfs/status/' + testPdf._id)
+                .end(function (err, res) {
+                    console.log(res.body);
+                    checkIsPdf(res);
+                    done();
+                });
+        });
+        it('it should NOT GET INFO of a PDF cause it is impossible', function (done) {
+            var user = {
+                email: "test@test",
+                password: "test"
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    checkIsUser(res);
+                    agent.get('/api/pdfs/status/' + "fdsjflk")
+                        .end(function (err, res) {
+                            res.should.have.status(HttpStatus.INTERNAL_SERVER_ERROR);
+                            checkError(res);
+                            done();
+                        });
+                });
+        });
+        it('it should NOT GET INFO of a PDF cause it does not exists', function (done) {
+            var user = {
+                email: "test@test",
+                password: "test"
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    checkIsUser(res);
+                    agent.get('/api/pdfs/status/' + "5b9239b82a839517ac9e2011")
+                        .end(function (err, res) {
+                            res.should.have.status(HttpStatus.NOT_FOUND);
+                            checkError(res);
                             done();
                         });
                 });
@@ -599,11 +848,47 @@ describe('Pdfs', function () {
                     agent.delete('/api/pdfs/' + testPdf._id)
                         .end(function (err, res) {
                             res.should.have.status(HttpStatus.OK);
-                            console.log(res.body);
                             res.body.should.have.property('message', 'Pdf deleted');
+                            done();
+                        });
+                });
+        });
+        it('it should NOT DELETE a pdf cause pdf._id is impossible', function (done) {
+            var user = {
+                email: "test@test",
+                password: "test"
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    checkIsUser(res);
+                    agent.delete('/api/pdfs/' + "randomString")
+                        .end(function (err, res) {
+                            res.should.have.status(HttpStatus.NOT_FOUND);
+                            checkError(res);
+                            done();
+                        });
+                });
+        });
+        it('it should NOT DELETE a pdf cause pdf._id do not exists', function (done) {
+            var user = {
+                email: "test@test",
+                password: "test"
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    checkIsUser(res);
+                    agent.delete('/api/pdfs/' + "5b9239b82a839517ac9e2011")
+                        .end(function (err, res) {
+                            res.should.have.status(HttpStatus.NOT_FOUND);
+                            checkError(res);
                             done();
                         });
                 });
         });
     });
 });
+
