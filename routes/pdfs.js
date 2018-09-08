@@ -179,49 +179,57 @@ function addSignersToPdf(req, res, next) {
                 sendStandardError(res, HttpStatus.NOT_FOUND);
             } else if (pdf.owner_id.toString() != thisSession._id) {
                 sendStandardError(res, HttpStatus.UNAUTHORIZED);
-            } else if (pdf.with_stamp && pdf.total_signatures != 0) {
+            } else if (pdf.with_stamp) {
                 sendStandardError(res, HttpStatus.FORBIDDEN);
             } else {
-                newPdf = {
-                    "signers": pdf.signers
-                };
-                req.body.signers.forEach(function (id) {
-                    var found = isSignerThere(pdf.signers, id);
-                    if (!found) {
-                        var item = {
-                            _id: id,
+                newPdf = {signers: []};
+                pdf.signers.forEach(function (signer) {
+                    newPdf.signers.push(signer);
+                });
+                // Inserts signers if they are not duplicated
+                req.body.signers.forEach(function (signer) {
+                    var found = isSignerThere(pdf.signers, signer._id);
+                    var found2 = isSignerThere(req.body.signers, signer._id);
+                    if (found==0 && found2==1) {
+                        var itemAux = {
+                            _id: signer._id,
                             is_signed: false,
                             when: undefined
                         }
-                        newPdf.signers.push(item);
+                        newPdf.signers.push(itemAux);
                     }
                 });
-                PdfModel.findByIdAndUpdate(req.params.pdf_id, newPdf, {new: true}, function (err, pdf) {
-                    if (err) {
-                        sendStandardError(res, HttpStatus.NOT_FOUND);
-                    } else if (pdf == null || pdf == undefined) {
-                        sendStandardError(res, HttpStatus.NOT_FOUND);
-                    } else {
-                        res.json(pdf);
-                    }
-                });
+
+                if(pdf.signers >= newPdf.signers.length){
+                    // There is no new correct signers
+                    sendStandardError(res, HttpStatus.BAD_REQUEST);
+                } else {
+                    PdfModel.findByIdAndUpdate(req.params.pdf_id, newPdf, {new: true}, function (err, pdf) {
+                        if (err) {
+                            sendStandardError(res, HttpStatus.NOT_FOUND);
+                        } else if (pdf == null || pdf == undefined) {
+                            sendStandardError(res, HttpStatus.NOT_FOUND);
+                        } else {
+                            res.json(pdf);
+                        }
+                    });
+                }
             }
         });
     }
 }
 
 /**
- * checks if there is a signer with the same _id as userId
+ * checks how many times is the id
  * @param signersArray
  * @param userId
  * @returns {boolean}
  */
 function isSignerThere(signersArray, userId) {
-    var found = false;
+    var found = 0;
     for (var i = 0; i < signersArray.length; i++) {
         if (signersArray[i]._id == userId) {
-            found = true;
-            break;
+            found ++;
         }
     }
     return found;

@@ -311,7 +311,7 @@ describe('Pdfs', function () {
                 password: "test"
             };
             var pdf = {
-                signers: [testUser2._id]
+                signers: [{_id: testUser2._id}]
             };
             var agent = chai.request.agent(server);
             agent.post('/api/users/login')
@@ -343,8 +343,8 @@ describe('Pdfs', function () {
                     agent.patch('/api/pdfs/addsigners/' + testPdf2._id)
                         .send(pdf)
                         .end(function (err, res) {
-                            checkIsPdf(res);
-                            res.body.signers.length.should.be.eql(1);
+                            checkError(res);
+                            res.should.have.status(HttpStatus.BAD_REQUEST);
                             done();
                         });
                 });
@@ -366,7 +366,7 @@ describe('Pdfs', function () {
                         .send(pdf)
                         .end(function (err, res) {
                             checkError(res);
-                            // res.should.have.status(HttpStatus.UNAUTHORIZED);
+                            res.should.have.status(HttpStatus.FORBIDDEN);
                             done();
                         });
                 });
@@ -682,7 +682,6 @@ describe('Pdfs', function () {
                     checkIsUser(res);
                     agent.get('/api/pdfs/status/' + testPdf._id)
                         .end(function (err, res) {
-                            console.log(res.body);
                             checkIsPdf(res);
                             done();
                         });
@@ -696,7 +695,6 @@ describe('Pdfs', function () {
             var agent = chai.request.agent(server);
             agent.get('/api/pdfs/status/' + testPdf._id)
                 .end(function (err, res) {
-                    console.log(res.body);
                     checkIsPdf(res);
                     done();
                 });
@@ -804,6 +802,14 @@ describe('Pdfs', function () {
                             res.should.have.status(HttpStatus.UNAUTHORIZED);
                             done();
                         });
+                });
+        });
+        it('it should NOT DOWNLOAD a pdf cause I am not logged', function (done) {
+            var agent = chai.request.agent(server);
+            agent.get('/api/pdfs/' + testPdf._id)
+                .end(function (err, res) {
+                    res.should.have.status(HttpStatus.UNAUTHORIZED);
+                    done();
                 });
         });
     });
