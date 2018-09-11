@@ -12,12 +12,12 @@ var SALT_WORK_FACTOR = 10;
 const userSchema =  new Schema({
     password: {type: String, required: true},
     email: {type: String, required: true, unique: true},
-    activated : {type: Boolean, default: false, required: true},
+    activation : {is_activated : {type: Boolean, default: false, required: true}, when: {type:Date}, code: String},
     name: {type: String, required: true},
     lastname: {type: String},
     last_edition_date: {type:Date},
     creation_date: {type: Date, required: true, default: Date.now()},
-    related_people : [{_id: {type : ObjectId, ref: 'User'}}],
+    users_related : [{_id: {type : ObjectId, ref: 'User'}}],
     pdfs_owned : [{_id : {type : ObjectId, ref: 'Pdf'}}],
     pdfs_to_sign : [{_id : {type : ObjectId, ref: 'Pdf'}}],
     pdfs_signed : [{_id : {type : ObjectId, ref: 'Pdf'}}]
@@ -43,18 +43,18 @@ userSchema.pre('save', function(next) {
         });
     }
 
-    // only hash the activation_code if it has been modified (or is new)
-    if(user.isModified('activation_code')){
+    // only hash the activation.code if it has been modified (or is new)
+    if(user.isModified('activation.code')){
         // generate a salt
         bcrypt.genSalt(SALT_WORK_FACTOR, function(err, salt) {
             if (err) return next(err);
 
-            // hash the activation_code using our new salt
-            bcrypt.hash(user.activation_code, salt, function(err, hash) {
+            // hash the activation.code using our new salt
+            bcrypt.hash(user.activation.code, salt, function(err, hash) {
                 if (err) return next(err);
 
-                // override the cleartext activation_code with the hashed one
-                user.activation_code = hash;
+                // override the cleartext activation.code with the hashed one
+                user.activation.code = hash;
                 next();
             });
         });
@@ -69,7 +69,7 @@ userSchema.methods.comparePassword = function(candidatePassword, cb) {
 };
 
 userSchema.methods.compareActivationCode = function(candidateCode, cb) {
-    bcrypt.compare(candidateCode, this.activation_code, function(err, isMatch) {
+    bcrypt.compare(candidateCode, this.activation.code, function(err, isMatch) {
         if (err) return cb(err);
         cb(null, isMatch);
     });

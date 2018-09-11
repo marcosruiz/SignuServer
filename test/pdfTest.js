@@ -50,9 +50,8 @@ function checkIsUser(res) {
 
 function checkError(res) {
     res.body.should.be.a('object');
-    res.body.should.have.property('error');
-    res.body.error.should.have.property('message');
-    res.body.error.should.have.property('code');
+    res.body.should.have.property('message');
+    res.body.should.have.property('code');
 }
 
 var testUser, testUser2, testUser3, testPdf, testPdf2, testPdf3, testPdf4, testPdf5;
@@ -303,8 +302,84 @@ describe('Pdfs', function () {
         });
 
     });
-
     describe('PATCH.ADDSIGNER tests', function () {
+        it('it should ADD a signer to a PDF', function (done) {
+            var user = {
+                email: "test@test",
+                password: "test"
+            };
+            var signer_id = {
+                signer_id: testUser2._id
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    checkIsUser(res);
+                    agent.patch('/api/pdfs/addsigner/' + testPdf3._id)
+                        .send(signer_id)
+                        .end(function (err, res) {
+                            checkIsPdf(res);
+                            res.body.signers.length.should.be.eql(1);
+                            res.body.signers.pop().is_signed.should.be.eql(false);
+                            done();
+                        });
+                });
+        });
+        it('it should NOT ADD a signer to a PDF two times (is_signed: false)', function (done) {
+            var user = {
+                email: "test@test",
+                password: "test"
+            };
+            var signer_id = {
+                signer_id: testUser2._id
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    checkIsUser(res);
+                    agent.patch('/api/pdfs/addsigner/' + testPdf3._id)
+                        .send(signer_id)
+                        .end(function (err, res) {
+                            checkIsPdf(res);
+                            res.body.signers.length.should.be.eql(1);
+                            res.body.signers.pop().is_signed.should.be.eql(false);
+                            agent.patch('/api/pdfs/addsigner/' + testPdf3._id)
+                                .send(signer_id)
+                                .end(function (err, res) {
+                                    checkError(res);
+                                    res.should.have.status(HttpStatus.BAD_REQUEST);
+                                    done();
+                                });
+                        });
+                });
+        });
+        it('it should NOT ADD a signer to a PDF two times (is_signed: true)', function (done) {
+            var user = {
+                email: "test@test",
+                password: "test"
+            };
+            var signer_id = {
+                signer_id: testUser2._id
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    checkIsUser(res);
+                    agent.patch('/api/pdfs/addsigner/' + testPdf2._id)
+                        .send(signer_id)
+                        .end(function (err, res) {
+                            checkError(res);
+                            res.should.have.status(HttpStatus.BAD_REQUEST);
+                            done();
+                        });
+                });
+        });
+    });
+
+    describe('PATCH.ADDSIGNERS tests', function () {
         it('it should ADD a signer to a PDF', function (done) {
             var user = {
                 email: "test@test",
@@ -333,7 +408,7 @@ describe('Pdfs', function () {
                 password: "test"
             };
             var pdf = {
-                signers: [testUser2._id]
+                signers: [{_id: testUser2._id}]
             };
             var agent = chai.request.agent(server);
             agent.post('/api/users/login')
@@ -355,7 +430,7 @@ describe('Pdfs', function () {
                 password: "test"
             };
             var pdf = {
-                signers: [testUser3._id]
+                signers: [{_id: testUser3._id}]
             };
             var agent = chai.request.agent(server);
             agent.post('/api/users/login')
@@ -377,7 +452,7 @@ describe('Pdfs', function () {
                 password: "test3"
             };
             var pdf = {
-                signers: [testUser3._id]
+                signers: [{_id: testUser3._id}]
             };
             var agent = chai.request.agent(server);
             agent.post('/api/users/login')
@@ -395,7 +470,7 @@ describe('Pdfs', function () {
         });
         it('it should NOT ADD a signer to a PDF cause I am not logged', function (done) {
             var pdf = {
-                signers: [testUser3._id]
+                signers: [{_id: testUser3._id}]
             };
             var agent = chai.request.agent(server);
             agent.patch('/api/pdfs/addsigners/' + testPdf3._id)
@@ -452,7 +527,6 @@ describe('Pdfs', function () {
                                 .field('content-type', 'multipart/form-data')
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                 .end(function (err, res) {
-                                    console.log(res.body);
                                     checkError(res);
                                     res.should.have.status(HttpStatus.FORBIDDEN);
                                     done();

@@ -41,10 +41,8 @@ router.get('/unlockfile', function (req, res, next) {
 
 router.sendStandardError = function sendStandardError (res, status) {
     res.status(status).json({
-        "error": {
-            "code": status,
-            "message": HttpStatus.getStatusText(status)
-        }
+        "code": status,
+        "message": HttpStatus.getStatusText(status)
     });
 };
 

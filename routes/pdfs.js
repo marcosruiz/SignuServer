@@ -22,13 +22,13 @@ var LOCK_TIME = 60000; // 60 seg
  */
 router.get('/:pdf_id', function (req, res, next) {
     thisSession = req.session;
-    if (thisSession._id == undefined) {
+    if (thisSession._id == null) {
         sendStandardError(res, HttpStatus.UNAUTHORIZED);
     } else {
         PdfModel.findById(req.params.pdf_id, function (err, pdf) {
             if (err) {
                 sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
-            } else if(pdf == null){
+            } else if (pdf == null) {
                 sendStandardError(res, HttpStatus.NOT_FOUND);
             } else {
                 if (pdf.owner_id.toString() == thisSession._id) {
@@ -59,7 +59,7 @@ router.get('/:pdf_id', function (req, res, next) {
  */
 function unlockPdf(req, res) {
     thisSession = req.session;
-    if (thisSession._id == undefined) {
+    if (thisSession._id == null) {
         sendStandardError(res, HttpStatus.UNAUTHORIZED);
     } else {
 
@@ -68,9 +68,9 @@ function unlockPdf(req, res) {
             var timeDiff = (Date.now() - pdf.is_any_user_signing.when);
             if (err) {
                 sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
-            } else if (pdf == null || pdf == undefined) {
+            } else if (pdf == null) {
                 sendStandardError(res, HttpStatus.NOT_FOUND);
-            } else if (pdf.is_any_user_signing._id == undefined || pdf.is_any_user_signing._id == null || timeDiff >= LOCK_TIME || pdf.is_any_user_signing.success == true) {
+            } else if (pdf.is_any_user_signing._id == null || timeDiff >= LOCK_TIME || pdf.is_any_user_signing.success == true) {
                 // Everything OK: no one more is trying to sign this pdf
                 var newPdf = {
                     is_any_user_signing: {_id: thisSession._id, when: Date.now(), success: false}
@@ -78,7 +78,7 @@ function unlockPdf(req, res) {
                 PdfModel.findByIdAndUpdate(pdf._id, newPdf, null, function (err, pdf) {
                     if (err) {
                         sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
-                    } else if (pdf == null || pdf == undefined) {
+                    } else if (pdf == null) {
                         sendStandardError(res, HttpStatus.NOT_FOUND);
                     } else {
                         res.json(pdf);
@@ -94,6 +94,8 @@ function unlockPdf(req, res) {
 router.post('/unlock', function (req, res, next) {
     if (req.body._method == 'patch') {
         unlockPdf(req, res);
+    } else {
+        sendStandardError(res, HttpStatus.BAD_REQUEST);
     }
 });
 
@@ -109,7 +111,7 @@ router.patch('/unlock/:pdf_id', function (req, res, next) {
  */
 function postPdf(req, res) {
     thisSession = req.session;
-    if (thisSession._id == undefined) {
+    if (thisSession._id == null) {
         sendStandardError(res, HttpStatus.UNAUTHORIZED);
     } else {
         newPdf = new PdfModel({
@@ -126,7 +128,7 @@ function postPdf(req, res) {
 
         // Add signatures
         var signers = [];
-        if (req.body.signers != null || req.body.signers != undefined) {
+        if (req.body.signers != null) {
 
             // Creates a array of signers without duplicates
             var uniqueSigners = [];
@@ -157,25 +159,26 @@ function postPdf(req, res) {
 }
 
 /**
- *
+ * Add signers to a pdf
  */
 router.patch('/addsigners/:pdf_id', upload.single('pdf'), addSignersToPdf);
+router.post('/addsigners/:pdf_id', upload.single('pdf'), function (req, res, next) {
+    if (req.body._method = 'patch') {
+        addSignersToPdf(req, res, next);
+    } else {
+        sendStandardError(res, HttpStatus.BAD_REQUEST);
+    }
+});
 
-/**
- * Add signers to a pdf
- * @param req
- * @param res
- * @param next
- */
 function addSignersToPdf(req, res, next) {
     thisSession = req.session;
-    if (thisSession._id == undefined) {
+    if (thisSession._id == null) {
         sendStandardError(res, HttpStatus.UNAUTHORIZED);
     } else {
         PdfModel.findById(req.params.pdf_id, function (err, pdf) {
             if (err) {
                 sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
-            } else if (pdf == null || pdf == undefined) {
+            } else if (pdf == null) {
                 sendStandardError(res, HttpStatus.NOT_FOUND);
             } else if (pdf.owner_id.toString() != thisSession._id) {
                 sendStandardError(res, HttpStatus.UNAUTHORIZED);
@@ -190,7 +193,7 @@ function addSignersToPdf(req, res, next) {
                 req.body.signers.forEach(function (signer) {
                     var found = isSignerThere(pdf.signers, signer._id);
                     var found2 = isSignerThere(req.body.signers, signer._id);
-                    if (found==0 && found2==1) {
+                    if (found == 0 && found2 == 1) {
                         var itemAux = {
                             _id: signer._id,
                             is_signed: false,
@@ -199,21 +202,67 @@ function addSignersToPdf(req, res, next) {
                         newPdf.signers.push(itemAux);
                     }
                 });
-
-                if(pdf.signers >= newPdf.signers.length){
+                if (pdf.signers.length >= newPdf.signers.length) {
                     // There is no new correct signers
                     sendStandardError(res, HttpStatus.BAD_REQUEST);
                 } else {
                     PdfModel.findByIdAndUpdate(req.params.pdf_id, newPdf, {new: true}, function (err, pdf) {
                         if (err) {
                             sendStandardError(res, HttpStatus.NOT_FOUND);
-                        } else if (pdf == null || pdf == undefined) {
+                        } else if (pdf == null) {
                             sendStandardError(res, HttpStatus.NOT_FOUND);
                         } else {
                             res.json(pdf);
                         }
                     });
                 }
+            }
+        });
+    }
+}
+
+/**
+ * Add a signer to pdf
+ */
+router.patch('/addsigner/:pdf_id', upload.single('pdf'), addSignerToPdf);
+router.post('/addsigner/:pdf_id', upload.single('pdf'), function (req, res, next) {
+    if (req.body._method = 'patch') {
+        addSignersToPdf(req, res, next);
+    } else {
+        sendStandardError(res, HttpStatus.BAD_REQUEST);
+    }
+});
+
+function addSignerToPdf(req, res, next) {
+    thisSession = req.session;
+    if (thisSession._id == null) {
+        sendStandardError(res, HttpStatus.UNAUTHORIZED);
+    } else {
+        PdfModel.findById(req.params.pdf_id, function (err, pdf) {
+            if (err) {
+                sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+            } else if (pdf == null) {
+                sendStandardError(res, HttpStatus.NOT_FOUND);
+            } else if (pdf.owner_id.toString() != thisSession._id) {
+                sendStandardError(res, HttpStatus.UNAUTHORIZED);
+            } else if (pdf.with_stamp) {
+                sendStandardError(res, HttpStatus.FORBIDDEN);
+            } else {
+                var newSigner = {_id: req.body.signer_id, is_signed: false, when: undefined};
+                PdfModel.findOneAndUpdate({
+                    _id: req.params.pdf_id,
+                    'signers._id': {$ne: newSigner._id}
+                }, {$push: {signers: newSigner}}, {new: true, safe: false}, function (err, newPdf) {
+                    if (err) {
+                        sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
+                    } else if (newPdf == null) {
+                        sendStandardError(res, HttpStatus.BAD_REQUEST);
+                    } else if (newPdf.signers.length == pdf.signers.length) {
+                        sendStandardError(res, HttpStatus.BAD_REQUEST);
+                    } else {
+                        res.json(newPdf);
+                    }
+                });
             }
         });
     }
@@ -229,7 +278,7 @@ function isSignerThere(signersArray, userId) {
     var found = 0;
     for (var i = 0; i < signersArray.length; i++) {
         if (signersArray[i]._id == userId) {
-            found ++;
+            found++;
         }
     }
     return found;
@@ -259,15 +308,15 @@ router.post('/', upload.single('pdf'), function (req, res, next) {
 });
 
 /**
- * Update a pdf/ Add a signature. You should previusly unlock
+ * Sign a PDF. You should previusly unlock
  * @param req
  * @param res
  */
 function patchPdf(req, res) {
     thisSession = req.session;
-    // req.checkParms("pdf_id", "Enter a valid pdf_id").isMongoId();
+    //req.checkParms("pdf_id", "Enter a valid pdf_id").isMongoId();
     var err = req.validationErrors();
-    if (thisSession._id == undefined) {
+    if (thisSession._id == null) {
         sendStandardError(res, HttpStatus.UNAUTHORIZED);
     } else if (err) {
         sendStandardError(res, HttpStatus.BAD_REQUEST);
@@ -276,9 +325,9 @@ function patchPdf(req, res) {
             var timeDiff = (Date.now() - pdf.is_any_user_signing.when);
             if (err) {
                 sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
-            } else if (pdf == null || pdf == undefined) {
+            } else if (pdf == null) {
                 sendStandardError(res, HttpStatus.NOT_FOUND);
-            } else if (pdf.is_any_user_signing == null || pdf.is_any_user_signing == undefined) {
+            } else if (pdf.is_any_user_signing == null) {
                 sendStandardError(res, HttpStatus.UNAUTHORIZED);
             } else if (pdf.is_any_user_signing._id != thisSession._id) {
                 sendStandardError(res, HttpStatus.UNAUTHORIZED);
@@ -305,7 +354,7 @@ function patchPdf(req, res) {
                             pdf.path = req.file.path;
                             pdf.file_name = req.file.filename;
                             // pdf.destination = req.file.destination;
-                            // pdf.encoding = req.file.encoding;
+                            pdf.encoding = req.file.encoding;
                             // pdf.mime_type = req.file.mimetype;
                             // pdf.signers[index].signer_id = thisSession._id;
                             pdf.is_any_user_signing.success = true;
@@ -314,7 +363,7 @@ function patchPdf(req, res) {
                             PdfModel.findByIdAndUpdate(pdf._id, pdf, {new: true}, function (err, pdf) {
                                 if (err) {
                                     sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
-                                } else if (pdf == null || pdf == undefined) {
+                                } else if (pdf == null) {
                                     sendStandardError(res, HttpStatus.NOT_FOUND);
                                 } else {
                                     res.json(pdf);
@@ -342,17 +391,17 @@ router.patch('/:pdf_id', upload.single('pdf'), function (req, res, next) {
  */
 function deletePdf(req, res) {
     thisSession = req.session;
-    if (thisSession._id == undefined) {
+    if (thisSession._id == null) {
         sendStandardError(res, HttpStatus.UNAUTHORIZED);
     } else {
         PdfModel.findById(req.params.pdf_id, function (err, pdf) {
             if (err) {
                 sendStandardError(res, HttpStatus.NOT_FOUND);
-            } else if (pdf == null || pdf == undefined) {
+            } else if (pdf == null) {
                 sendStandardError(res, HttpStatus.NOT_FOUND);
-            } else if(thisSession._id != pdf.owner_id.toString()){
+            } else if (thisSession._id != pdf.owner_id.toString()) {
                 sendStandardError(res, HttpStatus.UNAUTHORIZED);
-            }else{
+            } else {
                 fs.unlink(pdf.path, function (err, result) {
                     if (err) {
                         sendStandardError(res, HttpStatus.NOT_FOUND);
@@ -360,7 +409,7 @@ function deletePdf(req, res) {
                         PdfModel.findByIdAndRemove(req.params.pdf_id, function (err, pdf) {
                             if (err) {
                                 sendStandardError(res, HttpStatus.NOT_FOUND);
-                            } else if (pdf == null || pdf == undefined) {
+                            } else if (pdf == null) {
                                 sendStandardError(res, HttpStatus.NOT_FOUND);
                             } else {
                                 res.json({'message': 'Pdf deleted'});
@@ -385,7 +434,7 @@ router.get('/status/:id', function (req, res, next) {
     PdfModel.findById(req.params.id, function (err, pdf) {
         if (err) {
             sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
-        } else if (pdf == null || pdf == undefined) {
+        } else if (pdf == null) {
             sendStandardError(res, HttpStatus.NOT_FOUND);
         } else {
             res.send(pdf);
@@ -393,10 +442,31 @@ router.get('/status/:id', function (req, res, next) {
     });
 });
 
-/////////////////////////////////
+/////////////////////////////////////
 // UserModel collection management //
-////////////////////////////////
+/////////////////////////////////////
 
+/**
+ * Add PDF pdf to their creator and signers if is not repeated
+ * @param pdf
+ */
+function addPdfToUser(pdf) {
+    var newPdf = {_id: pdf._id};
+    UserModel.findByIdAndUpdate(pdf.owner_id, {$addToSet: {pdfs_owned: newPdf}}, {safe: false});
+    pdf.signers.forEach(function (signer) {
+        if (signer.is_signed) {
+            UserModel.findByIdAndUpdate(signer._id, {$addToSet: {pdfs_signed: newPdf}}, {safe: false});
+        } else {
+            UserModel.findByIdAndUpdate(signer._id, {$addToSet: {pdfs_to_sign: newPdf}}, {safe: false});
+        }
+    });
+    UserModel.findByIdAndUpdate();
+};
+
+/**
+ * Delete all references to pdf
+ * @param pdf
+ */
 function deletePdfOfAllUsers(pdf) {
     UserModel.findByIdAndUpdate(pdf.owner_id, {$pull: {"pdfs_owned": {"pdf_id": pdf._id}}}, {safe: true});
     pdf.signers.forEach(function (signer) {
@@ -406,24 +476,6 @@ function deletePdfOfAllUsers(pdf) {
             UserModel.findByIdAndUpdate(signer._id, {$pull: {"pdfs_signed": {"pdf_id": pdf._id}}}, {safe: true});
         }
     });
-    UserModel.findByIdAndUpdate()
-};
-
-/**
- * Add PDF pdf to their creator, signers
- * @param pdf
- */
-function addPdfToUser(pdf) {
-    var newPdf = {_id: pdf._id};
-    UserModel.findByIdAndUpdate(pdf.owner_id, {$push: {pdfs_owned: newPdf}}, {safe: false});
-    pdf.signers.forEach(function (signer) {
-        if (signer.is_signed) {
-            UserModel.findByIdAndUpdate(signer._id, {$push: {pdfs_signed: newPdf}}, {safe: false});
-        } else {
-            UserModel.findByIdAndUpdate(signer._id, {$push: {pdfs_to_sign: newPdf}}, {safe: false});
-        }
-    });
-
     UserModel.findByIdAndUpdate()
 };
 
@@ -439,19 +491,6 @@ function standarCBM(err, user) {
     } else {
         console.log("EVERYTHING OK: " + user);
     }
-};
-
-/**
- *
- * @param user_id
- * @param pdf_id
- * @param callback
- */
-function signPdf(user_id, pdf_id, callback) {
-    UserModel.findByIdAndUpdate(user_id, {
-        $pull: {pdfs_to_sign: {_id: pdf_id}},
-        $push: {pdfs_signed: {id: pdf_id}}
-    }, {safe: false, new: true}, callback);
 };
 
 module.exports = router;
