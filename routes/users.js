@@ -9,6 +9,7 @@ var bcrypt = require('bcrypt');
 var HttpStatus = require('http-status-codes');
 var AppStatus = require('../public/routes/app-err-codes-en');
 var sendStandardError = require('./index').sendStandardError;
+var GAP_TIME_TO_EMAIL = 1800000;
 
 /* GET users listing. */
 var thisSession;
@@ -16,7 +17,7 @@ var thisSession;
 /**
  * Return a json with code and message code of app-err-codes.js
  * @param code
- * @returns {{code: *, message}}
+ * @returns {{code: *, message: *}}
  */
 function getJsonAppError(code) {
     var res = {
@@ -85,10 +86,39 @@ router.post('/signup', function (req, res, next) {
             if (err) {
                 res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
             } else if (user == null) {
-                // User does not exist
-                sendEmail(req.body.email, randomString, function(err, info){
-                    if(err){
-                        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.EMAIL_ERROR));
+                // User did not exist
+                thisUser.save(function (err, user) {
+                    if (err) {
+                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                    } else if (user == null) {
+                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
+                    } else {
+
+                        sendEmail(user, randomString, function (err, info) {
+                            if (err) {
+                                res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.EMAIL_ERROR));
+                            } else {
+                                user.password = undefined;
+                                user.activation.code = undefined;
+                                var data = {user: user};
+                                if (process.env.NODE_ENV == 'test') {
+                                    data.ac_code_raw = randomString
+                                }
+                                res.json({
+                                    "code": AppStatus.SUCCESS,
+                                    "message": "Email was sent to " + req.body.email,
+                                    "data": data
+                                });
+                            }
+                        });
+
+                    }
+                });
+            } else if (!user.activation.is_activated) {
+                // User is not activated
+                User.findByIdAndRemove(user._id, function (err, user) {
+                    if (err) {
+                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
                     } else {
                         thisUser.save(function (err, user) {
                             if (err) {
@@ -96,46 +126,26 @@ router.post('/signup', function (req, res, next) {
                             } else if (user == null) {
                                 res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
                             } else {
-                                user._id = undefined;
-                                user.password = undefined;
-                                user.activation = undefined;
-                                res.json({
-                                    "code": AppStatus.SUCCESS,
-                                    "message": "Email was sent to " + req.body.email,
-                                    "data": {user: user}
-                                });
-                            }
-                        });
-                    }
-                });
-            } else if (user.activation.is_activated == false) {
-                // User is not activated
-                User.findByIdAndRemove(user._id, function (err, user) {
-                    if (err) {
-                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
-                    } else {
-                        sendEmail(req.body.email, randomString, function(err, info){
-                            if(err){
-                                res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.EMAIL_ERROR));
-                            } else {
-                                thisUser.save(function (err, user) {
+                                sendEmail(user, randomString, function (err, info) {
                                     if (err) {
-                                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
-                                    } else if (user == null) {
-                                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
+                                        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.EMAIL_ERROR));
                                     } else {
-                                        user._id = undefined;
                                         user.password = undefined;
-                                        user.activation = undefined;
+                                        user.activation.code = undefined;
+                                        var data = {user : user};
+                                        if (process.env.NODE_ENV == 'test') {
+                                            data.ac_code_raw = randomString
+                                        }
                                         res.json({
                                             "code": AppStatus.SUCCESS,
                                             "message": "Email was sent to " + req.body.email,
-                                            "data": {user: user}
+                                            "data": data
                                         });
                                     }
                                 });
                             }
                         });
+
                     }
                 });
             } else {
@@ -148,54 +158,63 @@ router.post('/signup', function (req, res, next) {
 });
 
 /**
- *
+ * Put activation.is_activated to true if activation.code match
  */
-router.patch('/authemail', authUser);
+router.patch('/authemail', authEmail);
 router.post('/authemail', function (req, res, next) {
     if (req.body._method == 'patch') {
-        authUser(req, res, next);
+        authEmail(req, res, next);
     } else {
         res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
     }
 });
 
-function authUser(req, res, next) {
+function authEmail(req, res, next) {
     //This check also should be in the front-end
-    if (req.body.password != req.body.password2) {
-        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.NOT_MATCH_PASS));
+    if (req.body._id == null || req.body._id == '') {
+        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+    } else if (req.body.ac_code == null || req.body.ac_code == '') {
+        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
     } else {
-        User.findById(req.body.user_id, function (err, user) {
-            user.compareActivationCode(req.body.activationcode, function (err, isMatch) {
-                if (err) {
-                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-                        "code": AppStatus.INTERNAL_ERROR,
-                        "message": "Error comparing activation codes"
-                    });
-                } else if (isMatch) {
-                    User.findByIdAndUpdate(user._id, {
-                        'activation.code': undefined,
-                        'activation.is_activated': true,
-                        password: req.body.password
-                    }, {new: true}, function (err, user) {
-                        if (err) {
-                            res.stat(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
-                        } else if (user == null) {
-                            res.stat(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
-                        } else {
-                            user.password = undefined;
-                            user._id = undefined;
-                            res.json({
-                                "code": AppStatus.SUCCESS,
-                                "message": "Your email has been authenticated",
-                                "user": user
+        User.findById(req.body._id, function (err, user) {
+            if (err) {
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+            } else if (user == null) {
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
+            } else {
+                user.compareActivationCode(req.body.ac_code, function (err, isMatch) {
+                    if (err) {
+                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.ERROR_AC));
+                    } else if (isMatch) {
+                        var gapOfTime = Date.now() - user.activation.when;
+                        if (gapOfTime < GAP_TIME_TO_EMAIL) {
+                            User.findByIdAndUpdate(user._id, {
+                                'activation.code': null,
+                                'activation.is_activated': true
+                            }, {new: true}, function (err, user) {
+                                if (err) {
+                                    res.stat(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                                } else if (user == null) {
+                                    res.stat(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
+                                } else {
+                                    user.password = undefined;
+                                    user.next_email = undefined;
+                                    res.json({
+                                        "code": AppStatus.USER_ACTIVATED,
+                                        "message": AppStatus.getStatusText(AppStatus.USER_ACTIVATED),
+                                        "data": {user: user}
+                                    });
+                                }
                             });
+                        } else {
+                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.TIMEOUT));
                         }
-                    })
-                } else {
-                    res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.AC_NOT_MATCH));
-                }
-            })
-        })
+                    } else {
+                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.AC_NOT_MATCH));
+                    }
+                });
+            }
+        });
     }
 };
 /**
@@ -236,7 +255,7 @@ function genNewPassword(req, res, next) {
  * @param email
  * @param randomString
  */
-function sendEmail(email, randomString, next) {
+function sendEmail(user, randomString, next) {
     // Read file email.txt with email and password
     var i = 0;
     var inputFile = "./routes/email.txt";
@@ -273,16 +292,15 @@ function sendEmail(email, randomString, next) {
 
         var mailOptions = {
             from: fromEmail,
-            to: email,
+            to: user.email,
             subject: 'Activate your user in Signu',
-            text: 'Here you have your code to finish your autentication: ' + randomString + '. \n' +
-            'Check it in /activateuser.\n ' +
-            'Or click here: localhost:3000/activateuser/ \n' +
-            'and click on the button. You have 10 minutes to do it.\n' +
-            'Ignore this email if you did not requested\n' +
-            'Signu team',
+            html: '<p>Here you have your code to finish your autentication: </p>' +
+            '<h1>' + randomString + '</h1>' +
+            '<p>Check it in /activateuser .</p>' +
+            '<p>Or click <a href="http://localhost:3000/activateuser?_id=' + user._id + '&ac_code=' + randomString + '">here</a> and click on the button. You have 30 minutes to do it.</p>' +
+            '<p>Ignore this email if you did not request it</p>' +
+            '<p>Signu team</p>',
         };
-
         transporter.sendMail(mailOptions, next);
     });
 
@@ -322,63 +340,70 @@ router.post('/login', function (req, res, next) {
                 res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
             } else if (user == null) {
                 res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
-            } else if(!user.activation.is_activated){
+            } else if (!user.activation.is_activated) {
                 res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_DESACTIVATED));
-            } else{
+            } else {
                 user.comparePassword(req.body.password, function (err, isMatch) {
                     if (err) {
                         res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.INCORRECT_PASS));
                     } else if (isMatch) {
                         thisSession._id = user._id;
                         checkUser(user);
-                        user._id = undefined;
                         user.password = undefined;
                         var response = {
                             "code": AppStatus.SUCCESS,
-                            "message": "The user has been logged successfully"
+                            "message": "The user has been logged successfully",
+                            "data": {user: user}
                         };
-                        var data = {
-                            "user": user,
-                            "pdfs_to_sign": [],
-                            "pdfs_signed": [],
-                            "pdfs_owned": []
-                        };
-                        Pdf.findById(user.pdfs_to_sign, function (err, pdfs) {
-                            if (err) {
-                                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({});
-                            } else {
-                                if (pdfs != null) {
-                                    data.pdfs_to_sign = pdfs;
-                                }
-                                Pdf.findById(user.pdfs_signed, function (err, pdfs) {
-                                    if (err) {
-                                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({});
-                                    } else {
-                                        if (pdfs != null) {
-                                            data.pdfs_signed = pdfs;
-                                        }
-                                        Pdf.findById(user.pdfs_owned, function (err, pdfs) {
-                                            if (err) {
-                                                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({});
-                                            } else {
-                                                if (pdfs != null) {
-                                                    data.pdfs_owned = pdfs;
-                                                }
-                                                response.data = data;
-                                                res.json(response);
-                                            }
-                                        });
-                                    }
-                                });
-                            }
-                        });
+                        res.json(response);
+
+                        // Pdf.findById(user.pdfs_to_sign, function (err, pdfs) {
+                        //     if (err) {
+                        //         res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({});
+                        //     } else {
+                        //         if (pdfs != null) {
+                        //             data.pdfs_to_sign = pdfs;
+                        //         }
+                        //         Pdf.findById(user.pdfs_signed, function (err, pdfs) {
+                        //             if (err) {
+                        //                 res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({});
+                        //             } else {
+                        //                 if (pdfs != null) {
+                        //                     data.pdfs_signed = pdfs;
+                        //                 }
+                        //                 Pdf.findById(user.pdfs_owned, function (err, pdfs) {
+                        //                     if (err) {
+                        //                         res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({});
+                        //                     } else {
+                        //                         if (pdfs != null) {
+                        //                             data.pdfs_owned = pdfs;
+                        //                         }
+                        //                         var arrayUsersRelated = user.users_related.map(a => a._id);
+                        //                         User.find({'_id': {$in: arrayUsersRelated}}, function(err, users){
+                        //                             if (err) {
+                        //                                 res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({});
+                        //                             } else {
+                        //                                 if(users != null){
+                        //                                     data.users_related = users;
+                        //                                 }
+                        //                                 response.data = data;
+                        //                                 res.json(response);
+                        //                             }
+                        //                         });
+                        //
+                        //                     }
+                        //                 });
+                        //             }
+                        //         });
+                        //     }
+                        // });
 
                     } else {
                         res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.INCORRECT_PASS));
                     }
                 });
             }
-        });
+        }).populate('pdfs_owned').populate('pdfs_to_sign').populate('pdfs_signed').populate('users_related', '-password');
     }
 });
 
@@ -417,7 +442,6 @@ router.get('/info', function (req, res, next) {
                 res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.INTERNAL_ERROR));
             } else {
                 if (user != null) {
-                    user._id = undefined;
                     user.password = undefined;
                     res.json({
                         "code": AppStatus.SUCCESS,
@@ -533,7 +557,108 @@ function deleteUser(req, res, next) {
 };
 
 /**
- * Edit user (name, lastname, password)
+ * Edit user (email)
+ */
+router.put('/email', editEmail);
+router.post('/email', function (req, res, next) {
+    if (req.body._method == 'put') {
+        editEmail(req, res, next);
+    } else {
+        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+    }
+});
+
+function editEmail(req, res, next) {
+    thisSession = req.session;
+    if (thisSession._id != null) {
+        var randomString = generateRandomString(5);
+        var modUser = {};
+        var isMod = false;
+        if (req.body.email != null && req.body.email != '') {
+            modUser.next_email.email = req.body.email;
+            modUser.next_email.when = Date.now();
+            modUser.next_email.code = randomString;
+        }
+        sendEmail(req.body.email, randomString, function (err, info) {
+            if (err) {
+                res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.EMAIL_ERROR));
+            } else {
+                User.findByIdAndUpdate(thisSession._id, modUser, {new: true}, function (err, user) {
+                    if (err) {
+                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
+                    } else if (user == null) {
+                        res.status(HttpStatus.FORBIDDEN).json(getJsonAppError(AppStatus.NOT_LOGGED));
+                    } else {
+                        user.password = undefined;
+                        user.activation = undefined;
+                        user.next_email = undefined;
+                        res.json({
+                            "code": AppStatus.USER_UPDATED,
+                            "message": AppStatus.getStatusText(AppStatus.USER_UPDATED),
+                            "data": {user: user}
+                        });
+                    }
+                });
+            }
+        });
+
+    } else {
+        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.NOT_LOGGED));
+    }
+};
+
+
+/**
+ * Edit user (password)
+ */
+router.put('/password', editPassword);
+router.post('/password', function (req, res, next) {
+    if (req.body._method == 'put') {
+        editPassword(req, res, next);
+    } else {
+        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+    }
+});
+
+function editPassword(req, res, next) {
+    thisSession = req.session;
+    if (thisSession._id != null) {
+        User.findById(thisSession._id, function (err, user) {
+            if (err) {
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
+            } else if (user == null) {
+                res.status(HttpStatus.FORBIDDEN).json(getJsonAppError(AppStatus.NOT_LOGGED));
+            } else {
+                if (req.body.password == null || req.body.password == '') {
+                    res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.NOT_LOGGED));
+                } else {
+                    user.last_edition_date = Date.now();
+                    user.password = req.body.password;
+                    user.save(function (err, user) {
+                        if (err) {
+                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                        } else if (user == null) {
+                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.INTERNAL_ERROR));
+                        } else {
+                            user.password = undefined;
+                            user.activation = undefined;
+                            res.json({
+                                "code": AppStatus.USER_UPDATED,
+                                "message": AppStatus.getStatusText(AppStatus.USER_UPDATED),
+                                "data": {user: user}
+                            });
+                        }
+                    });
+                }
+            }
+        });
+    } else {
+        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.NOT_LOGGED));
+    }
+};
+
+/**
+ * Edit user (name, lastname)
  */
 router.put('/', editUser);
 router.post('/', function (req, res, next) {
@@ -547,45 +672,27 @@ router.post('/', function (req, res, next) {
 function editUser(req, res, next) {
     thisSession = req.session;
     if (thisSession._id != null) {
-        User.findById(thisSession._id, function (err, user) {
+        var modUser = {};
+        var isMod = false;
+        if (req.body.name != null && req.body.name != '') {
+            modUser.name = req.body.name;
+        }
+        if (req.body.lastname != null && req.body.lastname != '') {
+            modUser.lastname = req.body.lastname;
+        }
+        User.findByIdAndUpdate(thisSession._id, modUser, {new: true}, function (err, user) {
             if (err) {
                 res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
             } else if (user == null) {
                 res.status(HttpStatus.FORBIDDEN).json(getJsonAppError(AppStatus.NOT_LOGGED));
             } else {
-                var sthNew = false;
-                if (req.body.name != null && req.body.name != '') {
-                    user.name = req.body.name;
-                    sthNew = true;
-                }
-                if (req.body.lastname != null && req.body.lastname != '') {
-                    user.lastname = req.body.lastname;
-                    sthNew = true;
-                }
-                if (req.body.password != null && req.body.password != '') {
-                    user.password = req.body.password;
-                    sthNew = true;
-                }
-                if (!sthNew) {
-                    res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.NOT_LOGGED));
-                } else {
-                    user.last_edition_date = Date.now();
-                    User.findByIdAndUpdate(thisSession._id, user, {new: true}, function (err, user) {
-                        if (err) {
-                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.INTERNAL_ERROR));
-                        } else if (user == null) {
-                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.INTERNAL_ERROR));
-                        } else {
-                            user.password = undefined;
-                            user._id = undefined;
-                            res.json({
-                                "code": AppStatus.USER_UPDATED,
-                                "message": AppStatus.getStatusText(AppStatus.USER_UPDATED),
-                                "data": {user: user}
-                            });
-                        }
-                    });
-                }
+                user.password = undefined;
+                user.activation = undefined;
+                res.json({
+                    "code": AppStatus.USER_UPDATED,
+                    "message": AppStatus.getStatusText(AppStatus.USER_UPDATED),
+                    "data": {user: user}
+                });
             }
         });
     } else {

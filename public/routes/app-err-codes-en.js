@@ -7,6 +7,7 @@ statusCodes[exports.USER_UPDATED = 102] = "User updated successfully";
 statusCodes[exports.USER_DELETED = 103] = "User deleted successfully";
 statusCodes[exports.USER_DESACTIVATED = 104] = "User desactivated successfully";
 statusCodes[exports.EMAIL_SENDED = 105] = "Email was sended successfully. Check your email to confirm your email";
+statusCodes[exports.USER_ACTIVATED = 105] = "User activated successfully";
 
 statusCodes[exports.PDF_CREATED = 501] = "PDF created successfully";
 statusCodes[exports.PDF_UPDATED = 502] = "PDF updated successfully";
@@ -23,6 +24,11 @@ statusCodes[exports.NOT_LOGGED = 1005] = "You are not logged";
 statusCodes[exports.UNKNOWN = 1006] = "Unknown error";
 statusCodes[exports.PASS_NOT_MATCH = 1007] = "Passwords do not match";
 statusCodes[exports.PERMISION_DENIED = 1008] = "Permision denied";
+statusCodes[exports.NO_BODY = 1009] = "Request without body";
+statusCodes[exports.ERROR_AC = 1010] = "Activation code error";
+statusCodes[exports.TIMEOUT = 1011] = "Timeout. Try to register again";
+statusCodes[exports.AC_NOT_MATCH = 1012] = "Activation code is wrong";
+
 
 // User errors
 statusCodes[exports.USER_NOT_FOUND = 2000] = "User not found";
