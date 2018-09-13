@@ -93,9 +93,9 @@ router.post('/signup', function (req, res, next) {
                     } else if (user == null) {
                         res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
                     } else {
-
                         sendEmail(user, randomString, function (err, info) {
                             if (err) {
+                                user.remove();
                                 res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.EMAIL_ERROR));
                             } else {
                                 user.password = undefined;
@@ -128,11 +128,12 @@ router.post('/signup', function (req, res, next) {
                             } else {
                                 sendEmail(user, randomString, function (err, info) {
                                     if (err) {
+                                        user.remove();
                                         res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.EMAIL_ERROR));
                                     } else {
                                         user.password = undefined;
                                         user.activation.code = undefined;
-                                        var data = {user : user};
+                                        var data = {user: user};
                                         if (process.env.NODE_ENV == 'test') {
                                             data.ac_code_raw = randomString
                                         }
@@ -217,42 +218,10 @@ function authEmail(req, res, next) {
         });
     }
 };
-/**
- * Generate new password and send an email to email user
- * @param req
- * @param res
- * @param next
- */
-router.patch('/newpassword', function (req, res, next) {
-    genNewPassword(req, res, next)
-});
-router.post('/newpassword', function (req, res, next) {
-    if (req.body._method == 'patch') {
-        genNewPassword(req, res, next);
-    } else {
-        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
-    }
-
-});
-
-function genNewPassword(req, res, next) {
-    req.body.email;
-    var code = generateRandomString(5);
-    User.findOneAndUpdate({email: req.body.email}, {password: code}, {new: true}, function (err, user) {
-        if (err) {
-            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
-        } else if (user == null) {
-            res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
-        } else {
-            sendEmail(req.body.email, code);
-            res.json({"code": AppStatus.SUCCESS, "message": "Email was sent to " + req.body.email});
-        }
-    })
-};
 
 /**
  * Sends an email to email with randomString as content
- * @param email
+ * @param user = {_id}
  * @param randomString
  */
 function sendEmail(user, randomString, next) {
@@ -294,14 +263,17 @@ function sendEmail(user, randomString, next) {
             from: fromEmail,
             to: user.email,
             subject: 'Activate your user in Signu',
-            html: '<p>Here you have your code to finish your autentication: </p>' +
-            '<h1>' + randomString + '</h1>' +
-            '<p>Check it in /activateuser .</p>' +
-            '<p>Or click <a href="http://localhost:3000/activateuser?_id=' + user._id + '&ac_code=' + randomString + '">here</a> and click on the button. You have 30 minutes to do it.</p>' +
+            html: '<p>Click <a href="http://localhost:3000/activateuser?_id=' + user._id + '&ac_code=' + randomString + '">here</a> and click on the button to activate your email. You have 30 minutes to do it.</p>' +
             '<p>Ignore this email if you did not request it</p>' +
-            '<p>Signu team</p>',
+            '<p>Here you have your code to finish your autentication: </p>' +
+            '<h1>' + randomString + '</h1>' +
+            '<p>Signu team</p>'
         };
-        transporter.sendMail(mailOptions, next);
+        if (process.env.NODE_ENV == 'test') {
+            next(false);
+        } else {
+            transporter.sendMail(mailOptions, next);
+        }
     });
 
 
@@ -356,54 +328,12 @@ router.post('/login', function (req, res, next) {
                             "data": {user: user}
                         };
                         res.json(response);
-
-                        // Pdf.findById(user.pdfs_to_sign, function (err, pdfs) {
-                        //     if (err) {
-                        //         res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({});
-                        //     } else {
-                        //         if (pdfs != null) {
-                        //             data.pdfs_to_sign = pdfs;
-                        //         }
-                        //         Pdf.findById(user.pdfs_signed, function (err, pdfs) {
-                        //             if (err) {
-                        //                 res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({});
-                        //             } else {
-                        //                 if (pdfs != null) {
-                        //                     data.pdfs_signed = pdfs;
-                        //                 }
-                        //                 Pdf.findById(user.pdfs_owned, function (err, pdfs) {
-                        //                     if (err) {
-                        //                         res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({});
-                        //                     } else {
-                        //                         if (pdfs != null) {
-                        //                             data.pdfs_owned = pdfs;
-                        //                         }
-                        //                         var arrayUsersRelated = user.users_related.map(a => a._id);
-                        //                         User.find({'_id': {$in: arrayUsersRelated}}, function(err, users){
-                        //                             if (err) {
-                        //                                 res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({});
-                        //                             } else {
-                        //                                 if(users != null){
-                        //                                     data.users_related = users;
-                        //                                 }
-                        //                                 response.data = data;
-                        //                                 res.json(response);
-                        //                             }
-                        //                         });
-                        //
-                        //                     }
-                        //                 });
-                        //             }
-                        //         });
-                        //     }
-                        // });
-
                     } else {
                         res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.INCORRECT_PASS));
                     }
                 });
             }
-        }).populate('pdfs_owned').populate('pdfs_to_sign').populate('pdfs_signed').populate('users_related', '-password');
+        }).populate('pdfs_owned').populate('pdfs_to_sign').populate('pdfs_signed').populate('users_related', '-password -activation');
     }
 });
 
@@ -456,7 +386,7 @@ router.get('/info', function (req, res, next) {
                 }
 
             }
-        });
+        }).populate('pdfs_owned').populate('pdfs_to_sign').populate('pdfs_signed').populate('users_related', '-password -activation');
     }
 });
 
