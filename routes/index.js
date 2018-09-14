@@ -43,6 +43,10 @@ router.get('/activateuser', function(req, res, next){
     res.render('activateuser', {title: 'Signu: Activate user',_id: req.query._id, ac_code : req.query.ac_code});
 });
 
+router.get('/confirmnewemail', function(req, res, next){
+    res.render('confirmnewemail', {title: 'Signu: Activate user',_id: req.query._id, code : req.query.code});
+});
+
 router.sendStandardError = function sendStandardError (res, status) {
     res.status(status).json({
         "code": status,

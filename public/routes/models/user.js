@@ -40,57 +40,9 @@ function hashPassword(user, next) {
     });
 }
 
-function hashActivationCode(user, next) {
-    // generate a salt
-    bcrypt.genSalt(SALT_WORK_FACTOR, function (err, salt) {
-        if (err) return next(err);
-
-        // hash the activation.code using our new salt
-        bcrypt.hash(user.activation.code, salt, function (err, hash) {
-            if (err) return next(err);
-
-            // override the cleartext activation.code with the hashed one
-            user.activation.code = hash;
-            next();
-        });
-    });
-}
-
 userSchema.pre('save', function (next) {
     var user = this;
-
-    // only hash the password/activation.code if it has been modified (or is new)
-    if (user.isModified('password') && !user.isModified('activation.code')) {
-        hashPassword(user, next);
-    } else if (!user.isModified('password') && user.isModified('activation.code')) {
-        hashActivationCode(user, next);
-    } else if (user.isModified('password') && user.isModified('activation.code')) {
-        // generate a salt
-        bcrypt.genSalt(SALT_WORK_FACTOR, function (err, salt) {
-            if (err) return next(err);
-
-            // hash the password using our new salt
-            bcrypt.hash(user.password, salt, function (err, hash) {
-                if (err) return next(err);
-
-                // override the cleartext password with the hashed one
-                user.password = hash;
-                // generate a salt
-                bcrypt.genSalt(SALT_WORK_FACTOR, function (err, salt) {
-                    if (err) return next(err);
-
-                    // hash the activation.code using our new salt
-                    bcrypt.hash(user.activation.code, salt, function (err, hash) {
-                        if (err) return next(err);
-
-                        // override the cleartext activation.code with the hashed one
-                        user.activation.code = hash;
-                        next();
-                    });
-                });
-            });
-        });
-    }
+    hashPassword(user, next);
 });
 
 userSchema.methods.comparePassword = function (candidatePassword, cb) {

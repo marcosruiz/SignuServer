@@ -16,6 +16,7 @@ var sendStandardError = require('./index').sendStandardError;
 var thisSession;
 var newPdf;
 var LOCK_TIME = 60000; // 60 seg
+var UserRoutes = require('./users.js');
 
 /**
  * Download pdf
@@ -129,7 +130,6 @@ function postPdf(req, res) {
         // Add signatures
         var signers = [];
         if (req.body.signers != null) {
-
             // Creates a array of signers without duplicates
             var uniqueSigners = [];
             var signer;
@@ -151,7 +151,7 @@ function postPdf(req, res) {
             if (err) {
                 sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
             } else {
-                addPdfToUser(pdf);
+                UserRoutes.addPdfToUsers(pdf);
                 res.json(pdf);
             }
         });
@@ -412,8 +412,8 @@ function deletePdf(req, res) {
                             } else if (pdf == null) {
                                 sendStandardError(res, HttpStatus.NOT_FOUND);
                             } else {
+                                UserRoutes.deletePdfOfUsers(pdf);
                                 res.json({'message': 'Pdf deleted'});
-                                // deletePdfOfAllUsers(pdf);
                             }
                         });
                     }
@@ -441,43 +441,6 @@ router.get('/status/:id', function (req, res, next) {
         }
     });
 });
-
-/////////////////////////////////////
-// UserModel collection management //
-/////////////////////////////////////
-
-/**
- * Add PDF pdf to their creator and signers if is not repeated
- * @param pdf
- */
-function addPdfToUser(pdf) {
-    var newPdf = {_id: pdf._id};
-    UserModel.findByIdAndUpdate(pdf.owner_id, {$addToSet: {pdfs_owned: newPdf}}, {safe: false});
-    pdf.signers.forEach(function (signer) {
-        if (signer.is_signed) {
-            UserModel.findByIdAndUpdate(signer._id, {$addToSet: {pdfs_signed: newPdf}}, {safe: false});
-        } else {
-            UserModel.findByIdAndUpdate(signer._id, {$addToSet: {pdfs_to_sign: newPdf}}, {safe: false});
-        }
-    });
-    UserModel.findByIdAndUpdate();
-};
-
-/**
- * Delete all references to pdf
- * @param pdf
- */
-function deletePdfOfAllUsers(pdf) {
-    UserModel.findByIdAndUpdate(pdf.owner_id, {$pull: {"pdfs_owned": {"pdf_id": pdf._id}}}, {safe: true});
-    pdf.signers.forEach(function (signer) {
-        if (signer.is_signed) {
-            UserModel.findByIdAndUpdate(signer._id, {$pull: {"pdfs_to_sign": {"pdf_id": pdf._id}}}, {safe: true});
-        } else {
-            UserModel.findByIdAndUpdate(signer._id, {$pull: {"pdfs_signed": {"pdf_id": pdf._id}}}, {safe: true});
-        }
-    });
-    UserModel.findByIdAndUpdate()
-};
 
 /**
  * Standar output for mongoose queries

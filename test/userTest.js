@@ -173,7 +173,7 @@ describe('Users', function () {
     describe('SINGUP tests', function () {
         it('it should POST a user', function (done) {
             var user = {
-                email: "sobrenombre@gmail.com",
+                email: "testEmail@test",
                 name: "TestName",
                 lastname: "TestLastName",
                 password: "TestPassword"
@@ -206,7 +206,7 @@ describe('Users', function () {
                     res.body.data.should.have.property('ac_code_raw');
                     var body = {_id: res.body.data.user._id, ac_code: res.body.data.ac_code_raw};
                     chai.request(server)
-                        .patch('/api/users/authemail/')
+                        .put('/api/users/authemail/')
                         .send(body)
                         .end(function(err, res){
                             checkIsUser(res);
@@ -512,7 +512,6 @@ describe('Users', function () {
         });
 
         it('it should ADD A RELATED_USER', function (done) {
-            // TODO
             var user = {
                 email: "test@test.com",
                 password: "test"
@@ -521,10 +520,89 @@ describe('Users', function () {
             agent.post('/api/users/login')
                 .send(user)
                 .end(function (err, res) {
-                    agent.patch('/api/users/related/' + testUser2._id)
+                    var numUsers1 = res.body.data.user.users_related.length;
+                    agent.put('/api/users/related/')
+                        .send({related_id: testUser3._id})
                         .end(function (err, res) {
                             checkIsUser(res);
-                            res.body.user.should.have.property('lastname', 'editedTest');
+                            var numUsers2 = res.body.data.user.users_related.length;
+                            res.body.data.user.users_related.should.be.an.Array;
+                            numUsers2.should.be.equal(numUsers1 +1);
+                            done();
+                        });
+                });
+        });
+        it('it should NOT ADD A RELATED_USER cause I am not logged', function (done) {
+            var user = {
+                email: "test@test.com",
+                password: "test"
+            };
+            var agent = chai.request.agent(server);
+            agent.put('/api/users/related/')
+                .send({related_id: testUser3._id})
+                .end(function (err, res) {
+                    checkError(res);
+                    res.should.have.status(HttpStatus.UNAUTHORIZED);
+                    res.body.code.should.be.equal(AppStatus.NOT_LOGGED);
+                    done();
+                });
+        });
+
+
+        it('it should NOT ADD A RELATED_USER cause it is already in it', function (done) {
+            var user = {
+                email: "test@test.com",
+                password: "test"
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    var numUsers1 = res.body.data.user.users_related.length;
+                    agent.put('/api/users/related/')
+                        .send({related_id: testUser2._id})
+                        .end(function (err, res) {
+                            checkIsUser(res);
+                            var numUsers2 = res.body.data.user.users_related.length;
+                            res.body.data.user.users_related.should.be.an.Array;
+                            numUsers2.should.be.equal(numUsers1);
+                            done();
+                        });
+                });
+        });
+
+        it('it should NOT ADD A RELATED_USER cause it is invalid', function (done) {
+            var user = {
+                email: "test@test.com",
+                password: "test"
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    agent.put('/api/users/related/')
+                        .send({related_id: 'djasdjkl'})
+                        .end(function (err, res) {
+                            checkError(res);
+                            res.body.code.should.be.equal(AppStatus.BAD_REQUEST);
+                            done();
+                        });
+                });
+        });
+        it('it should NOT ADD A RELATED_USER cause it not exists', function (done) {
+            var user = {
+                email: "test@test.com",
+                password: "test"
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    agent.put('/api/users/related/')
+                        .send({related_id: '5b9b93beb4905736bc99e262'})
+                        .end(function (err, res) {
+                            checkError(res);
+                            res.body.code.should.be.equal(AppStatus.USER_NOT_FOUND);
                             done();
                         });
                 });

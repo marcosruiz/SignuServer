@@ -38,14 +38,16 @@ function checkIsPdf(res) {
 
 function checkIsUser(res) {
     res.should.have.status(HttpStatus.OK);
-    res.body.user.should.be.a('object');
-    res.body.user.should.have.property('name');
-    res.body.user.should.have.property('lastname');
-    res.body.user.should.have.property('email');
-    res.body.user.should.have.property('pdfs_to_sign');
-    res.body.user.pdfs_to_sign.should.be.an.Array;
-    res.body.user.should.have.property('related_people');
-    res.body.user.related_people.should.be.an.Array;
+    res.body.data.user.should.be.a('object');
+    res.body.data.user.should.have.property('name');
+    res.body.data.user.should.have.property('lastname');
+    res.body.data.user.should.have.property('email');
+    res.body.data.user.should.have.property('pdfs_to_sign');
+    res.body.data.user.pdfs_to_sign.should.be.an.Array;
+    res.body.data.user.should.have.property('pdfs_signed');
+    res.body.data.user.pdfs_signed.should.be.an.Array;
+    res.body.data.user.should.have.property('users_related');
+    res.body.data.user.users_related.should.be.an.Array;
 }
 
 function checkError(res) {
@@ -83,7 +85,8 @@ describe('Pdfs', function () {
                 "pdfs_to_sign": [],
                 "pdfs_signed": [],
                 "pdfs_owned": [],
-                "related_people": []
+                "related_people": [],
+                "activation": {is_activated: true, when: Date.now()}
             });
             // Signer
             var newUser2 = new User({
@@ -96,7 +99,8 @@ describe('Pdfs', function () {
                 "pdfs_to_sign": [],
                 "pdfs_signed": [],
                 "pdfs_owned": [],
-                "related_people": []
+                "related_people": [],
+                "activation": {is_activated: true, when: Date.now()}
             });
             // Independient user
             var newUser3 = new User({
@@ -109,7 +113,8 @@ describe('Pdfs', function () {
                 "pdfs_to_sign": [],
                 "pdfs_signed": [],
                 "pdfs_owned": [],
-                "related_people": []
+                "related_people": [],
+                "activation": {is_activated: true, when: Date.now()}
             });
 
             // Adding users
