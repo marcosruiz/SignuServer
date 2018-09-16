@@ -5,8 +5,8 @@
 var express = require('express');
 var router = express.Router();
 var fs = require('fs');
-var PdfModel = require('../public/routes/models/pdf');
-var UserModel = require('../public/routes/models/user');
+var PdfModel = require('../public/routes/models/pdfSchema');
+var UserModel = require('../public/routes/models/userSchema');
 const path = require('path');
 var multer = require('multer');
 var config = require('config');
@@ -16,7 +16,7 @@ var sendStandardError = require('./index').sendStandardError;
 var thisSession;
 var newPdf;
 var LOCK_TIME = 60000; // 60 seg
-var UserRoutes = require('./users.js');
+var UserRoutes = require('./userRoutes.js');
 
 /**
  * Download pdf

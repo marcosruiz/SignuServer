@@ -53,10 +53,11 @@ userSchema.methods.comparePassword = function (candidatePassword, cb) {
 };
 
 userSchema.methods.compareActivationCode = function (candidateCode, cb) {
-    bcrypt.compare(candidateCode, this.activation.code, function (err, isMatch) {
-        if (err) return cb(err);
-        cb(null, isMatch);
-    });
+    if(candidateCode == this.activation.code){
+        cb(null, true);
+    } else {
+        return cb(new Error('activation code does not match'));
+    }
 };
 
 var User = mongoose.model('User', userSchema);

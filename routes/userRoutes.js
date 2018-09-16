@@ -6,8 +6,8 @@
 var express = require('express');
 var router = express.Router();
 var nodemailer = require('nodemailer');
-var User = require('../public/routes/models/user');
-var Pdf = require('../public/routes/models/pdf');
+var User = require('../public/routes/models/userSchema');
+var Pdf = require('../public/routes/models/pdfSchema');
 var bcrypt = require('bcrypt');
 var HttpStatus = require('http-status-codes');
 var AppStatus = require('../public/routes/app-err-codes-en');
@@ -677,6 +677,12 @@ router.post('/', function (req, res, next) {
     }
 });
 
+/**
+ * Edit name and/or lastname of a user
+ * @param {Object} req - body = {name, lastname}
+ * @param {Object} res - 200 if user was updated
+ * @callback {function} next
+ */
 function editUser(req, res, next) {
     thisSession = req.session;
     if (thisSession._id != null) {
@@ -758,8 +764,8 @@ function addRelated(req, res, next) {
 /////////////
 
 /**
- * Add PDF pdf to their creator and signers if is not repeated
- * @param pdf
+ * Add pdf to their creator and signers if is not repeated
+ * @param {Object} pdf - pdf = {_id, owner_id}
  */
 function addPdfToUsers (pdf) {
     var newPdf = {_id: pdf._id};
@@ -775,7 +781,7 @@ function addPdfToUsers (pdf) {
 
 /**
  * Delete all references to pdf
- * @param pdf
+ * @param {Object} pdf - pdf = {_id, owner_id}
  */
 function deletePdfOfUsers (pdf) {
     User.findByIdAndUpdate(pdf.owner_id, {$pull: {"pdfs_owned": pdf._id}}, {safe: true});

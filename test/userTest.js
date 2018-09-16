@@ -8,9 +8,9 @@ process.env.NODE_ENV = 'test';
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 var ObjectId = Schema.ObjectId;
-var User = require('../public/routes/models/user');
-var Pdf = require('../public/routes/models/pdf');
-var usersRoutes = require('../routes/users');
+var User = require('../public/routes/models/userSchema');
+var Pdf = require('../public/routes/models/pdfSchema');
+var usersRoutes = require('../routes/userRoutes');
 var config = require('config');
 
 //Require the dev-dependencies
