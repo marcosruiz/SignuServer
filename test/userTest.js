@@ -472,7 +472,6 @@ describe('Users', function () {
                     agent.put('/api/users/')
                         .send(editedUser)
                         .end(function (err, res) {
-                            console.log(res.body.data);
                             checkIsUser(res);
                             done();
                         });
@@ -622,7 +621,6 @@ describe('Users', function () {
                 .end(function (err, res) {
                     agent.get('/api/users/info')
                         .end(function (err, res) {
-                            console.log(res.body.data.user);
                             checkIsUser(res);
                             done();
                         });

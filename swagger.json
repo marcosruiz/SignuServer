@@ -1139,7 +1139,7 @@
           }
         }
       },
-      "patch": {
+      "put": {
         "tags": [
           "pdf"
         ],
@@ -1329,7 +1329,7 @@
       }
     },
     "/pdfs/unlock/{pdf_id}": {
-      "patch": {
+      "put": {
         "tags": [
           "pdf"
         ],
@@ -1428,7 +1428,7 @@
       }
     },
     "/pdfs/addsigner/{pdf_id}": {
-      "patch": {
+      "put": {
         "tags": [
           "pdf"
         ],

@@ -55,6 +55,7 @@ function checkError(res) {
     res.body.should.be.a('object');
     res.body.should.have.property('message');
     res.body.should.have.property('code');
+    res.body.code.should.be.above(999);
 }
 
 var testUser, testUser2, testUser3, testPdf, testPdf2, testPdf3, testPdf4, testPdf5;
@@ -301,14 +302,14 @@ describe('Pdfs', function () {
                 .set('content-type', 'multipart/form-data')
                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                 .end(function (err, res) {
+                    console.log(res.body);
                     checkError(res);
-
                     done();
                 });
         });
 
     });
-    describe('PATCH.ADDSIGNER tests', function () {
+    describe('PUT.ADDSIGNER tests', function () {
         it('it should ADD a signer to a PDF', function (done) {
             var user = {
                 email: "test@test",
@@ -322,7 +323,31 @@ describe('Pdfs', function () {
                 .send(user)
                 .end(function (err, res) {
                     checkIsUser(res);
-                    agent.patch('/api/pdfs/addsigner/' + testPdf3._id)
+                    agent.put('/api/pdfs/addsigner/' + testPdf3._id)
+                        .send(signer_id)
+                        .end(function (err, res) {
+                            checkIsPdf(res);
+                            res.body.data.pdf.signers.length.should.be.eql(1);
+                            res.body.data.pdf.signers.pop().is_signed.should.be.eql(false);
+                            done();
+                        });
+                });
+        });
+        it('it should ADD a signer to a PDF using POST', function (done) {
+            var user = {
+                email: "test@test",
+                password: "test"
+            };
+            var signer_id = {
+                _method: 'put',
+                signer_id: testUser2._id
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    checkIsUser(res);
+                    agent.post('/api/pdfs/addsigner/' + testPdf3._id)
                         .send(signer_id)
                         .end(function (err, res) {
                             checkIsPdf(res);
@@ -345,17 +370,17 @@ describe('Pdfs', function () {
                 .send(user)
                 .end(function (err, res) {
                     checkIsUser(res);
-                    agent.patch('/api/pdfs/addsigner/' + testPdf3._id)
+                    agent.put('/api/pdfs/addsigner/' + testPdf3._id)
                         .send(signer_id)
                         .end(function (err, res) {
                             checkIsPdf(res);
                             res.body.data.pdf.signers.length.should.be.eql(1);
                             res.body.data.pdf.signers[0].is_signed.should.be.eql(false);
-                            agent.patch('/api/pdfs/addsigner/' + testPdf3._id)
+                            agent.put('/api/pdfs/addsigner/' + testPdf3._id)
                                 .send(signer_id)
                                 .end(function (err, res) {
                                     checkError(res);
-                                    res.should.have.status(HttpStatus.BAD_REQUEST);
+                                    res.should.have.status(HttpStatus.NOT_FOUND);
                                     done();
                                 });
                         });
@@ -374,18 +399,18 @@ describe('Pdfs', function () {
                 .send(user)
                 .end(function (err, res) {
                     checkIsUser(res);
-                    agent.patch('/api/pdfs/addsigner/' + testPdf2._id)
+                    agent.put('/api/pdfs/addsigner/' + testPdf2._id)
                         .send(signer_id)
                         .end(function (err, res) {
                             checkError(res);
-                            res.should.have.status(HttpStatus.BAD_REQUEST);
+                            res.should.have.status(HttpStatus.NOT_FOUND);
                             done();
                         });
                 });
         });
     });
 
-    describe('PATCH.ADDSIGNERS tests', function () {
+    describe('PUT.ADDSIGNERS tests', function () {
         it('it should ADD a signer to a PDF', function (done) {
             var user = {
                 email: "test@test",
@@ -399,7 +424,30 @@ describe('Pdfs', function () {
                 .send(user)
                 .end(function (err, res) {
                     checkIsUser(res);
-                    agent.patch('/api/pdfs/addsigners/' + testPdf3._id)
+                    agent.put('/api/pdfs/addsigners/' + testPdf3._id)
+                        .send(pdf)
+                        .end(function (err, res) {
+                            checkIsPdf(res);
+                            res.body.data.pdf.signers.length.should.be.eql(1);
+                            done();
+                        });
+                });
+        });
+        it('it should ADD a signer to a PDF using POST', function (done) {
+            var user = {
+                email: "test@test",
+                password: "test"
+            };
+            var pdf = {
+                _method: 'put',
+                signers: [{_id: testUser2._id}]
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    checkIsUser(res);
+                    agent.post('/api/pdfs/addsigners/' + testPdf3._id)
                         .send(pdf)
                         .end(function (err, res) {
                             checkIsPdf(res);
@@ -421,7 +469,7 @@ describe('Pdfs', function () {
                 .send(user)
                 .end(function (err, res) {
                     checkIsUser(res);
-                    agent.patch('/api/pdfs/addsigners/' + testPdf2._id)
+                    agent.put('/api/pdfs/addsigners/' + testPdf2._id)
                         .send(pdf)
                         .end(function (err, res) {
                             checkError(res);
@@ -443,7 +491,7 @@ describe('Pdfs', function () {
                 .send(user)
                 .end(function (err, res) {
                     checkIsUser(res);
-                    agent.patch('/api/pdfs/addsigners/' + testPdf4._id)
+                    agent.put('/api/pdfs/addsigners/' + testPdf4._id)
                         .send(pdf)
                         .end(function (err, res) {
                             checkError(res);
@@ -465,7 +513,7 @@ describe('Pdfs', function () {
                 .send(user)
                 .end(function (err, res) {
                     checkIsUser(res);
-                    agent.patch('/api/pdfs/addsigners/' + testPdf3._id)
+                    agent.put('/api/pdfs/addsigners/' + testPdf3._id)
                         .send(pdf)
                         .end(function (err, res) {
                             checkError(res);
@@ -479,7 +527,7 @@ describe('Pdfs', function () {
                 signers: [{_id: testUser3._id}]
             };
             var agent = chai.request.agent(server);
-            agent.patch('/api/pdfs/addsigners/' + testPdf3._id)
+            agent.put('/api/pdfs/addsigners/' + testPdf3._id)
                 .send(pdf)
                 .end(function (err, res) {
                     checkError(res);
@@ -489,7 +537,7 @@ describe('Pdfs', function () {
         });
     });
 
-    describe('PATCH.SIGN tests', function () {
+    describe('PUT.SIGN tests', function () {
         it('it should UPDATE/SIGN a PDF', function (done) {
             var user = {
                 email: "test2@test2",
@@ -501,9 +549,36 @@ describe('Pdfs', function () {
                 .end(function (err, res) {
                     checkIsUser(res);
                     var tempPdf = {pdf_id: testPdf._id};
-                    agent.patch('/api/pdfs/unlock/' + testPdf._id)
+                    agent.put('/api/pdfs/unlock/' + testPdf._id)
                         .end(function (err, res) {
-                            agent.patch('/api/pdfs/' + testPdf._id.toString())
+                            agent.put('/api/pdfs/' + testPdf._id.toString())
+                                .field('content-type', 'multipart/form-data')
+                                .field('pdf_id', testPdf._id.toString())
+                                .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
+                                .end(function (err, res) {
+                                    checkIsPdf(res);
+                                    res.body.data.pdf.signers.length.should.be.eql(1);
+                                    res.body.data.pdf.signers.pop().is_signed.should.be.eql(true);
+                                    done();
+                                });
+                        });
+                });
+        });
+        it('it should UPDATE/SIGN a PDF using POST', function (done) {
+            var user = {
+                email: "test2@test2",
+                password: "test2"
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    checkIsUser(res);
+                    var tempPdf = {pdf_id: testPdf._id};
+                    agent.put('/api/pdfs/unlock/' + testPdf._id)
+                        .end(function (err, res) {
+                            agent.post('/api/pdfs/' + testPdf._id.toString())
+                                .field('_method', 'put')
                                 .field('content-type', 'multipart/form-data')
                                 .field('pdf_id', testPdf._id.toString())
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
@@ -526,9 +601,9 @@ describe('Pdfs', function () {
                 .send(user)
                 .end(function (err, res) {
                     checkIsUser(res);
-                    agent.patch('/api/pdfs/unlock/' + testPdf2._id)
+                    agent.put('/api/pdfs/unlock/' + testPdf2._id)
                         .end(function (err, res) {
-                            agent.patch('/api/pdfs/' + testPdf2._id.toString())
+                            agent.put('/api/pdfs/' + testPdf2._id.toString())
                                 .field('pdf_id', testPdf2._id.toString())
                                 .field('content-type', 'multipart/form-data')
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
@@ -550,10 +625,10 @@ describe('Pdfs', function () {
                 .send(user)
                 .end(function (err, res) {
                     checkIsUser(res);
-                    agent.patch('/api/pdfs/unlock/' + testPdf4._id)
+                    agent.put('/api/pdfs/unlock/' + testPdf4._id)
                         .set('pdf_id', testPdf4._id.toString())
                         .end(function (err, res) {
-                            agent.patch('/api/pdfs/' + testPdf4._id)
+                            agent.put('/api/pdfs/' + testPdf4._id)
                                 .field('pdf_id', testPdf4._id.toString())
                                 .field('content-type', 'multipart/form-data')
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
@@ -578,11 +653,11 @@ describe('Pdfs', function () {
                 .send(user)
                 .end(function (err, res) {
                     checkIsUser(res);
-                    agent.patch('/api/pdfs/unlock/' + testPdf._id)
+                    agent.put('/api/pdfs/unlock/' + testPdf._id)
                         .field('pdf_id', testPdf._id.toString())
                         .field('content-type', 'multipart/form-data')
                         .end(function (err, res) {
-                            agent.patch('/api/pdfs/' + testPdf._id.toString())
+                            agent.put('/api/pdfs/' + testPdf._id.toString())
                                 .field('pdf_id', testPdf._id.toString())
                                 .field('content-type', 'multipart/form-data')
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
@@ -607,9 +682,9 @@ describe('Pdfs', function () {
                 .send(user)
                 .end(function (err, res) {
                     checkIsUser(res);
-                    agent.patch('/api/pdfs/unlock/' + testPdf._id)
+                    agent.put('/api/pdfs/unlock/' + testPdf._id)
                         .end(function (err, res) {
-                            agent.patch('/api/pdfs/' + testPdf._id.toString())
+                            agent.put('/api/pdfs/' + testPdf._id.toString())
                                 .field('content-type', 'multipart/form-data')
                                 .field('pdf_id', testPdf._id.toString())
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
@@ -632,7 +707,7 @@ describe('Pdfs', function () {
                 .end(function (err, res) {
                     checkIsUser(res);
                     var tempPdf = {pdf_id: testPdf._id};
-                    agent.patch('/api/pdfs/' + testPdf._id.toString())
+                    agent.put('/api/pdfs/' + testPdf._id.toString())
                         .field('content-type', 'multipart/form-data')
                         .field('pdf_id', testPdf._id.toString())
                         .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
@@ -664,21 +739,21 @@ describe('Pdfs', function () {
                         .end(function (err, res) {
                             checkIsUser(res);
                             var tempPdf = {pdf_id: testPdf5._id};
-                            agent1.patch('/api/pdfs/unlock/' + testPdf5._id)
+                            agent1.put('/api/pdfs/unlock/' + testPdf5._id)
                                 .end(function (err, res) {
                                     checkIsPdf(res);
-                                    agent2.patch('/api/pdfs/unlock/' + testPdf5._id)
+                                    agent2.put('/api/pdfs/unlock/' + testPdf5._id)
                                         .end(function (err, res) {
                                             checkError(res);
                                             //res.should.have.status(HttpStatus.LOCKED);
-                                            agent2.patch('/api/pdfs/' + testPdf5._id.toString())
+                                            agent2.put('/api/pdfs/' + testPdf5._id.toString())
                                                 .field('content-type', 'multipart/form-data')
                                                 .field('pdf_id', testPdf5._id.toString())
                                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                                 .end(function (err, res) {
                                                     checkError(res);
                                                     res.should.have.status(HttpStatus.UNAUTHORIZED);
-                                                    agent1.patch('/api/pdfs/' + testPdf5._id.toString())
+                                                    agent1.put('/api/pdfs/' + testPdf5._id.toString())
                                                         .field('content-type', 'multipart/form-data')
                                                         .field('pdf_id', testPdf5._id.toString())
                                                         .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
@@ -716,10 +791,10 @@ describe('Pdfs', function () {
                         .end(function (err, res) {
                             checkIsUser(res);
                             var tempPdf = {pdf_id: testPdf5._id};
-                            agent1.patch('/api/pdfs/unlock/' + testPdf5._id)
+                            agent1.put('/api/pdfs/unlock/' + testPdf5._id)
                                 .end(function (err, res) {
                                     checkIsPdf(res);
-                                    agent1.patch('/api/pdfs/' + testPdf5._id.toString())
+                                    agent1.put('/api/pdfs/' + testPdf5._id.toString())
                                         .field('content-type', 'multipart/form-data')
                                         .field('pdf_id', testPdf5._id.toString())
                                         .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
@@ -727,11 +802,11 @@ describe('Pdfs', function () {
                                             checkIsPdf(res);
                                             res.body.data.pdf.signers.length.should.be.eql(2);
                                             (res.body.data.pdf.signers[0].is_signed * res.body.data.pdf.signers[1].is_signed).should.be.eql(0);
-                                            agent2.patch('/api/pdfs/unlock/' + testPdf5._id)
+                                            agent2.put('/api/pdfs/unlock/' + testPdf5._id)
                                                 .end(function (err, res) {
                                                     checkIsPdf(res);
                                                     //res.should.have.status(HttpStatus.LOCKED);
-                                                    agent2.patch('/api/pdfs/' + testPdf5._id.toString())
+                                                    agent2.put('/api/pdfs/' + testPdf5._id.toString())
                                                         .field('content-type', 'multipart/form-data')
                                                         .field('pdf_id', testPdf5._id.toString())
                                                         .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
@@ -931,7 +1006,27 @@ describe('Pdfs', function () {
                 .send(user)
                 .end(function (err, res) {
                     checkIsUser(res);
-                    agent.delete('/api/pdfs/' + testPdf._id)
+                    agent.delete('/api/pdfs/' + testPdf._id.toString())
+                        .end(function (err, res) {
+                            res.should.have.status(HttpStatus.OK);
+                            res.body.should.have.property('code', AppStatus.PDF_DELETED);
+                            res.body.should.have.property('message', AppStatus.getStatusText(AppStatus.PDF_DELETED));
+                            done();
+                        });
+                });
+        });
+        it('it should DELETE a pdf using POST', function (done) {
+            var user = {
+                email: "test@test",
+                password: "test"
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    checkIsUser(res);
+                    agent.post('/api/pdfs/' + testPdf._id.toString())
+                        .field('_method', 'delete')
                         .end(function (err, res) {
                             res.should.have.status(HttpStatus.OK);
                             res.body.should.have.property('code', AppStatus.PDF_DELETED);

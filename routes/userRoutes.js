@@ -11,24 +11,11 @@ var Pdf = require('../public/routes/models/pdfSchema');
 var bcrypt = require('bcrypt');
 var HttpStatus = require('http-status-codes');
 var AppStatus = require('../public/routes/app-err-codes-en');
-var sendStandardError = require('./index').sendStandardError;
+var getJsonAppError = AppStatus.getJsonAppError;
 var GAP_TIME_TO_EMAIL = 1800000;
 
 /* GET users listing. */
 var thisSession;
-
-/**
- * Return a json with code and message code of app-err-codes.js
- * @param code
- * @returns {{code: *, message: *}}
- */
-function getJsonAppError(code) {
-    var res = {
-        "code": code,
-        "message": AppStatus.getStatusText(code)
-    };
-    return res;
-}
 
 /**
  * Delete references to eliminated PDFs
