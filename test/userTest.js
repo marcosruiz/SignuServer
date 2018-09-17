@@ -203,8 +203,8 @@ describe('Users', function () {
                     res.body.should.have.property('code', AppStatus.SUCCESS);
                     res.body.should.have.property('message');
                     res.body.data.user.activation.should.have.property('is_activated', false);
-                    res.body.data.should.have.property('ac_code_raw');
-                    var body = {_id: res.body.data.user._id, ac_code: res.body.data.ac_code_raw};
+                    res.body.data.should.have.property('code_raw');
+                    var body = {_id: res.body.data.user._id, code: res.body.data.code_raw};
                     chai.request(server)
                         .put('/api/users/authemail/')
                         .send(body)
@@ -635,39 +635,6 @@ describe('Users', function () {
                     res.should.have.status(HttpStatus.UNAUTHORIZED);
                     checkError(res);
                     res.body.should.have.property('code', AppStatus.NOT_LOGGED);
-                    done();
-                });
-        });
-    });
-
-    describe('DESACTIVATE user tests', function () {
-        it('it should DESACTIVATE a user', function (done) {
-            var user = {
-                email: "test@test.com",
-                password: "test"
-            };
-            var agent = chai.request.agent(server);
-            agent.post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
-                    agent.put('/api/users/desactivate')
-                        .send(user)
-                        .end(function (err, res) {
-                            res.should.have.status(HttpStatus.OK);
-                            res.body.should.have.property('code', 0);
-                            res.body.should.have.property('message');
-                            done();
-                        });
-                });
-        });
-        it('it should NOT DESACTIVATE a user', function (done) {
-            var agent = chai.request.agent(server);
-            agent.put('/api/users/desactivate')
-                .end(function (err, res) {
-                    res.should.have.status(HttpStatus.UNAUTHORIZED);
-                    checkError(res);
-                    res.body.should.have.property('code', AppStatus.NOT_LOGGED);
-                    res.body.should.have.property('message');
                     done();
                 });
         });

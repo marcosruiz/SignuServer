@@ -17,23 +17,24 @@ var chaiHttp = require('chai-http');
 var server = require('../app');
 var should = chai.should();
 var HttpStatus = require('http-status-codes');
+var AppStatus = require('../public/routes/app-err-codes-en');
 
 chai.use(chaiHttp);
 
 function checkIsPdf(res) {
     res.should.have.status(HttpStatus.OK);
-    res.body.should.be.a('object');
-    res.body.should.have.property('original_name');
-    res.body.should.have.property('owner_id');
-    res.body.should.have.property('mime_type');
-    res.body.should.have.property('file_name');
-    res.body.should.have.property('path');
-    res.body.should.have.property('destination');
-    res.body.should.have.property('encoding');
-    res.body.should.have.property('with_stamp');
-    res.body.should.have.property('creation_date');
-    res.body.should.have.property('signers');
-    res.body.signers.should.be.an.Array;
+    res.body.data.pdf.should.be.a('object');
+    res.body.data.pdf.should.have.property('original_name');
+    res.body.data.pdf.should.have.property('owner_id');
+    res.body.data.pdf.should.have.property('mime_type');
+    res.body.data.pdf.should.have.property('file_name');
+    res.body.data.pdf.should.have.property('path');
+    res.body.data.pdf.should.have.property('destination');
+    res.body.data.pdf.should.have.property('encoding');
+    res.body.data.pdf.should.have.property('with_stamp');
+    res.body.data.pdf.should.have.property('creation_date');
+    res.body.data.pdf.should.have.property('signers');
+    res.body.data.pdf.signers.should.be.an.Array;
 }
 
 function checkIsUser(res) {
@@ -325,8 +326,8 @@ describe('Pdfs', function () {
                         .send(signer_id)
                         .end(function (err, res) {
                             checkIsPdf(res);
-                            res.body.signers.length.should.be.eql(1);
-                            res.body.signers.pop().is_signed.should.be.eql(false);
+                            res.body.data.pdf.signers.length.should.be.eql(1);
+                            res.body.data.pdf.signers.pop().is_signed.should.be.eql(false);
                             done();
                         });
                 });
@@ -348,8 +349,8 @@ describe('Pdfs', function () {
                         .send(signer_id)
                         .end(function (err, res) {
                             checkIsPdf(res);
-                            res.body.signers.length.should.be.eql(1);
-                            res.body.signers.pop().is_signed.should.be.eql(false);
+                            res.body.data.pdf.signers.length.should.be.eql(1);
+                            res.body.data.pdf.signers[0].is_signed.should.be.eql(false);
                             agent.patch('/api/pdfs/addsigner/' + testPdf3._id)
                                 .send(signer_id)
                                 .end(function (err, res) {
@@ -402,7 +403,7 @@ describe('Pdfs', function () {
                         .send(pdf)
                         .end(function (err, res) {
                             checkIsPdf(res);
-                            res.body.signers.length.should.be.eql(1);
+                            res.body.data.pdf.signers.length.should.be.eql(1);
                             done();
                         });
                 });
@@ -508,8 +509,8 @@ describe('Pdfs', function () {
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                 .end(function (err, res) {
                                     checkIsPdf(res);
-                                    res.body.signers.length.should.be.eql(1);
-                                    res.body.signers.pop().is_signed.should.be.eql(true);
+                                    res.body.data.pdf.signers.length.should.be.eql(1);
+                                    res.body.data.pdf.signers.pop().is_signed.should.be.eql(true);
                                     done();
                                 });
                         });
@@ -683,8 +684,8 @@ describe('Pdfs', function () {
                                                         .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                                         .end(function (err, res) {
                                                             checkIsPdf(res);
-                                                            res.body.signers.length.should.be.eql(2);
-                                                            (res.body.signers[0].is_signed * res.body.signers[1].is_signed).should.be.eql(0);
+                                                            res.body.data.pdf.signers.length.should.be.eql(2);
+                                                            (res.body.data.pdf.signers[0].is_signed * res.body.data.pdf.signers[1].is_signed).should.be.eql(0);
                                                             done();
                                                         });
                                                 });
@@ -724,8 +725,8 @@ describe('Pdfs', function () {
                                         .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                         .end(function (err, res) {
                                             checkIsPdf(res);
-                                            res.body.signers.length.should.be.eql(2);
-                                            (res.body.signers[0].is_signed * res.body.signers[1].is_signed).should.be.eql(0);
+                                            res.body.data.pdf.signers.length.should.be.eql(2);
+                                            (res.body.data.pdf.signers[0].is_signed * res.body.data.pdf.signers[1].is_signed).should.be.eql(0);
                                             agent2.patch('/api/pdfs/unlock/' + testPdf5._id)
                                                 .end(function (err, res) {
                                                     checkIsPdf(res);
@@ -736,9 +737,9 @@ describe('Pdfs', function () {
                                                         .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                                         .end(function (err, res) {
                                                             checkIsPdf(res);
-                                                            res.body.signers.length.should.be.eql(2);
-                                                            res.body.signers.pop().is_signed.should.be.eql(true);
-                                                            res.body.signers.pop().is_signed.should.be.eql(true);
+                                                            res.body.data.pdf.signers.length.should.be.eql(2);
+                                                            res.body.data.pdf.signers.pop().is_signed.should.be.eql(true);
+                                                            res.body.data.pdf.signers.pop().is_signed.should.be.eql(true);
                                                             done();
                                                         });
                                                 });
@@ -933,7 +934,8 @@ describe('Pdfs', function () {
                     agent.delete('/api/pdfs/' + testPdf._id)
                         .end(function (err, res) {
                             res.should.have.status(HttpStatus.OK);
-                            res.body.should.have.property('message', 'Pdf deleted');
+                            res.body.should.have.property('code', AppStatus.PDF_DELETED);
+                            res.body.should.have.property('message', AppStatus.getStatusText(AppStatus.PDF_DELETED));
                             done();
                         });
                 });

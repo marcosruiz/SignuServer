@@ -13,6 +13,9 @@ statusCodes[exports.PDF_CREATED = 501] = "PDF created successfully";
 statusCodes[exports.PDF_UPDATED = 502] = "PDF updated successfully";
 statusCodes[exports.PDF_DELETED = 503] = "PDF deleted successfully";
 statusCodes[exports.PDF_DELETED = 504] = "PDF deleted successfully";
+statusCodes[exports.PDF_SIGNED = 505] = "PDF signed successfully";
+statusCodes[exports.PDF_UNLOCKED = 505] = "PDF unlocked successfully";
+statusCodes[exports.PDF_SIGNER_ADDED = 505] = "Added signer(s) to PDF successfully";
 
 // Generic errors
 statusCodes[exports.INTERNAL_ERROR = 1000] = "Internal error";

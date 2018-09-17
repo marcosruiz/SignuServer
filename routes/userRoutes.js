@@ -32,7 +32,7 @@ function getJsonAppError(code) {
 
 /**
  * Delete references to eliminated PDFs
- * @param user
+ * @param {Object} user
  */
 function checkUser(user) {
     // Update pdfs
@@ -65,6 +65,7 @@ function checkUser(user) {
 
 /**
  * Create a new user
+ * @api {post} /signup - esto es una prueba
  */
 router.post('/signup', function (req, res, next) {
     if (req.body.email == null || req.body.email == '') {
@@ -99,7 +100,7 @@ router.post('/signup', function (req, res, next) {
                         var mailOptions = {
                             to: user.email,
                             subject: 'Activate your user in Signu',
-                            html: '<p>Click <a href="http://localhost:3000/activateuser?_id=' + user._id + '&ac_code=' + randomString + '">here</a> and click on the button to activate your email. You have 30 minutes to do it.</p>' +
+                            html: '<p>Click <a href="http://localhost:3000/activateuser?_id=' + user._id + '&code=' + randomString + '">here</a> and click on the button to activate your email. You have 30 minutes to do it.</p>' +
                             '<p>Ignore this email if you did not request it</p>' +
                             '<p>Here you have your code to finish your autentication: </p>' +
                             '<h1>' + randomString + '</h1>' +
@@ -114,7 +115,7 @@ router.post('/signup', function (req, res, next) {
                                 user.activation.code = undefined;
                                 var data = {user: user};
                                 if (process.env.NODE_ENV == 'test') {
-                                    data.ac_code_raw = randomString
+                                    data.code_raw = randomString
                                 }
                                 res.json({
                                     "code": AppStatus.SUCCESS,
@@ -141,7 +142,7 @@ router.post('/signup', function (req, res, next) {
                                 var mailOptions = {
                                     to: user.email,
                                     subject: 'Activate your user in Signu',
-                                    html: '<p>Click <a href="http://localhost:3000/activateuser?_id=' + user._id + '&ac_code=' + randomString + '">here</a> and click on the button to activate your email. You have 30 minutes to do it.</p>' +
+                                    html: '<p>Click <a href="http://localhost:3000/activateuser?_id=' + user._id + '&code=' + randomString + '">here</a> and click on the button to activate your email. You have 30 minutes to do it.</p>' +
                                     '<p>Ignore this email if you did not request it</p>' +
                                     '<p>Here you have your code to finish your autentication: </p>' +
                                     '<h1>' + randomString + '</h1>' +
@@ -156,7 +157,7 @@ router.post('/signup', function (req, res, next) {
                                         user.activation.code = undefined;
                                         var data = {user: user};
                                         if (process.env.NODE_ENV == 'test') {
-                                            data.ac_code_raw = randomString
+                                            data.code_raw = randomString
                                         }
                                         res.json({
                                             "code": AppStatus.SUCCESS,
@@ -172,7 +173,7 @@ router.post('/signup', function (req, res, next) {
                 });
             } else {
                 // User exists
-                res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_ALREADY_EXISTS));
+                res.status(HttpStatus.CONFLICT).json(getJsonAppError(AppStatus.USER_ALREADY_EXISTS));
             }
         });
 
@@ -195,7 +196,7 @@ function authEmail(req, res, next) {
     //This check also should be in the front-end
     if (req.body._id == null || req.body._id == '') {
         res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
-    } else if (req.body.ac_code == null || req.body.ac_code == '') {
+    } else if (req.body.code == null || req.body.code == '') {
         res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
     } else {
         User.findById(req.body._id, function (err, user) {
@@ -206,7 +207,7 @@ function authEmail(req, res, next) {
             } else if (user.activation.is_activated == true) {
                 res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.USER_ACTIVATED));
             } else {
-                if (req.body.ac_code == user.activation.code) {
+                if (req.body.code == user.activation.code) {
                     var gapOfTime = Date.now() - user.activation.when;
                     if (gapOfTime < GAP_TIME_TO_EMAIL) {
                         User.findByIdAndUpdate(user._id, {
@@ -239,7 +240,7 @@ function authEmail(req, res, next) {
 };
 
 /**
- * If the ac_code == next_email.code then aupdate email
+ * If the code == next_email.code then aupdate email
  */
 router.put('/authnextemail', authNextEmail);
 router.post('/authnextemail', function (req, res, next) {
@@ -254,7 +255,7 @@ function authNextEmail(req, res, next) {
     //This check also should be in the front-end
     if (req.body._id == null || req.body._id == '') {
         res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
-    } else if (req.body.ac_code == null || req.body.ac_code == '') {
+    } else if (req.body.code == null || req.body.code == '') {
         res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
     } else {
         User.findById(req.body._id, function (err, user) {
@@ -265,7 +266,7 @@ function authNextEmail(req, res, next) {
             } else if (user.activation.is_activated != true) {
                 res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.USER_DESACTIVATED));
             } else {
-                if (req.body.ac_code == user.next_email.code) {
+                if (req.body.code == user.next_email.code) {
                     var gapOfTime = Date.now() - user.next_email.when;
                     if (gapOfTime < GAP_TIME_TO_EMAIL) {
                         User.findByIdAndUpdate(user._id, {
@@ -461,53 +462,6 @@ router.get('/info', function (req, res, next) {
 });
 
 /**
- * Put flag activated to false the current user if the password is correct
- */
-router.put('/desactivate', desactivateUser);
-router.post('/desactivate', function (req, res, next) {
-    if (req.body._method == 'put') {
-        desactivateUser(req, res, next);
-    } else {
-        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
-    }
-});
-
-function desactivateUser(req, res, next) {
-    thisSession = req.session;
-    if (thisSession._id != null) {
-        User.findById(thisSession._id, function (err, user) {
-            if (err) {
-                res.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            } else if (user == null) {
-                res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
-            } else {
-                user.comparePassword(req.body.password, function (err, isMatch) {
-                    if (err) {
-                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
-                    } else if (!isMatch) {
-                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.INCORRECT_PASS));
-                    } else {
-                        User.findByIdAndUpdate(thisSession._id, {'activation.is_activated': false}, {new: true}, function (err, user) {
-                            if (err) {
-                                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
-                            } else {
-                                res.json({
-                                    "code": AppStatus.SUCCESS,
-                                    "message": AppStatus.getStatusText(AppStatus.USER_DESACTIVATED),
-                                    "data": {user: user}
-                                });
-                            }
-                        });
-                    }
-                });
-            }
-        });
-    } else {
-        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.NOT_LOGGED));
-    }
-};
-
-/**
  * Delete user if password is correct
  */
 router.delete('/', deleteUser);
@@ -536,13 +490,12 @@ function deleteUser(req, res, next) {
                     } else if (!isMatch) {
                         res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.INCORRECT_PASS));
                     } else {
-                        User.findByIdAndRemove(thisSession._id, {'activation.is_activated': false}, {new: true}, function (err, user) {
+                        User.findByIdAndRemove(thisSession._id, function (err, user) {
                             if (err) {
                                 res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
                             } else if (user == null) {
                                 res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
-                            }
-                            else {
+                            } else {
                                 res.json({
                                     "code": AppStatus.USER_DELETED,
                                     "message": AppStatus.getStatusText(AppStatus.USER_DELETED)
@@ -727,6 +680,8 @@ function addRelated(req, res, next) {
     thisSession = req.session;
     if (thisSession._id == null) {
         res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.NOT_LOGGED));
+    } else if(req.body.related_id == null){
+        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
     } else {
         User.count({_id: req.body.related_id}, function (err, count) {
             if (err) {

@@ -12,6 +12,8 @@ var users = require('./routes/userRoutes');
 var pdfs = require('./routes/pdfRoutes');
 var config = require('config');
 var nodemailer = require('nodemailer');
+var swaggerUi = require('swagger-ui-express');
+var swaggerDocument = require('./swagger.json');
 
 var app = express();
 
@@ -37,6 +39,7 @@ app.use(expressValidator());
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use('/', index);
 app.use('/api/users', users);
 app.use('/api/pdfs', pdfs);

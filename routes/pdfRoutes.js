@@ -12,6 +12,7 @@ var multer = require('multer');
 var config = require('config');
 var upload = multer({dest: config.uploads_dir});
 var HttpStatus = require('http-status-codes');
+var AppStatus = require('../public/routes/app-err-codes-en.js');
 var sendStandardError = require('./index').sendStandardError;
 var thisSession;
 var newPdf;
@@ -63,7 +64,6 @@ function unlockPdf(req, res) {
     if (thisSession._id == null) {
         sendStandardError(res, HttpStatus.UNAUTHORIZED);
     } else {
-
         var isAnyUserSigning = {success: false};
         PdfModel.findById(req.params.pdf_id, function (err, pdf) {
             var timeDiff = (Date.now() - pdf.is_any_user_signing.when);
@@ -82,11 +82,15 @@ function unlockPdf(req, res) {
                     } else if (pdf == null) {
                         sendStandardError(res, HttpStatus.NOT_FOUND);
                     } else {
-                        res.json(pdf);
+                        res.json({
+                            code: AppStatus.PDF_UNLOCKED,
+                            message: AppStatus.getStatusText(AppStatus.PDF_UNLOCKED),
+                            data: {pdf: pdf}
+                        });
                     }
                 });
             } else {
-                sendStandardError(res, HttpStatus.LOCKED);
+                sendStandardError(res, HttpStatus.UNAUTHORIZED);
             }
         });
     }
@@ -152,7 +156,11 @@ function postPdf(req, res) {
                 sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
             } else {
                 UserRoutes.addPdfToUsers(pdf);
-                res.json(pdf);
+                res.json({
+                    code: AppStatus.PDF_CREATED,
+                    message: AppStatus.getStatusText(AppStatus.PDF_CREATED),
+                    data: {pdf: pdf}
+                });
             }
         });
     }
@@ -212,7 +220,11 @@ function addSignersToPdf(req, res, next) {
                         } else if (pdf == null) {
                             sendStandardError(res, HttpStatus.NOT_FOUND);
                         } else {
-                            res.json(pdf);
+                            res.json({
+                                code: AppStatus.PDF_SIGNER_ADDED,
+                                message: AppStatus.getStatusText(AppStatus.PDF_SIGNER_ADDED),
+                                data: {pdf: pdf}
+                            });
                         }
                     });
                 }
@@ -227,7 +239,7 @@ function addSignersToPdf(req, res, next) {
 router.patch('/addsigner/:pdf_id', upload.single('pdf'), addSignerToPdf);
 router.post('/addsigner/:pdf_id', upload.single('pdf'), function (req, res, next) {
     if (req.body._method = 'patch') {
-        addSignersToPdf(req, res, next);
+        addSignerToPdf(req, res, next);
     } else {
         sendStandardError(res, HttpStatus.BAD_REQUEST);
     }
@@ -260,7 +272,11 @@ function addSignerToPdf(req, res, next) {
                     } else if (newPdf.signers.length == pdf.signers.length) {
                         sendStandardError(res, HttpStatus.BAD_REQUEST);
                     } else {
-                        res.json(newPdf);
+                        res.json({
+                            code: AppStatus.PDF_SIGNER_ADDED,
+                            message: AppStatus.getStatusText(AppStatus.PDF_SIGNER_ADDED),
+                            data: {pdf: newPdf}
+                        });
                     }
                 });
             }
@@ -366,7 +382,11 @@ function patchPdf(req, res) {
                                 } else if (pdf == null) {
                                     sendStandardError(res, HttpStatus.NOT_FOUND);
                                 } else {
-                                    res.json(pdf);
+                                    res.json({
+                                        code: AppStatus.PDF_SIGNED,
+                                        message: AppStatus.getStatusText(AppStatus.PDF_SIGNED),
+                                        data: {pdf: pdf}
+                                    });
                                 }
                             });
                         }
@@ -413,7 +433,10 @@ function deletePdf(req, res) {
                                 sendStandardError(res, HttpStatus.NOT_FOUND);
                             } else {
                                 UserRoutes.deletePdfOfUsers(pdf);
-                                res.json({'message': 'Pdf deleted'});
+                                res.json({
+                                    'code': AppStatus.PDF_DELETED,
+                                    'message': AppStatus.getStatusText(AppStatus.PDF_DELETED)
+                                });
                             }
                         });
                     }
@@ -430,14 +453,16 @@ router.delete('/:pdf_id', function (req, res, next) {
 /**
  * Get info of pdf
  */
-router.get('/status/:id', function (req, res, next) {
-    PdfModel.findById(req.params.id, function (err, pdf) {
+router.get('/status/:pdf_id', function (req, res, next) {
+    PdfModel.findById(req.params.pdf_id, function (err, pdf) {
         if (err) {
             sendStandardError(res, HttpStatus.INTERNAL_SERVER_ERROR);
         } else if (pdf == null) {
             sendStandardError(res, HttpStatus.NOT_FOUND);
         } else {
-            res.send(pdf);
+            res.send({code: AppStatus.SUCCESS,
+                message: AppStatus.getStatusText(AppStatus.SUCCESS),
+                data: {pdf: pdf}});
         }
     });
 });
