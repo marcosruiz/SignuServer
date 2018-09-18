@@ -40,11 +40,11 @@ router.get('/unlockfile', function (req, res, next) {
 });
 
 router.get('/activateuser', function(req, res, next){
-    res.render('activateuser', {title: 'Signu: Activate user',_id: req.query._id, ac_code : req.query.ac_code});
+    res.render('activateuser', {title: 'Signu: Activate user/ email',_id: req.query._id, code : req.query.code});
 });
 
 router.get('/confirmnewemail', function(req, res, next){
-    res.render('confirmnewemail', {title: 'Signu: Activate user',_id: req.query._id, code : req.query.code});
+    res.render('confirmnewemail', {title: 'Signu: Confirm new email',_id: req.query._id, code : req.query.code});
 });
 
 router.sendStandardError = function sendStandardError (res, status) {

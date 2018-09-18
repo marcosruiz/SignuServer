@@ -6,8 +6,8 @@
 process.env.NODE_ENV = 'test';
 
 var mongoose = require("mongoose");
-var User = require('../public/routes/models/userSchema');
-var Pdf = require('../public/routes/models/pdfSchema');
+var User = require('../public/routes/models/user');
+var Pdf = require('../public/routes/models/pdf');
 var fs = require('fs');
 var config = require('config');
 
