@@ -25,7 +25,7 @@ chai.use(chaiHttp);
 
 //Our parent block
 function checkIsUser(res) {
-    res.should.have.status(200);
+    res.should.have.status(HttpStatus.OK);
     res.body.should.be.a('object');
     res.body.should.have.property('code');
     res.body.should.have.property('message');
@@ -44,6 +44,7 @@ function checkIsUser(res) {
 }
 
 function checkError(res) {
+    res.should.have.not.status(HttpStatus.OK);
     res.body.should.be.a('object');
     res.body.should.have.property('message');
     res.body.should.have.property('code');
@@ -385,6 +386,43 @@ describe('Users', function () {
                         });
                 });
         });
+        it('it should EDIT password of a user using POST', function (done) {
+            var user_id;
+            var user = {
+                email: "test@test.com",
+                password: "test"
+            };
+            var editedUser = {
+                _method: 'put',
+                password: "newPassTest"
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    user_id = res.body.data.user._id;
+                    agent.post('/api/users/password')
+                        .send(editedUser)
+                        .end(function (err, res) {
+                            checkIsUser(res);
+                            res.body.data.user.should.have.property('lastname', 'test');
+                            res.body.data.user.should.have.property('name', 'test');
+                            res.body.data.user.should.have.property('email', 'test@test.com');
+                            res.body.data.user.should.have.property('_id', user_id);
+                            editedUser.email = user.email;
+                            agent.post('/api/users/login')
+                                .send(editedUser)
+                                .end(function (err, res) {
+                                    checkIsUser(res);
+                                    res.body.data.user.should.have.property('lastname', 'test');
+                                    res.body.data.user.should.have.property('name', 'test');
+                                    res.body.data.user.should.have.property('email', 'test@test.com');
+                                    res.body.data.user.should.have.property('_id', user_id);
+                                    done();
+                                });
+                        });
+                });
+        });
         it('it should EDIT the name a user', function (done) {
             var user = {
                 email: "test@test.com",
@@ -433,6 +471,31 @@ describe('Users', function () {
                 });
         });
 
+        it('it should EDIT lastname and name of a user using POST', function (done) {
+            var user = {
+                email: "test@test.com",
+                password: "test"
+            };
+            var editedUser = {
+                _method: 'put',
+                name: "newNameTest",
+                lastname: "newLastnameTest"
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    agent.post('/api/users/')
+                        .send(editedUser)
+                        .end(function (err, res) {
+                            checkIsUser(res);
+                            res.body.data.user.should.have.property('lastname', 'newLastnameTest');
+                            res.body.data.user.should.have.property('name', 'newNameTest');
+                            done();
+                        });
+                });
+        });
+
         it('it should EDIT lastname of a user', function (done) {
             var user = {
                 email: "test@test.com",
@@ -469,11 +532,50 @@ describe('Users', function () {
             agent.post('/api/users/login')
                 .send(user)
                 .end(function (err, res) {
-                    agent.put('/api/users/')
+                    agent.put('/api/users/email')
                         .send(editedUser)
                         .end(function (err, res) {
                             checkIsUser(res);
-                            done();
+                            res.body.data.user.next_email.should.have.property('email','sobrenombre@gmail.com');
+                            res.body.data.user.should.have.property('email','test@test.com');
+                            res.body.data.user.next_email.should.have.property('code');
+                            agent.put('/api/users/authnextemail')
+                                .send({_id: testUser1._id, code: res.body.data.user.next_email.code})
+                                .end(function(err, res){
+                                    checkIsUser(res);
+                                    res.body.data.user.should.have.property('email','sobrenombre@gmail.com');
+                                    done();
+                                });
+                        });
+                });
+        });
+
+        it('it should EDIT email of a user using POST', function (done) {
+            var user = {
+                email: "test@test.com",
+                password: "test"
+            };
+            var editedUser = {
+                _method: 'put',
+                email: "sobrenombre@gmail.com"
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    agent.post('/api/users/email')
+                        .send(editedUser)
+                        .end(function (err, res) {
+                            checkIsUser(res);
+                            res.body.data.user.next_email.should.have.property('email','sobrenombre@gmail.com');
+                            res.body.data.user.should.have.property('email','test@test.com');
+                            agent.post('/api/users/authnextemail')
+                                .send({_method:'put', _id: testUser1._id, code: res.body.data.user.next_email.code})
+                                .end(function(err, res){
+                                    checkIsUser(res);
+                                    res.body.data.user.should.have.property('email','sobrenombre@gmail.com');
+                                    done();
+                                });
                         });
                 });
         });
@@ -482,9 +584,10 @@ describe('Users', function () {
             var agent = chai.request.agent(server);
             agent.put('/api/users')
                 .end(function (err, res) {
+                    console.log(res.body);
                     checkError(res);
                     res.should.have.status(HttpStatus.UNAUTHORIZED);
-                    res.body.should.have.property('code', AppStatus.NOT_LOGGED);
+                    res.body.should.have.property('code', AppStatus.USER_NOT_LOGGED);
                     done();
                 });
         });
@@ -531,6 +634,27 @@ describe('Users', function () {
                         });
                 });
         });
+        it('it should ADD A RELATED_USER using POST', function (done) {
+            var user = {
+                email: "test@test.com",
+                password: "test"
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    var numUsers1 = res.body.data.user.users_related.length;
+                    agent.post('/api/users/related/')
+                        .send({_method:'put', related_id: testUser3._id})
+                        .end(function (err, res) {
+                            checkIsUser(res);
+                            var numUsers2 = res.body.data.user.users_related.length;
+                            res.body.data.user.users_related.should.be.an.Array;
+                            numUsers2.should.be.equal(numUsers1 +1);
+                            done();
+                        });
+                });
+        });
         it('it should NOT ADD A RELATED_USER cause I am not logged', function (done) {
             var user = {
                 email: "test@test.com",
@@ -542,7 +666,7 @@ describe('Users', function () {
                 .end(function (err, res) {
                     checkError(res);
                     res.should.have.status(HttpStatus.UNAUTHORIZED);
-                    res.body.code.should.be.equal(AppStatus.NOT_LOGGED);
+                    res.body.code.should.be.equal(AppStatus.USER_NOT_LOGGED);
                     done();
                 });
         });
@@ -608,7 +732,6 @@ describe('Users', function () {
         });
     });
 
-
     describe('GET user tests', function () {
         it('it should GET a user', function (done) {
             var user = {
@@ -626,13 +749,29 @@ describe('Users', function () {
                         });
                 });
         });
-        it('it should NOT GET a user', function (done) {
+        it('it should GET a user', function (done) {
+            var user = {
+                email: "test@test.com",
+                password: "test"
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    agent.get('/api/users/info')
+                        .end(function (err, res) {
+                            checkIsUser(res);
+                            done();
+                        });
+                });
+        });
+        it('it should NOT GET a user cause I am not logged', function (done) {
             var agent = chai.request.agent(server);
             agent.get('/api/users/info')
                 .end(function (err, res) {
                     res.should.have.status(HttpStatus.UNAUTHORIZED);
                     checkError(res);
-                    res.body.should.have.property('code', AppStatus.NOT_LOGGED);
+                    res.body.should.have.property('code', AppStatus.USER_NOT_LOGGED);
                     done();
                 });
         });
@@ -663,7 +802,62 @@ describe('Users', function () {
                 .end(function (err, res) {
                     res.should.have.status(HttpStatus.UNAUTHORIZED);
                     checkError(res);
-                    res.body.should.have.property('code', AppStatus.NOT_LOGGED);
+                    res.body.should.have.property('code', AppStatus.USER_NOT_LOGGED);
+                    done();
+                });
+        });
+    });
+    describe('DELETE user tests', function () {
+        it('it should DELETE a user', function (done) {
+            var user = {
+                email: "test@test.com",
+                password: "test"
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    agent.delete('/api/users/')
+                        .send({password: 'test'})
+                        .end(function (err, res) {
+                            res.should.have.status(HttpStatus.OK);
+                            res.body.should.have.property('code', AppStatus.USER_DELETED);
+                            res.body.should.have.property('message', AppStatus.getStatusText(AppStatus.USER_DELETED));
+                            done();
+                        });
+                });
+        });
+        it('it should DELETE a user using POST', function (done) {
+            var user = {
+                email: "test@test.com",
+                password: "test"
+            };
+            var agent = chai.request.agent(server);
+            agent.post('/api/users/login')
+                .send(user)
+                .end(function (err, res) {
+                    agent.post('/api/users/')
+                        .send({_method: 'delete', password: 'test'})
+                        .end(function (err, res) {
+                            res.should.have.status(HttpStatus.OK);
+                            res.body.should.have.property('code', AppStatus.USER_DELETED);
+                            res.body.should.have.property('message', AppStatus.getStatusText(AppStatus.USER_DELETED));
+                            done();
+                        });
+                });
+        });
+        it('it should NOT DELETE a user cause I am not logged', function (done) {
+            var user = {
+                email: "test@test.com",
+                password: "test"
+            };
+            var agent = chai.request.agent(server);
+            agent.delete('/api/users/')
+                .send({password: 'test'})
+                .end(function (err, res) {
+                    checkError(res);
+                    res.body.should.have.property('code', AppStatus.USER_NOT_LOGGED);
+                    res.body.should.have.property('message', AppStatus.getStatusText(AppStatus.USER_NOT_LOGGED));
                     done();
                 });
         });

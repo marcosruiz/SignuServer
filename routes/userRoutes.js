@@ -413,7 +413,7 @@ router.post('/logout', function (req, res, next) {
             }
         });
     } else {
-        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.NOT_LOGGED));
+        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
     }
 });
 
@@ -423,26 +423,22 @@ router.post('/logout', function (req, res, next) {
 router.get('/info', function (req, res, next) {
     thisSession = req.session;
     if (thisSession._id == null) {
-        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.NOT_LOGGED));
+        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
     } else {
         User.findById(thisSession._id, function (err, user) {
             if (err) {
                 res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.INTERNAL_ERROR));
+            } else if (user == null) {
+                res.status(HttpStatus.UNAUTHORIZED).json({
+                    "code": AppStatus.USER_NOT_FOUND,
+                    "message": AppStatus.getStatusText(AppStatus.USER_NOT_FOUND)
+                });
             } else {
-                if (user != null) {
-                    user.password = undefined;
-                    res.json({
-                        "code": AppStatus.SUCCESS,
-                        "message": AppStatus.getStatusText(AppStatus.SUCCESS),
-                        "data": {user: user}
-                    });
-                } else {
-                    res.status(HttpStatus.UNAUTHORIZED).json({
-                        "code": AppStatus.USER_NOT_FOUND,
-                        "message": AppStatus.getStatusText(AppStatus.USER_NOT_FOUND)
-                    });
-                }
-
+                res.json({
+                    "code": AppStatus.SUCCESS,
+                    "message": AppStatus.getStatusText(AppStatus.SUCCESS),
+                    "data": {user: user}
+                });
             }
         }).populate('pdfs_owned').populate('pdfs_to_sign').populate('pdfs_signed').populate('users_related', '-password -activation');
     }
@@ -452,18 +448,13 @@ router.get('/info', function (req, res, next) {
  * Delete user if password is correct
  */
 router.delete('/', deleteUser);
-router.post('/', function (req, res, next) {
-    if (req.body._method == 'delete') {
-        deleteUser(req, res, next);
-    } else {
-        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
-    }
-});
 
 function deleteUser(req, res, next) {
     thisSession = req.session;
     if (thisSession._id == null) {
-        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.NOT_LOGGED));
+        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
+    } else if(req.body.password == null){
+        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
     } else {
         User.findById(thisSession._id, function (err, user) {
             if (err) {
@@ -502,30 +493,33 @@ function deleteUser(req, res, next) {
 router.put('/email', editEmail);
 router.post('/email', function (req, res, next) {
     if (req.body._method == 'put') {
-        editEmail(req, res, next);
+        editEmail(req, res);
     } else {
         res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
     }
 });
 
-function editEmail(req, res, next) {
+function editEmail(req, res) {
     thisSession = req.session;
     if (thisSession._id != null) {
         var randomString = generateRandomString(5);
         var modUser = {};
         var isMod = false;
         if (req.body.email != null && req.body.email != '') {
+            modUser.next_email = {};
             modUser.next_email.email = req.body.email;
             modUser.next_email.when = Date.now();
             modUser.next_email.code = randomString;
         }
         var mailOptions = {
-            to: user.email,
+            to: req.body.email,
             subject: 'Activate your user in Signu',
-            html: '<p>Click <a href="http://localhost:3000/confirmnewemail?_id=' + user._id + '&code=' + randomString + '">here</a> and click on the button to change to your new email. You have 30 minutes to do it.</p>' +
+            html: '<p>Click <a href="http://localhost:3000/confirmnewemail?_id=' + thisSession._id +
+            '&code=' + randomString +
+            '">here</a> and click on the button to change to your new email. You have 30 minutes to do it.</p>' +
             '<p>Ignore this email if you did not request it</p>' +
             '<p>If you prefer, here you have your code to finish your autentication: </p>' +
-            '<h1>' + randomString + '</h1>' +
+            '<p>' + randomString + '</p>' +
             '<p>Signu team</p>'
         };
         sendEmail(mailOptions, function (err, info) {
@@ -536,10 +530,12 @@ function editEmail(req, res, next) {
                     if (err) {
                         res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
                     } else if (user == null) {
-                        res.status(HttpStatus.FORBIDDEN).json(getJsonAppError(AppStatus.NOT_LOGGED));
+                        res.status(HttpStatus.FORBIDDEN).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
                     } else {
                         user.password = undefined;
-                        user.next_email.code = undefined;
+                        if(process.env.NODE_ENV != 'test'){
+                            user.next_email.code = undefined;
+                        }
                         res.json({
                             "code": AppStatus.USER_UPDATED,
                             "message": AppStatus.getStatusText(AppStatus.USER_UPDATED),
@@ -551,7 +547,7 @@ function editEmail(req, res, next) {
         });
 
     } else {
-        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.NOT_LOGGED));
+        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
     }
 };
 
@@ -575,10 +571,10 @@ function editPassword(req, res, next) {
             if (err) {
                 res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
             } else if (user == null) {
-                res.status(HttpStatus.FORBIDDEN).json(getJsonAppError(AppStatus.NOT_LOGGED));
+                res.status(HttpStatus.FORBIDDEN).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
             } else {
                 if (req.body.password == null || req.body.password == '') {
-                    res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.NOT_LOGGED));
+                    res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
                 } else {
                     user.last_edition_date = Date.now();
                     user.password = req.body.password;
@@ -601,7 +597,7 @@ function editPassword(req, res, next) {
             }
         });
     } else {
-        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.NOT_LOGGED));
+        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
     }
 };
 
@@ -612,13 +608,15 @@ router.put('/', editUser);
 router.post('/', function (req, res, next) {
     if (req.body._method == 'put') {
         editUser(req, res, next);
+    } else if (req.body._method == 'delete') {
+        deleteUser(req, res, next);
     } else {
         res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
     }
 });
 
 /**
- * Edit name and/or lastname of a user
+ * Edit name and/or lastname of actual user
  * @param {Object} req - body = {name, lastname}
  * @param {Object} res - 200 if user was updated
  * @callback {function} next
@@ -650,7 +648,7 @@ function editUser(req, res, next) {
             }
         });
     } else {
-        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.NOT_LOGGED));
+        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
     }
 };
 
@@ -663,11 +661,16 @@ router.post('/related', function (req, res, next) {
     }
 });
 
-function addRelated(req, res, next) {
+/**
+ * Add a related_id to users_related list of actual user
+ * @param req
+ * @param res
+ */
+function addRelated(req, res) {
     thisSession = req.session;
     if (thisSession._id == null) {
-        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.NOT_LOGGED));
-    } else if(req.body.related_id == null){
+        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
+    } else if (req.body.related_id == null) {
         res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
     } else {
         User.count({_id: req.body.related_id}, function (err, count) {
@@ -709,7 +712,7 @@ function addRelated(req, res, next) {
  * Add pdf to their creator and signers if is not repeated
  * @param {Object} pdf - pdf = {_id, owner_id}
  */
-function addPdfToUsers (pdf) {
+function addPdfToUsers(pdf) {
     var newPdf = {_id: pdf._id};
     User.findByIdAndUpdate(pdf.owner_id, {$addToSet: {pdfs_owned: newPdf}}, {safe: false});
     pdf.signers.forEach(function (signer) {
@@ -725,7 +728,7 @@ function addPdfToUsers (pdf) {
  * Delete all references to pdf
  * @param {Object} pdf - pdf = {_id, owner_id}
  */
-function deletePdfOfUsers (pdf) {
+function deletePdfOfUsers(pdf) {
     User.findByIdAndUpdate(pdf.owner_id, {$pull: {"pdfs_owned": pdf._id}}, {safe: true});
     pdf.signers.forEach(function (signer) {
         if (signer.is_signed) {

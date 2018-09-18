@@ -14,7 +14,6 @@ var upload = multer({dest: config.uploads_dir});
 var HttpStatus = require('http-status-codes');
 var AppStatus = require('../public/routes/app-err-codes-en');
 var getJsonAppError = AppStatus.getJsonAppError;
-var sendStandardError = require('./index').sendStandardError;
 var thisSession;
 var newPdf;
 var LOCK_TIME = 60000; // 60 seg
@@ -297,16 +296,6 @@ function isSignerThere(signersArray, userId) {
         }
     }
     return found;
-}
-
-function generateRandomString() {
-    var text = "";
-    var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-    for (var i = 0; i < 5; i++)
-        text += possible.charAt(Math.floor(Math.random() * possible.length));
-
-    return text;
 }
 
 /**

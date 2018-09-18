@@ -275,7 +275,7 @@ describe('Pdfs', function () {
                 password: "test"
             };
             var pdf = {
-                signers: [testUser._id]
+                signers: [testUser._id, testUser2._id, testUser3._id]
             };
             var agent = chai.request.agent(server);
             agent.post('/api/users/login')
