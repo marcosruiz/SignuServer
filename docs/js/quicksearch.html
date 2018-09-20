@@ -1,0 +1,31 @@
+<html>
+<head>
+</head>
+<body style="background: transparent;">
+    <script src="scripts/docstrap.lib.js"></script>
+    <script src="scripts/lunr.min.js"></script>
+    <script src="scripts/fulltext-search.js"></script>
+
+    <script type="text/x-docstrap-searchdb">
+    {"global.html":{"id":"global.html","title":"Global","body":" SIGNU SERVER Global addPdfToUserscheckUserdeletePdfdeletePdfOfUsersgenerateRandomStringgetJsonAppErrorisSignerTherepatchPdfpostPdfsendEmailstandarCBMunlockPdf Global Methods addPdfToUsers(pdf) Add pdf to their creator and signers if is not repeated Parameters: Name Type Description pdf pdfSchema pdf = {_id, owner_id} checkUser(user) Delete references to eliminated PDFs Parameters: Name Type Description user deletePdf(req, res) Delete a pdf from database and filesystem Parameters: Name Type Description req res deletePdfOfUsers(pdf) Delete all references to pdf Parameters: Name Type Description pdf pdfSchema pdf = {_id, owner_id} generateRandomString(length) Return a String of the length lenght Parameters: Name Type Description length Returns: Type string getJsonAppError(code) Return a json with code and message code of app-err-codes.js Parameters: Name Type Description code Returns: Type Object isSignerThere(signersArray, userId) checks how many times is the id Parameters: Name Type Description signersArray userId Returns: Type boolean patchPdf(req, res) Sign a PDF. You should previusly unlock Parameters: Name Type Description req res postPdf() Upload a new PDF with pending signatures sendEmail(user, randomString) Sends an email Parameters: Name Type Description user _id = randomString standarCBM(err, user) Standar output for mongoose queries Used for test Parameters: Name Type Description err user unlockPdf(req, res) Unlock a pdf to a specific user if pdf exists and (there is no previus signer or previus signer LOCK_TIME expired or previus signer signed with success ) Parameters: Name Type Description req res Type Definitions next(req, res) Edit name and/or lastname of a user Parameters: Name Type Description req Object body = {name, lastname} res Object 200 if user was updated × Search results Close Created by Marcos Ruiz "},"index.html":{"id":"index.html","title":"Index","body":" SIGNU SERVER Global addPdfToUserscheckUserdeletePdfdeletePdfOfUsersgenerateRandomStringgetJsonAppErrorisSignerTherepatchPdfpostPdfsendEmailstandarCBMunlockPdf × Search results Close Created by Marcos Ruiz "}}
+    </script>
+
+    <script type="text/javascript">
+        $(document).ready(function() {
+            Searcher.init();
+        });
+
+        $(window).on("message", function(msg) {
+            var msgData = msg.originalEvent.data;
+
+            if (msgData.msgid != "docstrap.quicksearch.start") {
+                return;
+            }
+
+            var results = Searcher.search(msgData.searchTerms);
+
+            window.parent.postMessage({"results": results, "msgid": "docstrap.quicksearch.done"}, "*");
+        });
+    </script>
+</body>
+</html>
