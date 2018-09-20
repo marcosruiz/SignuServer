@@ -23,7 +23,6 @@ statusCodes[exports.NOT_FOUND = 1001] = "Not found";
 statusCodes[exports.INCORRECT_PASS = 1002] = "Password do not match";
 statusCodes[exports.BAD_REQUEST = 1003] = "Bad request";
 statusCodes[exports.DATABASE_ERROR = 1004] = "Database error";
-
 statusCodes[exports.UNKNOWN = 1006] = "Unknown error";
 statusCodes[exports.PASS_NOT_MATCH = 1007] = "Passwords do not match";
 statusCodes[exports.PERMISION_DENIED = 1008] = "Permision denied";
@@ -51,6 +50,13 @@ statusCodes[exports.PDF_WITH_STAMP = 3004] = "PDF has stamp. You can not add new
 statusCodes[exports.PDF_TIMEOUT = 3005] = "PDF timeout";
 statusCodes[exports.PDF_SIGNED = 3006] = "PDF already signed by user";
 statusCodes[exports.PDF_NOT_LOCKED_BY_YOU = 3007] = "PDF not locked by you";
+
+// TOKEN errors
+statusCodes[exports.TOKEN_NOT_FOUND = 4000] = "TOKEN not found";
+
+// CLIENT errors
+statusCodes[exports.CLIENT_NOT_FOUND = 5000] = "CLIENT not found";
+
 
 
 /**

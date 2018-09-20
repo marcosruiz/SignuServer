@@ -5,14 +5,14 @@
 var express = require('express');
 var router = express.Router();
 var fs = require('fs');
-var PdfModel = require('../public/routes/models/pdf');
-var UserModel = require('../public/routes/models/user');
+var PdfModel = require('../models/pdf');
+var UserModel = require('../models/user');
 const path = require('path');
 var multer = require('multer');
 var config = require('config');
 var upload = multer({dest: config.uploads_dir});
 var HttpStatus = require('http-status-codes');
-var AppStatus = require('../public/routes/app-err-codes-en');
+var AppStatus = require('../../public/routes/app-err-codes-en');
 var getJsonAppError = AppStatus.getJsonAppError;
 var thisSession;
 var newPdf;

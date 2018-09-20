@@ -5,7 +5,7 @@ block content
 
     div
         form(action='api/users/authemail', method='post', enctype='application/x-www-form-urlencoded')
-            input(type='hidden', name='_method', value='patch')
+            input(type='hidden', name='_method', value='put')
             input(id='code',type='hidden',value="#{code}",name='code')
             input(id='_id',type='hidden',value="#{_id}",name='_id')
             div(data-role='fieldcontain')

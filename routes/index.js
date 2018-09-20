@@ -40,7 +40,7 @@ router.get('/unlockfile', function (req, res, next) {
 });
 
 router.get('/activateuser', function(req, res, next){
-    res.render('activateuser', {title: 'Signu: Activate user/ email',_id: req.query._id, code : req.query.code});
+    res.render('activateuser', {title: 'Signu: Activate user',_id: req.query._id, code : req.query.code});
 });
 
 router.get('/confirmnewemail', function(req, res, next){

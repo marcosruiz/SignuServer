@@ -2,20 +2,84 @@
  * This class manage every interaction with users collection and the routes that them
  */
 "use strict";
-
 var express = require('express');
 var router = express.Router();
 var nodemailer = require('nodemailer');
-var User = require('../public/routes/models/user');
-var Pdf = require('../public/routes/models/pdf');
+var User = require('../models/user');
+var Pdf = require('../models/pdf');
+var AccessTokenModel = require('../authorisation/accessTokenModel');
 var bcrypt = require('bcrypt');
 var HttpStatus = require('http-status-codes');
-var AppStatus = require('../public/routes/app-err-codes-en');
+var AppStatus = require('../../public/routes/app-err-codes-en');
 var getJsonAppError = AppStatus.getJsonAppError;
-var GAP_TIME_TO_EMAIL = 1800000;
+var GAP_TIME_TO_EMAIL = 1800000; // milliseconds
+var fromEmail = require('./emailConfig').EMAIL_SECRET;
+var fromPass = require('./emailConfig').PASS_SECRET;
+var thisSession; //TODO This is for a server with state
 
-/* GET users listing. */
-var thisSession;
+function userRoutes(app){
+
+    router.post('/signup', createUser);
+    router.post('/login', loginUser);
+    router.post('/logout', logOutUser);
+    router.get('/info', app.oauth.authorise(), getInfoUser);
+
+    // Edit user fields
+    router.put('/', editUser);
+    router.post('/', function (req, res, next) {
+        if (req.body._method == 'put') {
+            editUser(req, res, next);
+        } else if (req.body._method == 'delete') {
+            deleteUser(req, res, next);
+        } else {
+            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+        }
+    });
+    router.put('/email', editEmail);
+    router.post('/email', function (req, res, next) {
+        if (req.body._method == 'put') {
+            editEmail(req, res);
+        } else {
+            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+        }
+    });
+    router.put('/password', editPassword);
+    router.post('/password', function (req, res, next) {
+        if (req.body._method == 'put') {
+            editPassword(req, res, next);
+        } else {
+            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+        }
+    });
+    router.put('/related', addRelated);
+    router.post('/related', function (req, res, next) {
+        if (req.body._method == 'put') {
+            addRelated(req, res, next);
+        } else {
+            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+        }
+    });
+    router.delete('/', deleteUser);
+
+    router.put('/authemail', authEmail);
+    router.post('/authemail', function (req, res, next) {
+        if (req.body._method == 'put') {
+            authEmail(req, res, next);
+        } else {
+            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+        }
+    });
+    router.put('/authnextemail', authNextEmail);
+    router.post('/authnextemail', function (req, res, next) {
+        if (req.body._method == 'put') {
+            authNextEmail(req, res, next);
+        } else {
+            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+        }
+    });
+
+    return router;
+}
 
 /**
  * Delete references to eliminated PDFs
@@ -51,10 +115,12 @@ function checkUser(user) {
 }
 
 /**
- * Create a new user
- * @api {post} /signup - esto es una prueba
+ * User exists and activated -> Error
+ * User exists and desactivated -> Delete old user and create a new one
+ * User not exists -> Create new user
  */
-router.post('/signup', function (req, res, next) {
+function createUser(req, res) {
+    console.log(req.get('host'));
     if (req.body.email == null || req.body.email == '') {
         res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
     } else if (req.body.password == null || req.body.password == '') {
@@ -165,21 +231,12 @@ router.post('/signup', function (req, res, next) {
         });
 
     }
-});
+}
 
 /**
- * Put activation.is_activated to true if activation.code match
+ * If code == activation.code put activation.is_activated to true
  */
-router.put('/authemail', authEmail);
-router.post('/authemail', function (req, res, next) {
-    if (req.body._method == 'put') {
-        authEmail(req, res, next);
-    } else {
-        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
-    }
-});
-
-function authEmail(req, res, next) {
+function authEmail(req, res) {
     //This check also should be in the front-end
     if (req.body._id == null || req.body._id == '') {
         res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
@@ -226,18 +283,10 @@ function authEmail(req, res, next) {
     }
 };
 
-/**
- * If the code == next_email.code then aupdate email
- */
-router.put('/authnextemail', authNextEmail);
-router.post('/authnextemail', function (req, res, next) {
-    if (req.body._method == 'put') {
-        authNextEmail(req, res, next);
-    } else {
-        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
-    }
-});
 
+/**
+ * If the code == next_email.code then update email
+ */
 function authNextEmail(req, res, next) {
     //This check also should be in the front-end
     if (req.body._id == null || req.body._id == '') {
@@ -291,50 +340,23 @@ function authNextEmail(req, res, next) {
  * @param randomString
  */
 function sendEmail(mailOptions, next) {
-    // Read file email.txt with email and password
-    var i = 0;
-    var inputFile = "./routes/email.txt";
-    var fromEmail;
-    var fromPass;
-
-    var fs = require('fs'),
-        readline = require('readline'),
-        instream = fs.createReadStream(inputFile),
-        outstream = new (require('stream'))(),
-        rl = readline.createInterface(instream, outstream);
-
-    rl.on('line', function (line) {
-        if (i == 1) {
-            fromEmail = line;
-        } else if (i == 2) {
-            fromPass = line;
-        }
-        i++;
+    // Send mail
+    var transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: fromEmail,
+            pass: fromPass
+        },
+        tls: {rejectUnauthorized: false}
     });
 
-    rl.on('close', function (line) {
-        console.log('done reading file.');
+    mailOptions.from = fromEmail;
 
-        // Send mail
-        var transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: fromEmail,
-                pass: fromPass
-            },
-            tls: {rejectUnauthorized: false}
-        });
-
-        mailOptions.from = fromEmail;
-
-        if (process.env.NODE_ENV == 'test') {
-            next(false);
-        } else {
-            transporter.sendMail(mailOptions, next);
-        }
-    });
-
-
+    if (process.env.NODE_ENV == 'test') {
+        next(false);
+    } else {
+        transporter.sendMail(mailOptions, next);
+    }
 };
 
 /**
@@ -356,7 +378,7 @@ function generateRandomString(length) {
  * it starts a new session
  * it returns info of user if password is correct
  */
-router.post('/login', function (req, res, next) {
+function loginUser (req, res) {
     thisSession = req.session;
     var thisUser;
     thisUser = {
@@ -393,12 +415,12 @@ router.post('/login', function (req, res, next) {
             }
         }).populate('pdfs_owned').populate('pdfs_to_sign').populate('pdfs_signed').populate('users_related', '-password -activation');
     }
-});
+}
 
 /**
  * Log out: Close the current session
  */
-router.post('/logout', function (req, res, next) {
+function logOutUser(req, res) {
     var thisSession = req.session;
     console.log(thisSession);
     if (thisSession._id != null) {
@@ -415,45 +437,49 @@ router.post('/logout', function (req, res, next) {
     } else {
         res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
     }
-});
+}
 
 /**
  * Return info of the user in session
  */
-router.get('/info', function (req, res, next) {
-    thisSession = req.session;
-    if (thisSession._id == null) {
-        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
-    } else {
-        User.findById(thisSession._id, function (err, user) {
-            if (err) {
-                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.INTERNAL_ERROR));
-            } else if (user == null) {
-                res.status(HttpStatus.UNAUTHORIZED).json({
-                    "code": AppStatus.USER_NOT_FOUND,
-                    "message": AppStatus.getStatusText(AppStatus.USER_NOT_FOUND)
-                });
-            } else {
-                res.json({
-                    "code": AppStatus.SUCCESS,
-                    "message": AppStatus.getStatusText(AppStatus.SUCCESS),
-                    "data": {user: user}
-                });
-            }
-        }).populate('pdfs_owned').populate('pdfs_to_sign').populate('pdfs_signed').populate('users_related', '-password -activation');
-    }
-});
+function getInfoUser(req, res) {
+    var myToken = req.headers.authorization.split(" ",2)[1];
+    AccessTokenModel.getAccessToken(myToken, function(err, token){
+        if(err){
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+        } else if(token == null){
+            res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.TOKEN_NOT_FOUND));
+        } else {
+            User.findById(token.user_id, function (err, user) {
+                if (err) {
+                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.INTERNAL_ERROR));
+                } else if (user == null) {
+                    res.status(HttpStatus.UNAUTHORIZED).json({
+                        "code": AppStatus.USER_NOT_FOUND,
+                        "message": AppStatus.getStatusText(AppStatus.USER_NOT_FOUND)
+                    });
+                } else {
+                    res.json({
+                        "code": AppStatus.SUCCESS,
+                        "message": AppStatus.getStatusText(AppStatus.SUCCESS),
+                        "data": {user: user}
+                    });
+                }
+            }).populate('pdfs_owned').populate('pdfs_to_sign').populate('pdfs_signed').populate('users_related', '-password -activation');
+        }
+    });
+}
+
+
 
 /**
  * Delete user if password is correct
  */
-router.delete('/', deleteUser);
-
 function deleteUser(req, res, next) {
     thisSession = req.session;
     if (thisSession._id == null) {
         res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
-    } else if(req.body.password == null){
+    } else if (req.body.password == null) {
         res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
     } else {
         User.findById(thisSession._id, function (err, user) {
@@ -490,15 +516,6 @@ function deleteUser(req, res, next) {
 /**
  * Edit user (email)
  */
-router.put('/email', editEmail);
-router.post('/email', function (req, res, next) {
-    if (req.body._method == 'put') {
-        editEmail(req, res);
-    } else {
-        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
-    }
-});
-
 function editEmail(req, res) {
     thisSession = req.session;
     if (thisSession._id != null) {
@@ -533,7 +550,7 @@ function editEmail(req, res) {
                         res.status(HttpStatus.FORBIDDEN).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
                     } else {
                         user.password = undefined;
-                        if(process.env.NODE_ENV != 'test'){
+                        if (process.env.NODE_ENV != 'test') {
                             user.next_email.code = undefined;
                         }
                         res.json({
@@ -555,15 +572,6 @@ function editEmail(req, res) {
 /**
  * Edit user (password)
  */
-router.put('/password', editPassword);
-router.post('/password', function (req, res, next) {
-    if (req.body._method == 'put') {
-        editPassword(req, res, next);
-    } else {
-        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
-    }
-});
-
 function editPassword(req, res, next) {
     thisSession = req.session;
     if (thisSession._id != null) {
@@ -602,20 +610,6 @@ function editPassword(req, res, next) {
 };
 
 /**
- * Edit user (name, lastname)
- */
-router.put('/', editUser);
-router.post('/', function (req, res, next) {
-    if (req.body._method == 'put') {
-        editUser(req, res, next);
-    } else if (req.body._method == 'delete') {
-        deleteUser(req, res, next);
-    } else {
-        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
-    }
-});
-
-/**
  * Edit name and/or lastname of actual user
  * @param {Object} req - body = {name, lastname}
  * @param {Object} res - 200 if user was updated
@@ -651,15 +645,6 @@ function editUser(req, res, next) {
         res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
     }
 };
-
-router.put('/related', addRelated);
-router.post('/related', function (req, res, next) {
-    if (req.body._method == 'put') {
-        addRelated(req, res, next);
-    } else {
-        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
-    }
-});
 
 /**
  * Add a related_id to users_related list of actual user
@@ -739,6 +724,6 @@ function deletePdfOfUsers(pdf) {
     });
 };
 
-module.exports = router;
+module.exports.userRoutes = userRoutes;
 module.exports.addPdfToUsers = addPdfToUsers;
 module.exports.deletePdfOfUsers = deletePdfOfUsers;
