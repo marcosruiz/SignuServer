@@ -1,0 +1,7 @@
+# Gitignore file
+
+node_modules/*
+uploads/
+uploads-test/
+routes/restrictedArea/emailConfig.js
+routes/authorisation/config.js
