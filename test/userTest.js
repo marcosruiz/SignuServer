@@ -5,43 +5,34 @@
 //During the test the env variable is set to test
 process.env.NODE_ENV = 'test';
 
+//Mongoose
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
-var mocha = require('mocha');
-var assert = require('assert');
-var nyc = require('nyc');
-var ObjectId = Schema.ObjectId;
 var User = require('../routes/models/user');
 var Pdf = require('../routes/models/pdf');
 var Client = require('../routes/models/client');
+
 var usersRoutes = require('../routes/restrictedArea/userRoutes');
 var config = require('config');
 
-// var request = require('supertest');
-
 //Require the dev-dependencies
+var mocha = require('mocha');
+var request = require('supertest'); // tutorial
 var chai = require('chai');
-var expect = chai.expect;
+var expect = require('chai').expect; // tutorial
 var chaiHttp = require('chai-http');
-var server = require('../app');
+var server = require('../app'); // tutorial
 var should = chai.should();
 var HttpStatus = require('http-status-codes');
 var AppStatus = require('../public/routes/app-err-codes-en');
-// var fetch = require('node-fetch');
-
-var credentials = {
-    client: {
-        id: 'application',
-        secret: 'secret'
-    },
-    auth: {
-        tokenHost: 'http://localhost:3000/oauth/token'
-    }
-};
-var simpleoauth2 = require('simple-oauth2');
-var oauth2 = simpleoauth2.create(credentials);
 
 chai.use(chaiHttp);
+
+const userCredentials = {
+    email: 'test@test.com',
+    password: 'test'
+}
+var authenticatedUser = request.agent(server);
 
 //Our parent block
 function checkIsUser(res) {
@@ -76,7 +67,7 @@ describe('Users', function () {
     var testClient1;
 
     mocha.before(function (done) {
-        testClient1 = new Client({clientId: credentials.client.id, clientSecret: credentials.client.secret});
+        testClient1 = new Client({clientId: 'application', clientSecret: 'secret'});
         testClient1.save(function (err, client) {
             if (err) {
                 console.log(err);
@@ -345,47 +336,27 @@ describe('Users', function () {
                 });
         });
 
-        async function loginTry(done) {
-            // TODO oauth2
-            const tokenConfig = {
-                username: 'test@test.com',
-                password: 'test'
-            };
-            // Save the access token
-            try {
-                const result = await oauth2.ownerPassword.getToken(tokenConfig);
-                const accessToken = await oauth2.accessToken.create(result);
-                done();
-            } catch (error) {
-                console.log('Access Token Error', error.message);
-                done();
-            }
-        }
-
         it('it should LOGIN a user usign OAUTH2', function (done) {
-            // TODO oauth
-            // var agent = chai.request.agent(server);
-            // credentials.auth.tokenHost = url + '/oauth/token';
-            // console.log(credentials);
-            // oauth2 = simpleoauth2.create(credentials);
-            // loginTry(done);
-
-            request(server).post( '/oauth2/token' )
-                .auth( 'application', 'secret' )
-                .expect( 'Content-Type', /json/ ).type( 'form' )
-                .send( {
-                    code        : accessCode,
-                    grant_type  : 'password',
-                    username: "sobrenombre@gmail.com",
-                    password: "penpletiobla7"
-                } )
-                .type( 'urlencoded' )
-                .expect( 200 )
-                .expect( function (res) {
+            var clientSecretBase64 = new Buffer('secret').toString('base64');
+            var clientCredentials = 'application' + clientSecretBase64;
+            request(server).post('/oauth/token')
+                .type('form')
+                .auth(clientCredentials, '')
+                .send({
+                    grant_type: 'password',
+                    username: "test@test.com",
+                    password: "test",
+                    client_id: "application",
+                    client_secret: "secret"
+                })
+                .expect(200)
+                .expect(function (res) {
                     token = res.body.access_token.value;
-                } )
-                .end( done );
-
+                })
+                .end(function (err, res) {
+                    res.body.should.have.property('access_token');
+                    done();
+                });
         });
         it('it should LOGIN a user with pdfs and related', function (done) {
             var user = {
