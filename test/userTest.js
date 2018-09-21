@@ -212,6 +212,29 @@ describe('Users', function () {
 
     });
 
+    /**
+     * Login and return res
+     * @param next
+     */
+    function oauthLogin(user, next){
+        request(server).post('/oauth2/token')
+            .type('form')
+            .send({
+                grant_type: 'password',
+                username: user.email,
+                password: user.password,
+                client_id: "application",
+                client_secret: "secret"
+            })
+            .expect(200)
+            .expect(function (res) {
+                token = res.body.access_token.value;
+            })
+            .end(function (err, res) {
+                next(err, res);
+            });
+    }
+
     /*
      * Test the /POST route
      */
@@ -321,100 +344,77 @@ describe('Users', function () {
         });
     });
 
-    describe('LOGIN tests', function () {
+    describe('LOGIN tests with OAUTH2', function () {
+
         it('it should LOGIN a user', function (done) {
             var user = {
-                email: "test@test.com",
-                password: "test"
+                email: "test2@test.com",
+                password: "test2"
             };
-            chai.request(server)
-                .post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
-                    checkIsUser(res);
-                    done();
-                });
-        });
-
-        it('it should LOGIN a user usign OAUTH2', function (done) {
-            var clientSecretBase64 = new Buffer('secret').toString('base64');
-            var clientCredentials = 'application' + clientSecretBase64;
-            request(server).post('/oauth/token')
-                .type('form')
-                .auth(clientCredentials, '')
-                .send({
-                    grant_type: 'password',
-                    username: "test@test.com",
-                    password: "test",
-                    client_id: "application",
-                    client_secret: "secret"
-                })
-                .expect(200)
-                .expect(function (res) {
-                    token = res.body.access_token.value;
-                })
-                .end(function (err, res) {
+            oauthLogin(user, function(err, res){
+                if(!err){
                     res.body.should.have.property('access_token');
+                    res.body.should.have.property('token_type', 'bearer');
+                    res.body.should.have.property('expires_in');
                     done();
-                });
+                }
+            });
         });
         it('it should LOGIN a user with pdfs and related', function (done) {
             var user = {
                 email: "test2@test.com",
                 password: "test2"
             };
-            chai.request(server)
-                .post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
-                    checkIsUser(res);
+            oauthLogin(user, function(err, res){
+                if(!err){
+                    res.body.should.have.property('access_token');
+                    res.body.should.have.property('token_type', 'bearer');
+                    res.body.should.have.property('expires_in');
                     done();
-                });
+                }
+            });
         });
         it('it should NOT LOGIN a user due to the email', function (done) {
             var user = {
                 email: "wrong@wrong",
                 password: "test"
             };
-            chai.request(server)
-                .post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
-                    checkError(res);
-                    res.should.have.status(HttpStatus.UNAUTHORIZED);
-                    res.body.should.have.property('code', AppStatus.USER_NOT_FOUND);
+            oauthLogin(user, function(err, res){
+                if(err){
+                    res.body.should.have.property('code',503);
+                    res.body.should.have.property('error', 'server_error');
+                    res.body.should.have.property('error_description','server_error');
                     done();
-                });
+                }
+            });
         });
         it('it should NOT LOGIN a user due to the password', function (done) {
             var user = {
                 email: "test@test.com",
                 password: "wrong"
             };
-            chai.request(server)
-                .post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
-                    checkError(res);
-                    res.should.have.status(HttpStatus.UNAUTHORIZED);
-                    res.body.should.have.property('code', AppStatus.INCORRECT_PASS);
+            oauthLogin(user, function(err, res){
+                if(err){
+                    res.body.should.have.property('code',503);
+                    res.body.should.have.property('error', 'server_error');
+                    res.body.should.have.property('error_description','server_error');
                     done();
-                });
+                }
+            });
         });
         it('it should NOT LOGIN a user cause it is not activated', function (done) {
             var user = {
                 email: "test3@test.com",
                 password: "test3"
             };
-            chai.request(server)
-                .post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
-                    checkError(res);
-                    res.should.have.status(HttpStatus.UNAUTHORIZED);
-                    res.body.should.have.property('code', AppStatus.USER_DESACTIVATED);
+            oauthLogin(user, function(err, res){
+                if(err){
+                    res.body.should.have.property('code',503);
+                    res.body.should.have.property('error', 'server_error');
+                    res.body.should.have.property('error_description','server_error');
                     done();
-                });
+                }
+            });
         });
     });
 
@@ -653,7 +653,6 @@ describe('Users', function () {
             var agent = chai.request.agent(server);
             agent.put('/api/users')
                 .end(function (err, res) {
-                    console.log(res.body);
                     checkError(res);
                     res.should.have.status(HttpStatus.UNAUTHORIZED);
                     res.body.should.have.property('code', AppStatus.USER_NOT_LOGGED);
@@ -801,47 +800,31 @@ describe('Users', function () {
         });
     });
 
-    describe('GET user tests', function () {
-        it('it should GET a user', function (done) {
-            var user = {
-                email: "test@test.com",
-                password: "test"
-            };
-            var agent = chai.request.agent(server);
-            agent.post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
-                    agent.get('/api/users/info')
-                        .end(function (err, res) {
-                            checkIsUser(res);
-                            done();
-                        });
-                });
-        });
-        it('it should GET INFO a user using oauth2', function (done) {
-            var user = {
-                email: "test@test.com",
-                password: "test"
-            };
+    describe('GET INFO user tests', function () {
 
-            var agent = chai.request.agent(server);
-            agent.post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
-                    agent.get('/api/users/info')
-                        .end(function (err, res) {
-                            checkIsUser(res);
-                            done();
-                        });
-                });
+        it('it should GET a user using OAUTH2', function (done) {
+            var user = {
+                email: "test@test.com",
+                password: "test"
+            };
+            oauthLogin(user, function(err, res){
+                var agent = chai.request.agent(server);
+                agent.get('/api/users/info')
+                    .set('Authorization', 'Bearer ' + res.body.access_token)
+                    .end(function (err, res) {
+                        checkIsUser(res);
+                        done();
+                    });
+            });
         });
         it('it should NOT GET a user cause I am not logged', function (done) {
             var agent = chai.request.agent(server);
             agent.get('/api/users/info')
                 .end(function (err, res) {
-                    res.should.have.status(HttpStatus.UNAUTHORIZED);
+                    res.should.have.status(HttpStatus.BAD_REQUEST);
                     checkError(res);
-                    res.body.should.have.property('code', AppStatus.USER_NOT_LOGGED);
+                    res.body.should.have.property('code', AppStatus.BAD_REQUEST);
+                    res.body.should.have.property('message', 'The access token was not found');
                     done();
                 });
         });
@@ -853,26 +836,36 @@ describe('Users', function () {
                 email: "test@test.com",
                 password: "test"
             };
+            oauthLogin(user, function(err, res){
+                var agent = chai.request.agent(server);
+                agent.post('/api/users/logout')
+                    .set('Authorization', 'Bearer ' + res.body.access_token)
+                    .end(function (err, res) {
+                        res.should.have.status(HttpStatus.OK);
+                        res.body.should.have.property('code', AppStatus.USER_LOG_OUT);
+                        res.body.should.have.property('message', AppStatus.getStatusText(AppStatus.USER_LOG_OUT));
+                        done();
+                    });
+            });
+        });
+        it('it should NOT LOGOUT a user cause my token is bad', function (done) {
             var agent = chai.request.agent(server);
-            agent.post('/api/users/login')
-                .send(user)
+            agent.post('/api/users/logout')
+                .set('Authorization', 'Bearer 276fbbd75da3f317548b0a56e3179bd64074b0b8')
                 .end(function (err, res) {
-                    agent.post('/api/users/logout')
-                        .send(user)
-                        .end(function (err, res) {
-                            res.should.have.status(HttpStatus.OK);
-                            res.body.should.have.property('message', 'Logged out correctly');
-                            done();
-                        });
+                    res.should.have.status(HttpStatus.BAD_REQUEST);
+                    checkError(res);
+                    res.body.should.have.property('code', AppStatus.BAD_REQUEST);
+                    done();
                 });
         });
-        it('it should NOT LOGOUT a user', function (done) {
+        it('it should NOT LOGOUT a user cause I have no token', function (done) {
             var agent = chai.request.agent(server);
             agent.post('/api/users/logout')
                 .end(function (err, res) {
-                    res.should.have.status(HttpStatus.UNAUTHORIZED);
+                    res.should.have.status(HttpStatus.BAD_REQUEST);
                     checkError(res);
-                    res.body.should.have.property('code', AppStatus.USER_NOT_LOGGED);
+                    res.body.should.have.property('code', AppStatus.BAD_REQUEST);
                     done();
                 });
         });
@@ -883,38 +876,36 @@ describe('Users', function () {
                 email: "test@test.com",
                 password: "test"
             };
-            var agent = chai.request.agent(server);
-            agent.post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
-                    agent.delete('/api/users/')
-                        .send({password: 'test'})
-                        .end(function (err, res) {
-                            res.should.have.status(HttpStatus.OK);
-                            res.body.should.have.property('code', AppStatus.USER_DELETED);
-                            res.body.should.have.property('message', AppStatus.getStatusText(AppStatus.USER_DELETED));
-                            done();
-                        });
-                });
+            oauthLogin(user, function(err, res){
+                var agent = chai.request.agent(server);
+                agent.delete('/api/users/')
+                    .set('Authorization', 'Bearer ' + res.body.access_token)
+                    .send({password: 'test'})
+                    .end(function (err, res) {
+                        res.should.have.status(HttpStatus.OK);
+                        res.body.should.have.property('code', AppStatus.USER_DELETED);
+                        res.body.should.have.property('message', AppStatus.getStatusText(AppStatus.USER_DELETED));
+                        done();
+                    });
+            });
         });
         it('it should DELETE a user using POST', function (done) {
             var user = {
                 email: "test@test.com",
                 password: "test"
             };
-            var agent = chai.request.agent(server);
-            agent.post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
-                    agent.post('/api/users/')
-                        .send({_method: 'delete', password: 'test'})
-                        .end(function (err, res) {
-                            res.should.have.status(HttpStatus.OK);
-                            res.body.should.have.property('code', AppStatus.USER_DELETED);
-                            res.body.should.have.property('message', AppStatus.getStatusText(AppStatus.USER_DELETED));
-                            done();
-                        });
-                });
+            oauthLogin(user, function(err, res){
+                var agent = chai.request.agent(server);
+                agent.post('/api/users/')
+                    .send({_method: 'delete', password: 'test'})
+                    .set('Authorization', 'Bearer ' + res.body.access_token)
+                    .end(function (err, res) {
+                        res.should.have.status(HttpStatus.OK);
+                        res.body.should.have.property('code', AppStatus.USER_DELETED);
+                        res.body.should.have.property('message', AppStatus.getStatusText(AppStatus.USER_DELETED));
+                        done();
+                    });
+            });
         });
         it('it should NOT DELETE a user cause I am not logged', function (done) {
             var user = {
@@ -926,8 +917,8 @@ describe('Users', function () {
                 .send({password: 'test'})
                 .end(function (err, res) {
                     checkError(res);
-                    res.body.should.have.property('code', AppStatus.USER_NOT_LOGGED);
-                    res.body.should.have.property('message', AppStatus.getStatusText(AppStatus.USER_NOT_LOGGED));
+                    res.body.should.have.property('code', AppStatus.BAD_REQUEST);
+                    res.body.should.have.property('message', 'The access token was not found');
                     done();
                 });
         });

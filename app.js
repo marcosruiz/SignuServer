@@ -12,6 +12,8 @@ var config = require('config');
 var swaggerUi = require('swagger-ui-express');
 var swaggerDocument = require('./swagger.json');
 var OAuth2Server = require('oauth2-server');
+var HttpStatus = require('http-status-codes');
+var AppStatus = require('./public/routes/app-err-codes-en');
 
 var app = express();
 
@@ -34,7 +36,7 @@ app.oauth = OAuth2Server({
     grants: ['password'],
     debug: true
 });
-app.all('/oauth/token', app.oauth.grant());
+app.all('/oauth2/token', app.oauth.grant());
 app.use(app.oauth.errorHandler());
 
 // Routes
@@ -75,14 +77,17 @@ app.use(function (req, res, next) {
 });
 
 // error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+app.use(function (err, req, res, next) {
+    // set locals, only providing error in development
+    res.locals.message = err.message;
+    res.locals.error = req.app.get('env') === 'development' ? err : {};
 
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+    // render the error page
+    res.status(err.status || HttpStatus.BAD_REQUEST).json({
+        code: AppStatus.BAD_REQUEST,
+        message: err.message || AppStatus.getStatusText(AppStatus.BAD_REQUEST)
+    });
+    res.render('error');
 });
 
 

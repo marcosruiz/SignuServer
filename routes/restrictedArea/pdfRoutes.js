@@ -13,7 +13,7 @@ var config = require('config');
 var upload = multer({dest: config.uploads_dir});
 var HttpStatus = require('http-status-codes');
 var AppStatus = require('../../public/routes/app-err-codes-en');
-var getJsonAppError = AppStatus.getJsonAppError;
+var getJsonAppError = AppStatus.getJsonApp;
 var thisSession;
 var newPdf;
 var LOCK_TIME = 60000; // 60 seg

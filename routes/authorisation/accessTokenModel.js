@@ -84,6 +84,17 @@ var getAccessToken = function (bearerToken, callback) {
 };
 
 /**
+ * Delete access token
+ * @param bearerToken
+ * @param callback
+ */
+var deleteAccessToken = function (bearerToken, callback){
+    tokenModel.deleteOne({
+        accessToken: bearerToken
+    }, callback);
+}
+
+/**
  * Get client.
  */
 
@@ -132,8 +143,10 @@ var getUser = function (username, password, callback) {
         if(err){
             callback(err);
         } else if (user == null){
-            callback(err);
-        } else {
+            callback(new Error('User not found'));
+        } else if(!user.activation.is_activated){
+            callback(new Error('User not activated'));
+        }else {
             user.comparePassword(password, function (err, isMatch) {
                 if(err){
                     callback(err);
@@ -153,6 +166,7 @@ var getUser = function (username, password, callback) {
 
 module.exports = {
     getAccessToken: getAccessToken,
+    deleteAccessToken : deleteAccessToken,
     getClient: getClient,
     grantTypeAllowed: grantTypeAllowed,
     saveAccessToken: saveAccessToken,

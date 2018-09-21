@@ -2,20 +2,21 @@ var statusCodes = {};
 
 statusCodes[exports.SUCCESS = 0] = "Success";
 
-statusCodes[exports.USER_CREATED = 101] = "User created successfully. Check your e-mail";
-statusCodes[exports.USER_UPDATED = 102] = "User updated successfully";
-statusCodes[exports.USER_DELETED = 103] = "User deleted successfully";
-statusCodes[exports.USER_DESACTIVATED = 104] = "User desactivated successfully";
-statusCodes[exports.EMAIL_SENDED = 105] = "Email was sended successfully. Check your email to confirm your email";
-statusCodes[exports.USER_ACTIVATED = 106] = "User activated successfully";
+statusCodes[exports.USER_CREATED = 1] = "User created successfully. Check your e-mail";
+statusCodes[exports.USER_UPDATED = 2] = "User updated successfully";
+statusCodes[exports.USER_DELETED = 3] = "User deleted successfully";
+statusCodes[exports.USER_DESACTIVATED = 4] = "User desactivated successfully";
+statusCodes[exports.EMAIL_SENDED = 5] = "Email was sended successfully. Check your email to confirm your email";
+statusCodes[exports.USER_ACTIVATED = 6] = "User activated successfully";
+statusCodes[exports.USER_LOG_OUT = 7] = "User logged out successfully";
 
-statusCodes[exports.PDF_CREATED = 501] = "PDF created successfully";
-statusCodes[exports.PDF_UPDATED = 502] = "PDF updated successfully";
-statusCodes[exports.PDF_DELETED = 503] = "PDF deleted successfully";
-statusCodes[exports.PDF_DELETED = 504] = "PDF deleted successfully";
-statusCodes[exports.PDF_SIGNED = 505] = "PDF signed successfully";
-statusCodes[exports.PDF_UNLOCKED = 505] = "PDF unlocked successfully";
-statusCodes[exports.PDF_SIGNER_ADDED = 505] = "Added signer(s) to PDF successfully";
+statusCodes[exports.PDF_CREATED = 101] = "PDF created successfully";
+statusCodes[exports.PDF_UPDATED = 102] = "PDF updated successfully";
+statusCodes[exports.PDF_DELETED = 103] = "PDF deleted successfully";
+statusCodes[exports.PDF_DELETED = 104] = "PDF deleted successfully";
+statusCodes[exports.PDF_SIGNED = 105] = "PDF signed successfully";
+statusCodes[exports.PDF_UNLOCKED = 106] = "PDF unlocked successfully";
+statusCodes[exports.PDF_SIGNER_ADDED = 107] = "Added signer(s) to PDF successfully";
 
 // Generic errors
 statusCodes[exports.INTERNAL_ERROR = 1000] = "Internal error";
@@ -30,7 +31,7 @@ statusCodes[exports.NO_BODY = 1009] = "Request without body";
 statusCodes[exports.ERROR_AC = 1010] = "Activation code error";
 statusCodes[exports.TIMEOUT = 1011] = "Timeout";
 statusCodes[exports.AC_NOT_MATCH = 1012] = "Activation code is wrong";
-
+statusCodes[exports.HANDLER_ERROR = 1012] = "Handler error";
 
 // User errors
 statusCodes[exports.USER_NOT_FOUND = 2000] = "User not found";
@@ -58,13 +59,12 @@ statusCodes[exports.TOKEN_NOT_FOUND = 4000] = "TOKEN not found";
 statusCodes[exports.CLIENT_NOT_FOUND = 5000] = "CLIENT not found";
 
 
-
 /**
  * Return a json with code and message code
  * @param code
  * @returns {{code: {number}, message: {string}}}
  */
-exports.getJsonAppError = function(statusCode) {
+exports.getJsonApp = function (statusCode) {
     var res = {
         code: statusCode,
         message: statusCodes[statusCode]

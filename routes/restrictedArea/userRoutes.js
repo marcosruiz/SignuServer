@@ -11,7 +11,7 @@ var AccessTokenModel = require('../authorisation/accessTokenModel');
 var bcrypt = require('bcrypt');
 var HttpStatus = require('http-status-codes');
 var AppStatus = require('../../public/routes/app-err-codes-en');
-var getJsonAppError = AppStatus.getJsonAppError;
+var getJsonApp = AppStatus.getJsonApp;
 var GAP_TIME_TO_EMAIL = 1800000; // milliseconds
 var fromEmail = require('./emailConfig').EMAIL_SECRET;
 var fromPass = require('./emailConfig').PASS_SECRET;
@@ -20,8 +20,8 @@ var thisSession; //TODO This is for a server with state
 function userRoutes(app){
 
     router.post('/signup', createUser);
-    router.post('/login', loginUser);
-    router.post('/logout', logOutUser);
+    //router.post('/login', loginUser);
+    router.post('/logout', app.oauth.authorise(),logOutUser);
     router.get('/info', app.oauth.authorise(), getInfoUser);
 
     // Edit user fields
@@ -32,7 +32,7 @@ function userRoutes(app){
         } else if (req.body._method == 'delete') {
             deleteUser(req, res, next);
         } else {
-            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+            res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
         }
     });
     router.put('/email', editEmail);
@@ -40,7 +40,7 @@ function userRoutes(app){
         if (req.body._method == 'put') {
             editEmail(req, res);
         } else {
-            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+            res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
         }
     });
     router.put('/password', editPassword);
@@ -48,7 +48,7 @@ function userRoutes(app){
         if (req.body._method == 'put') {
             editPassword(req, res, next);
         } else {
-            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+            res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
         }
     });
     router.put('/related', addRelated);
@@ -56,17 +56,17 @@ function userRoutes(app){
         if (req.body._method == 'put') {
             addRelated(req, res, next);
         } else {
-            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+            res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
         }
     });
-    router.delete('/', deleteUser);
+    router.delete('/',app.oauth.authorise(), deleteUser);
 
     router.put('/authemail', authEmail);
     router.post('/authemail', function (req, res, next) {
         if (req.body._method == 'put') {
             authEmail(req, res, next);
         } else {
-            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+            res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
         }
     });
     router.put('/authnextemail', authNextEmail);
@@ -74,7 +74,7 @@ function userRoutes(app){
         if (req.body._method == 'put') {
             authNextEmail(req, res, next);
         } else {
-            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+            res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
         }
     });
 
@@ -120,11 +120,11 @@ function checkUser(user) {
  * User not exists -> Create new user
  */
 function createUser(req, res) {
-    console.log(req.get('host'));
+    // console.log(req.get('host'));
     if (req.body.email == null || req.body.email == '') {
-        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+        res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
     } else if (req.body.password == null || req.body.password == '') {
-        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+        res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
     } else {
         var randomString = generateRandomString(5);
         var thisUser;
@@ -141,14 +141,14 @@ function createUser(req, res) {
         });
         User.findOne({email: thisUser.email}, function (err, user) {
             if (err) {
-                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
             } else if (user == null) {
                 // User did not exist
                 thisUser.save(function (err, user) {
                     if (err) {
-                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
                     } else if (user == null) {
-                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
+                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_FOUND));
                     } else {
                         var mailOptions = {
                             to: user.email,
@@ -162,7 +162,7 @@ function createUser(req, res) {
                         sendEmail(mailOptions, function (err, info) {
                             if (err) {
                                 user.remove();
-                                res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.EMAIL_ERROR));
+                                res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.EMAIL_ERROR));
                             } else {
                                 user.password = undefined;
                                 user.activation.code = undefined;
@@ -184,13 +184,13 @@ function createUser(req, res) {
                 // User is not activated
                 User.findByIdAndRemove(user._id, function (err, user) {
                     if (err) {
-                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
                     } else {
                         thisUser.save(function (err, user) {
                             if (err) {
-                                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
                             } else if (user == null) {
-                                res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
+                                res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_FOUND));
                             } else {
                                 var mailOptions = {
                                     to: user.email,
@@ -204,7 +204,7 @@ function createUser(req, res) {
                                 sendEmail(mailOptions, function (err, info) {
                                     if (err) {
                                         user.remove();
-                                        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.EMAIL_ERROR));
+                                        res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.EMAIL_ERROR));
                                     } else {
                                         user.password = undefined;
                                         user.activation.code = undefined;
@@ -226,7 +226,7 @@ function createUser(req, res) {
                 });
             } else {
                 // User exists
-                res.status(HttpStatus.CONFLICT).json(getJsonAppError(AppStatus.USER_ALREADY_EXISTS));
+                res.status(HttpStatus.CONFLICT).json(getJsonApp(AppStatus.USER_ALREADY_EXISTS));
             }
         });
 
@@ -239,17 +239,17 @@ function createUser(req, res) {
 function authEmail(req, res) {
     //This check also should be in the front-end
     if (req.body._id == null || req.body._id == '') {
-        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+        res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
     } else if (req.body.code == null || req.body.code == '') {
-        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+        res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
     } else {
         User.findById(req.body._id, function (err, user) {
             if (err) {
-                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
             } else if (user == null) {
-                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.USER_NOT_FOUND));
             } else if (user.activation.is_activated == true) {
-                res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.USER_ACTIVATED));
+                res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.USER_ACTIVATED));
             } else {
                 if (req.body.code == user.activation.code) {
                     var gapOfTime = Date.now() - user.activation.when;
@@ -259,9 +259,9 @@ function authEmail(req, res) {
                             'activation.is_activated': true
                         }, {new: true}, function (err, user) {
                             if (err) {
-                                res.stat(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                                res.stat(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
                             } else if (user == null) {
-                                res.stat(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
+                                res.stat(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_FOUND));
                             } else {
                                 user.password = undefined;
                                 user.next_email = undefined;
@@ -273,10 +273,10 @@ function authEmail(req, res) {
                             }
                         });
                     } else {
-                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.TIMEOUT));
+                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.TIMEOUT));
                     }
                 } else {
-                    res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.AC_NOT_MATCH));
+                    res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.AC_NOT_MATCH));
                 }
             }
         });
@@ -290,17 +290,17 @@ function authEmail(req, res) {
 function authNextEmail(req, res, next) {
     //This check also should be in the front-end
     if (req.body._id == null || req.body._id == '') {
-        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+        res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
     } else if (req.body.code == null || req.body.code == '') {
-        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+        res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
     } else {
         User.findById(req.body._id, function (err, user) {
             if (err) {
-                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
             } else if (user == null) {
-                res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
+                res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.USER_NOT_FOUND));
             } else if (user.activation.is_activated != true) {
-                res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.USER_DESACTIVATED));
+                res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.USER_DESACTIVATED));
             } else {
                 if (req.body.code == user.next_email.code) {
                     var gapOfTime = Date.now() - user.next_email.when;
@@ -311,9 +311,9 @@ function authNextEmail(req, res, next) {
                             'email': user.next_email.email
                         }, {new: true}, function (err, user) {
                             if (err) {
-                                res.stat(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                                res.stat(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
                             } else if (user == null) {
-                                res.stat(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
+                                res.stat(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_FOUND));
                             } else {
                                 user.password = undefined;
                                 res.json({
@@ -324,10 +324,10 @@ function authNextEmail(req, res, next) {
                             }
                         });
                     } else {
-                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.TIMEOUT));
+                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.TIMEOUT));
                     }
                 } else {
-                    res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.AC_NOT_MATCH));
+                    res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.AC_NOT_MATCH));
                 }
             }
         });
@@ -385,19 +385,19 @@ function loginUser (req, res) {
         "email": req.body.email
     };
     if (req.body.email == null || req.body.password == null) {
-        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+        res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
     } else {
         User.findOne(thisUser, function (err, user) {
             if (err) {
-                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
             } else if (user == null) {
-                res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
+                res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_FOUND));
             } else if (!user.activation.is_activated) {
-                res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_DESACTIVATED));
+                res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_DESACTIVATED));
             } else {
                 user.comparePassword(req.body.password, function (err, isMatch) {
                     if (err) {
-                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.INCORRECT_PASS));
+                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.INCORRECT_PASS));
                     } else if (isMatch) {
                         thisSession._id = user._id;
                         checkUser(user);
@@ -409,7 +409,7 @@ function loginUser (req, res) {
                         };
                         res.json(response);
                     } else {
-                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.INCORRECT_PASS));
+                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.INCORRECT_PASS));
                     }
                 });
             }
@@ -421,22 +421,14 @@ function loginUser (req, res) {
  * Log out: Close the current session
  */
 function logOutUser(req, res) {
-    var thisSession = req.session;
-    console.log(thisSession);
-    if (thisSession._id != null) {
-        thisSession.destroy(function (err) {
-            if (err) {
-                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.INTERNAL_ERROR));
-            } else {
-                res.json({
-                    "code": AppStatus.SUCCESS,
-                    "message": "Logged out correctly"
-                });
-            }
-        });
-    } else {
-        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
-    }
+    var myToken = req.headers.authorization.split(" ",2)[1];
+    AccessTokenModel.deleteAccessToken(myToken, function(err, result){
+        if(err){
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
+        } else {
+            res.json(AppStatus.getJsonApp(AppStatus.USER_LOG_OUT));
+        }
+    });
 }
 
 /**
@@ -446,13 +438,13 @@ function getInfoUser(req, res) {
     var myToken = req.headers.authorization.split(" ",2)[1];
     AccessTokenModel.getAccessToken(myToken, function(err, token){
         if(err){
-            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
         } else if(token == null){
-            res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.TOKEN_NOT_FOUND));
+            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));
         } else {
             User.findById(token.user_id, function (err, user) {
                 if (err) {
-                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.INTERNAL_ERROR));
+                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.INTERNAL_ERROR));
                 } else if (user == null) {
                     res.status(HttpStatus.UNAUTHORIZED).json({
                         "code": AppStatus.USER_NOT_FOUND,
@@ -476,41 +468,46 @@ function getInfoUser(req, res) {
  * Delete user if password is correct
  */
 function deleteUser(req, res, next) {
-    thisSession = req.session;
-    if (thisSession._id == null) {
-        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
-    } else if (req.body.password == null) {
-        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
-    } else {
-        User.findById(thisSession._id, function (err, user) {
-            if (err) {
-                res.status(HttpStatus.INTERNAL_SERVER_ERROR);
-            } else if (user == null) {
-                res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
-            } else {
-                user.comparePassword(req.body.password, function (err, isMatch) {
-                    if (err) {
-                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
-                    } else if (!isMatch) {
-                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.INCORRECT_PASS));
-                    } else {
-                        User.findByIdAndRemove(thisSession._id, function (err, user) {
-                            if (err) {
-                                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
-                            } else if (user == null) {
-                                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
-                            } else {
-                                res.json({
-                                    "code": AppStatus.USER_DELETED,
-                                    "message": AppStatus.getStatusText(AppStatus.USER_DELETED)
-                                });
-                            }
-                        });
-                    }
-                });
-            }
-        });
-    }
+    var myToken = req.headers.authorization.split(" ",2)[1];
+    AccessTokenModel.getAccessToken(myToken, function(err, token){
+        if(err){
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
+        } else if(token == null){
+            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));
+        } else {
+            User.findById(token.user_id, function (err, user) {
+                if (err) {
+                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.INTERNAL_ERROR));
+                } else if (user == null) {
+                    res.status(HttpStatus.UNAUTHORIZED).json({
+                        "code": AppStatus.USER_NOT_FOUND,
+                        "message": AppStatus.getStatusText(AppStatus.USER_NOT_FOUND)
+                    });
+                } else {
+                    user.comparePassword(req.body.password, function (err, isMatch) {
+                        if (err) {
+                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
+                        } else if (!isMatch) {
+                            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.INCORRECT_PASS));
+                        } else {
+                            User.findByIdAndRemove(token.user_id, function (err, user) {
+                                if (err) {
+                                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
+                                } else if (user == null) {
+                                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.USER_NOT_FOUND));
+                                } else {
+                                    res.json({
+                                        "code": AppStatus.USER_DELETED,
+                                        "message": AppStatus.getStatusText(AppStatus.USER_DELETED)
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        }
+    });
 };
 
 /**
@@ -541,13 +538,13 @@ function editEmail(req, res) {
         };
         sendEmail(mailOptions, function (err, info) {
             if (err) {
-                res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.EMAIL_ERROR));
+                res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.EMAIL_ERROR));
             } else {
                 User.findByIdAndUpdate(thisSession._id, modUser, {new: true}, function (err, user) {
                     if (err) {
-                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
+                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.USER_NOT_FOUND));
                     } else if (user == null) {
-                        res.status(HttpStatus.FORBIDDEN).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
+                        res.status(HttpStatus.FORBIDDEN).json(getJsonApp(AppStatus.USER_NOT_LOGGED));
                     } else {
                         user.password = undefined;
                         if (process.env.NODE_ENV != 'test') {
@@ -564,7 +561,7 @@ function editEmail(req, res) {
         });
 
     } else {
-        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
+        res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_LOGGED));
     }
 };
 
@@ -577,20 +574,20 @@ function editPassword(req, res, next) {
     if (thisSession._id != null) {
         User.findById(thisSession._id, function (err, user) {
             if (err) {
-                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.USER_NOT_FOUND));
             } else if (user == null) {
-                res.status(HttpStatus.FORBIDDEN).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
+                res.status(HttpStatus.FORBIDDEN).json(getJsonApp(AppStatus.USER_NOT_LOGGED));
             } else {
                 if (req.body.password == null || req.body.password == '') {
-                    res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
+                    res.status(HttpStatus.NOT_FOUND).json(getJsonApp(AppStatus.USER_NOT_LOGGED));
                 } else {
                     user.last_edition_date = Date.now();
                     user.password = req.body.password;
                     user.save(function (err, user) {
                         if (err) {
-                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
                         } else if (user == null) {
-                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.INTERNAL_ERROR));
+                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.INTERNAL_ERROR));
                         } else {
                             user.password = undefined;
                             user.activation = undefined;
@@ -605,7 +602,7 @@ function editPassword(req, res, next) {
             }
         });
     } else {
-        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
+        res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_LOGGED));
     }
 };
 
@@ -628,9 +625,9 @@ function editUser(req, res, next) {
         modUser.last_edition_date = Date.now();
         User.findByIdAndUpdate(thisSession._id, modUser, {new: true}, function (err, user) {
             if (err) {
-                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.USER_NOT_FOUND));
             } else if (user == null) {
-                res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
+                res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.USER_NOT_FOUND));
             } else {
                 user.password = undefined;
                 user.activation.code = undefined;
@@ -642,7 +639,7 @@ function editUser(req, res, next) {
             }
         });
     } else {
-        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
+        res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_LOGGED));
     }
 };
 
@@ -654,26 +651,26 @@ function editUser(req, res, next) {
 function addRelated(req, res) {
     thisSession = req.session;
     if (thisSession._id == null) {
-        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
+        res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_LOGGED));
     } else if (req.body.related_id == null) {
-        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+        res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
     } else {
         User.count({_id: req.body.related_id}, function (err, count) {
             if (err) {
-                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.BAD_REQUEST));
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.BAD_REQUEST));
             } else if (count <= 0) {
-                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.USER_NOT_FOUND));
             } else {
                 User.findByIdAndUpdate(thisSession._id, {$addToSet: {users_related: req.body.related_id}}, {
                     new: true,
                     safe: true
                 }, function (err, user) {
                     if (err) {
-                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.BAD_REQUEST));
+                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.BAD_REQUEST));
                     } else if (user == null) {
-                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.USER_NOT_FOUND));
+                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.USER_NOT_FOUND));
                     } else if (user.activation.is_activated != true) {
-                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_DESACTIVATED));
+                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_DESACTIVATED));
                     } else {
                         user.password = undefined;
                         user.activation.code = undefined;
