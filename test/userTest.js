@@ -11,20 +11,21 @@ const Schema = mongoose.Schema;
 var User = require('../routes/models/user');
 var Pdf = require('../routes/models/pdf');
 var Client = require('../routes/models/client');
-
-var usersRoutes = require('../routes/restrictedArea/userRoutes');
 var config = require('config');
 
 //Require the dev-dependencies
 var mocha = require('mocha');
-var request = require('supertest'); // tutorial
+var request = require('supertest');
 var chai = require('chai');
-var expect = require('chai').expect; // tutorial
+var expect = require('chai').expect;
 var chaiHttp = require('chai-http');
-var server = require('../app'); // tutorial
-var should = chai.should();
+var server = require('../app');
 var HttpStatus = require('http-status-codes');
 var AppStatus = require('../public/routes/app-err-codes-en');
+
+var checkUser = require('./commonTestFunctions').checkUser;
+var checkToken = require('./commonTestFunctions').checkToken;
+var checkError = require('./commonTestFunctions').checkError;
 
 chai.use(chaiHttp);
 
@@ -34,38 +35,16 @@ const userCredentials = {
 }
 var authenticatedUser = request.agent(server);
 
-//Our parent block
-function checkIsUser(res) {
-    res.should.have.status(HttpStatus.OK);
-    res.body.should.be.a('object');
-    res.body.should.have.property('code');
-    res.body.should.have.property('message');
-    res.body.should.have.property('data');
-    res.body.data.user.should.have.property('name');
-    res.body.data.user.should.have.property('lastname');
-    res.body.data.user.should.have.property('email');
-    res.body.data.user.should.have.property('pdfs_to_sign');
-    res.body.data.user.should.have.property('pdfs_owned');
-    res.body.data.user.should.have.property('pdfs_signed');
-    res.body.data.user.pdfs_to_sign.should.be.an.Array;
-    res.body.data.user.should.have.property('users_related');
-    res.body.data.user.users_related.should.be.an.Array;
-    // res.body.users_related.length.should.be.eql(0);
-}
-
-function checkError(res) {
-    res.should.have.not.status(HttpStatus.OK);
-    res.body.should.be.a('object');
-    res.body.should.have.property('message');
-    res.body.should.have.property('code');
-    res.body.code.should.be.above(999);
-}
+var token;
 
 describe('Users', function () {
     var testUser1, testUser2, testUser3;
     var testPdf1;
     var testClient1;
 
+    /**
+     * Create client
+     */
     mocha.before(function (done) {
         testClient1 = new Client({clientId: 'application', clientSecret: 'secret'});
         testClient1.save(function (err, client) {
@@ -77,6 +56,9 @@ describe('Users', function () {
         });
     });
 
+    /**
+     * Delete all clients
+     */
     mocha.after(function (done) {
         Client.remove({}, function (err) {
             if (err) {
@@ -88,6 +70,9 @@ describe('Users', function () {
 
     });
 
+    /**
+     * Create users and pdfs
+     */
     beforeEach(function (done) {
         // Add a test1@test user
         var newUser1 = new User({
@@ -195,6 +180,9 @@ describe('Users', function () {
 
     });
 
+    /**
+     * Delete all users and pdfs
+     */
     afterEach(function (done) {
         User.remove({}, function (err) {
             if (err) {
@@ -213,10 +201,11 @@ describe('Users', function () {
     });
 
     /**
-     * Login and return res
-     * @param next
+     * Login using Oauth2 and return info user
+     * @param {Object} user - user: {email, password}
+     * @callback next(err, res)
      */
-    function oauthLogin(user, next){
+    function oauthLogin(user, next) {
         request(server).post('/oauth2/token')
             .type('form')
             .send({
@@ -226,14 +215,22 @@ describe('Users', function () {
                 client_id: "application",
                 client_secret: "secret"
             })
-            .expect(200)
+            .expect(HttpStatus.OK)
             .expect(function (res) {
-                token = res.body.access_token.value;
+                token = res.body.access_token;
             })
             .end(function (err, res) {
-                next(err, res);
+                checkToken(res);
+                // Check user exists
+                request(server).get('/api/users/info')
+                    .set('Authorization', 'Bearer ' + token)
+                    .expect(HttpStatus.OK)
+                    .end(function (err, res) {
+                        checkUser(res);
+                        next(err, res);
+                    });
             });
-    }
+    };
 
     /*
      * Test the /POST route
@@ -251,7 +248,7 @@ describe('Users', function () {
             agent.post('/api/users/signup')
                 .send(user)
                 .end(function (err, res) {
-                    checkIsUser(res);
+                    checkUser(res);
                     var port = server.get('port');
                     res.body.should.have.property('code', AppStatus.SUCCESS);
                     res.body.should.have.property('message');
@@ -269,7 +266,7 @@ describe('Users', function () {
                 .post('/api/users/signup')
                 .send(user)
                 .end(function (err, res) {
-                    checkIsUser(res);
+                    checkUser(res);
                     res.body.should.have.property('code', AppStatus.SUCCESS);
                     res.body.should.have.property('message');
                     res.body.data.user.activation.should.have.property('is_activated', false);
@@ -279,7 +276,7 @@ describe('Users', function () {
                         .put('/api/users/authemail/')
                         .send(body)
                         .end(function (err, res) {
-                            checkIsUser(res);
+                            checkUser(res);
                             res.body.should.have.property('code');
                             res.body.should.have.property('message');
                             res.body.data.user.activation.should.have.property('is_activated', true);
@@ -298,7 +295,7 @@ describe('Users', function () {
                 .post('/api/users/signup')
                 .send(user)
                 .end(function (err, res) {
-                    checkIsUser(res);
+                    checkUser(res);
                     res.body.should.have.property('code', AppStatus.SUCCESS);
                     res.body.should.have.property('message');
                     done();
@@ -330,7 +327,7 @@ describe('Users', function () {
                 .post('/api/users/signup')
                 .send(user)
                 .end(function (err, res) {
-                    checkIsUser(res);
+                    checkUser(res);
                     res.body.should.have.property('message');
                     res.body.should.have.property('code');
 
@@ -351,11 +348,8 @@ describe('Users', function () {
                 email: "test2@test.com",
                 password: "test2"
             };
-            oauthLogin(user, function(err, res){
-                if(!err){
-                    res.body.should.have.property('access_token');
-                    res.body.should.have.property('token_type', 'bearer');
-                    res.body.should.have.property('expires_in');
+            oauthLogin(user, function (err, res) {
+                if (!err) {
                     done();
                 }
             });
@@ -365,11 +359,8 @@ describe('Users', function () {
                 email: "test2@test.com",
                 password: "test2"
             };
-            oauthLogin(user, function(err, res){
-                if(!err){
-                    res.body.should.have.property('access_token');
-                    res.body.should.have.property('token_type', 'bearer');
-                    res.body.should.have.property('expires_in');
+            oauthLogin(user, function (err, res) {
+                if (!err) {
                     done();
                 }
             });
@@ -379,48 +370,69 @@ describe('Users', function () {
                 email: "wrong@wrong",
                 password: "test"
             };
-            oauthLogin(user, function(err, res){
-                if(err){
-                    res.body.should.have.property('code',503);
+            request(server).post('/oauth2/token')
+                .type('form')
+                .send({
+                    grant_type: 'password',
+                    username: user.email,
+                    password: user.password,
+                    client_id: "application",
+                    client_secret: "secret"
+                })
+                .end(function (err, res) {
+                    res.body.should.have.property('code', 503);
                     res.body.should.have.property('error', 'server_error');
-                    res.body.should.have.property('error_description','server_error');
+                    res.body.should.have.property('error_description', 'server_error');
                     done();
-                }
-            });
+                });
+
         });
         it('it should NOT LOGIN a user due to the password', function (done) {
             var user = {
                 email: "test@test.com",
                 password: "wrong"
             };
-            oauthLogin(user, function(err, res){
-                if(err){
-                    res.body.should.have.property('code',503);
+            request(server).post('/oauth2/token')
+                .type('form')
+                .send({
+                    grant_type: 'password',
+                    username: user.email,
+                    password: user.password,
+                    client_id: "application",
+                    client_secret: "secret"
+                })
+                .end(function (err, res) {
+                    res.body.should.have.property('code', 503);
                     res.body.should.have.property('error', 'server_error');
-                    res.body.should.have.property('error_description','server_error');
+                    res.body.should.have.property('error_description', 'server_error');
                     done();
-                }
-            });
+                });
         });
         it('it should NOT LOGIN a user cause it is not activated', function (done) {
             var user = {
                 email: "test3@test.com",
                 password: "test3"
             };
-            oauthLogin(user, function(err, res){
-                if(err){
-                    res.body.should.have.property('code',503);
+            request(server).post('/oauth2/token')
+                .type('form')
+                .send({
+                    grant_type: 'password',
+                    username: user.email,
+                    password: user.password,
+                    client_id: "application",
+                    client_secret: "secret"
+                })
+                .end(function (err, res) {
+                    res.body.should.have.property('code', 503);
                     res.body.should.have.property('error', 'server_error');
-                    res.body.should.have.property('error_description','server_error');
+                    res.body.should.have.property('error_description', 'server_error');
                     done();
-                }
-            });
+                });
         });
     });
 
     describe('EDIT user tests', function () {
         it('it should EDIT password of a user', function (done) {
-            var user_id;
             var user = {
                 email: "test@test.com",
                 password: "test"
@@ -429,68 +441,47 @@ describe('Users', function () {
                 password: "newPassTest"
             };
             var agent = chai.request.agent(server);
-            agent.post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
-                    user_id = res.body.data.user._id;
-                    agent.put('/api/users/password')
-                        .send(editedUser)
-                        .end(function (err, res) {
-                            checkIsUser(res);
-                            res.body.data.user.should.have.property('lastname', 'test');
-                            res.body.data.user.should.have.property('name', 'test');
-                            res.body.data.user.should.have.property('email', 'test@test.com');
-                            res.body.data.user.should.have.property('_id', user_id);
-                            editedUser.email = user.email;
-                            agent.post('/api/users/login')
-                                .send(editedUser)
-                                .end(function (err, res) {
-                                    checkIsUser(res);
-                                    res.body.data.user.should.have.property('lastname', 'test');
-                                    res.body.data.user.should.have.property('name', 'test');
-                                    res.body.data.user.should.have.property('email', 'test@test.com');
-                                    res.body.data.user.should.have.property('_id', user_id);
-                                    done();
-                                });
+            oauthLogin(user, function (err, res) {
+                agent.put('/api/users/password')
+                    .set('Authorization', 'Bearer ' + token)
+                    .send(editedUser)
+                    .end(function (err, res) {
+                        checkUser(res);
+                        res.body.data.user.should.have.property('lastname', 'test');
+                        res.body.data.user.should.have.property('name', 'test');
+                        res.body.data.user.should.have.property('email', 'test@test.com');
+                        editedUser.email = user.email;
+                        oauthLogin(editedUser, function (err, res) {
+                            done();
                         });
-                });
+                    });
+            });
         });
         it('it should EDIT password of a user using POST', function (done) {
-            var user_id;
             var user = {
                 email: "test@test.com",
                 password: "test"
             };
             var editedUser = {
-                _method: 'put',
+                _method: "put",
                 password: "newPassTest"
             };
             var agent = chai.request.agent(server);
-            agent.post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
-                    user_id = res.body.data.user._id;
-                    agent.post('/api/users/password')
-                        .send(editedUser)
-                        .end(function (err, res) {
-                            checkIsUser(res);
-                            res.body.data.user.should.have.property('lastname', 'test');
-                            res.body.data.user.should.have.property('name', 'test');
-                            res.body.data.user.should.have.property('email', 'test@test.com');
-                            res.body.data.user.should.have.property('_id', user_id);
-                            editedUser.email = user.email;
-                            agent.post('/api/users/login')
-                                .send(editedUser)
-                                .end(function (err, res) {
-                                    checkIsUser(res);
-                                    res.body.data.user.should.have.property('lastname', 'test');
-                                    res.body.data.user.should.have.property('name', 'test');
-                                    res.body.data.user.should.have.property('email', 'test@test.com');
-                                    res.body.data.user.should.have.property('_id', user_id);
-                                    done();
-                                });
+            oauthLogin(user, function (err, res) {
+                agent.post('/api/users/password')
+                    .set('Authorization', 'Bearer ' + token)
+                    .send(editedUser)
+                    .end(function (err, res) {
+                        checkUser(res);
+                        res.body.data.user.should.have.property('lastname', 'test');
+                        res.body.data.user.should.have.property('name', 'test');
+                        res.body.data.user.should.have.property('email', 'test@test.com');
+                        editedUser.email = user.email;
+                        oauthLogin(editedUser, function (err, res) {
+                            done();
                         });
-                });
+                    });
+            });
         });
         it('it should EDIT the name a user', function (done) {
             var user = {
@@ -501,19 +492,18 @@ describe('Users', function () {
                 name: "newNameTest"
             };
             var agent = chai.request.agent(server);
-            agent.post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
-                    agent.put('/api/users/')
-                        .send(editedUser)
-                        .end(function (err, res) {
-                            checkIsUser(res);
-                            res.body.data.user.should.have.property('lastname', 'test');
-                            res.body.data.user.should.have.property('name', 'newNameTest');
-                            res.body.data.user.should.have.property('email', 'test@test.com');
-                            done();
-                        });
-                });
+            oauthLogin(user, function (err, res) {
+                agent.put('/api/users/')
+                    .set('Authorization', 'Bearer ' + token)
+                    .send(editedUser)
+                    .end(function (err, res) {
+                        checkUser(res);
+                        res.body.data.user.should.have.property('lastname', 'test');
+                        res.body.data.user.should.have.property('name', 'newNameTest');
+                        res.body.data.user.should.have.property('email', 'test@test.com');
+                        done();
+                    });
+            });
         });
 
         it('it should EDIT lastname and name of a user', function (done) {
@@ -526,18 +516,18 @@ describe('Users', function () {
                 lastname: "newLastnameTest"
             };
             var agent = chai.request.agent(server);
-            agent.post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
-                    agent.put('/api/users/')
-                        .send(editedUser)
-                        .end(function (err, res) {
-                            checkIsUser(res);
-                            res.body.data.user.should.have.property('lastname', 'newLastnameTest');
-                            res.body.data.user.should.have.property('name', 'newNameTest');
-                            done();
-                        });
-                });
+            oauthLogin(user, function (err, res) {
+                agent.put('/api/users/')
+                    .set('Authorization', 'Bearer ' + token)
+                    .send(editedUser)
+                    .end(function (err, res) {
+                        checkUser(res);
+                        res.body.data.user.should.have.property('lastname', 'newLastnameTest');
+                        res.body.data.user.should.have.property('name', 'newNameTest');
+                        res.body.data.user.should.have.property('email', 'test@test.com');
+                        done();
+                    });
+            });
         });
 
         it('it should EDIT lastname and name of a user using POST', function (done) {
@@ -546,23 +536,23 @@ describe('Users', function () {
                 password: "test"
             };
             var editedUser = {
-                _method: 'put',
+                _method: "put",
                 name: "newNameTest",
                 lastname: "newLastnameTest"
             };
             var agent = chai.request.agent(server);
-            agent.post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
-                    agent.post('/api/users/')
-                        .send(editedUser)
-                        .end(function (err, res) {
-                            checkIsUser(res);
-                            res.body.data.user.should.have.property('lastname', 'newLastnameTest');
-                            res.body.data.user.should.have.property('name', 'newNameTest');
-                            done();
-                        });
-                });
+            oauthLogin(user, function (err, res) {
+                agent.post('/api/users/')
+                    .set('Authorization', 'Bearer ' + token)
+                    .send(editedUser)
+                    .end(function (err, res) {
+                        checkUser(res);
+                        res.body.data.user.should.have.property('lastname', 'newLastnameTest');
+                        res.body.data.user.should.have.property('name', 'newNameTest');
+                        res.body.data.user.should.have.property('email', 'test@test.com');
+                        done();
+                    });
+            });
         });
 
         it('it should EDIT lastname of a user', function (done) {
@@ -574,19 +564,19 @@ describe('Users', function () {
                 lastname: "newLastnameTest"
             };
             var agent = chai.request.agent(server);
-            agent.post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
-                    agent.put('/api/users/')
-                        .send(editedUser)
-                        .end(function (err, res) {
-                            checkIsUser(res);
-                            res.body.data.user.should.have.property('lastname', 'newLastnameTest');
-                            res.body.data.user.should.have.property('name', 'test');
-                            res.body.data.user.should.have.property('email', 'test@test.com');
-                            done();
-                        });
-                });
+            oauthLogin(user, function (err, res) {
+                agent.put('/api/users/')
+                    .set('Authorization', 'Bearer ' + token)
+                    .send(editedUser)
+                    .end(function (err, res) {
+                        checkUser(res);
+                        res.body.data.user.should.have.property('lastname', 'newLastnameTest');
+                        res.body.data.user.should.have.property('name', 'test');
+                        res.body.data.user.should.have.property('email', 'test@test.com');
+                        done();
+                    });
+            });
+
         });
 
         it('it should EDIT email of a user', function (done) {
@@ -598,25 +588,24 @@ describe('Users', function () {
                 email: "sobrenombre@gmail.com"
             };
             var agent = chai.request.agent(server);
-            agent.post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
-                    agent.put('/api/users/email')
-                        .send(editedUser)
-                        .end(function (err, res) {
-                            checkIsUser(res);
-                            res.body.data.user.next_email.should.have.property('email', 'sobrenombre@gmail.com');
-                            res.body.data.user.should.have.property('email', 'test@test.com');
-                            res.body.data.user.next_email.should.have.property('code');
-                            agent.put('/api/users/authnextemail')
-                                .send({_id: testUser1._id, code: res.body.data.user.next_email.code})
-                                .end(function (err, res) {
-                                    checkIsUser(res);
-                                    res.body.data.user.should.have.property('email', 'sobrenombre@gmail.com');
-                                    done();
-                                });
-                        });
-                });
+            oauthLogin(user, function (err, res) {
+                agent.put('/api/users/email')
+                    .set('Authorization', 'Bearer ' + token)
+                    .send(editedUser)
+                    .end(function (err, res) {
+                        checkUser(res);
+                        res.body.data.user.next_email.should.have.property('email', 'sobrenombre@gmail.com');
+                        res.body.data.user.should.have.property('email', 'test@test.com');
+                        res.body.data.user.next_email.should.have.property('code');
+                        agent.put('/api/users/authnextemail')
+                            .send({_id: testUser1._id, code: res.body.data.user.next_email.code})
+                            .end(function (err, res) {
+                                checkUser(res);
+                                res.body.data.user.should.have.property('email', 'sobrenombre@gmail.com');
+                                done();
+                            });
+                    });
+            });
         });
 
         it('it should EDIT email of a user using POST', function (done) {
@@ -625,28 +614,28 @@ describe('Users', function () {
                 password: "test"
             };
             var editedUser = {
-                _method: 'put',
+                _method: "put",
                 email: "sobrenombre@gmail.com"
             };
             var agent = chai.request.agent(server);
-            agent.post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
-                    agent.post('/api/users/email')
-                        .send(editedUser)
-                        .end(function (err, res) {
-                            checkIsUser(res);
-                            res.body.data.user.next_email.should.have.property('email', 'sobrenombre@gmail.com');
-                            res.body.data.user.should.have.property('email', 'test@test.com');
-                            agent.post('/api/users/authnextemail')
-                                .send({_method: 'put', _id: testUser1._id, code: res.body.data.user.next_email.code})
-                                .end(function (err, res) {
-                                    checkIsUser(res);
-                                    res.body.data.user.should.have.property('email', 'sobrenombre@gmail.com');
-                                    done();
-                                });
-                        });
-                });
+            oauthLogin(user, function (err, res) {
+                agent.post('/api/users/email')
+                    .set('Authorization', 'Bearer ' + token)
+                    .send(editedUser)
+                    .end(function (err, res) {
+                        checkUser(res);
+                        res.body.data.user.next_email.should.have.property('email', 'sobrenombre@gmail.com');
+                        res.body.data.user.should.have.property('email', 'test@test.com');
+                        res.body.data.user.next_email.should.have.property('code');
+                        agent.put('/api/users/authnextemail')
+                            .send({_id: testUser1._id, code: res.body.data.user.next_email.code})
+                            .end(function (err, res) {
+                                checkUser(res);
+                                res.body.data.user.should.have.property('email', 'sobrenombre@gmail.com');
+                                done();
+                            });
+                    });
+            });
         });
 
         it('it should NOT EDIT a user cause I am not logged', function (done) {
@@ -654,13 +643,14 @@ describe('Users', function () {
             agent.put('/api/users')
                 .end(function (err, res) {
                     checkError(res);
-                    res.should.have.status(HttpStatus.UNAUTHORIZED);
-                    res.body.should.have.property('code', AppStatus.USER_NOT_LOGGED);
+                    res.should.have.status(HttpStatus.BAD_REQUEST);
+                    res.body.should.have.property('code', AppStatus.BAD_REQUEST);
+                    res.body.should.have.property('message', 'The access token was not found');
                     done();
                 });
         });
 
-        it('it should NOT EDIT a user', function (done) {
+        it('it should NOT EDIT a user cause wrong req.body', function (done) {
             var user = {
                 email: "test@test.com",
                 password: "test"
@@ -669,13 +659,23 @@ describe('Users', function () {
                 wrong: "newPassTest"
             };
             var agent = chai.request.agent(server);
-            agent.post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
+            oauthLogin(user, function(err, res){
+                    var user1 = res.body.data.user;
                     agent.put('/api/users/')
+                        .set('Authorization', 'Bearer ' + token)
                         .send(editedUser)
                         .end(function (err, res) {
-                            checkIsUser(res);
+                            checkUser(res);
+                            var user2 = res.body.data.user;
+                            expect(user1.creation_date).to.equal(user2.creation_date);
+                            expect(user1.email).to.equal(user2.email);
+                            expect(user1._id).to.equal(user2._id);
+                            expect(user1.last_edition_date).to.not.equal(user2.last_edition_date);
+                            expect(user1.pdfs_owned.length).to.equal(user2.pdfs_owned.length);
+                            expect(user1.pdfs_to_sign.length).to.equal(user2.pdfs_to_sign.length);
+                            expect(user1.users_related.length).to.equal(user2.users_related.length);
+                            expect(user1.name).to.equal(user2.name);
+                            expect(user1.lastname).to.equal(user2.lastname);
                             done();
                         });
                 });
@@ -687,20 +687,19 @@ describe('Users', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            agent.post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
-                    var numUsers1 = res.body.data.user.users_related.length;
-                    agent.put('/api/users/related/')
-                        .send({related_id: testUser3._id})
-                        .end(function (err, res) {
-                            checkIsUser(res);
-                            var numUsers2 = res.body.data.user.users_related.length;
-                            res.body.data.user.users_related.should.be.an.Array;
-                            numUsers2.should.be.equal(numUsers1 + 1);
-                            done();
-                        });
-                });
+            oauthLogin(user, function(err, res){
+                var numUsers1 = res.body.data.user.users_related.length;
+                agent.put('/api/users/related/')
+                    .set('Authorization', 'Bearer ' + token)
+                    .send({related_id: testUser3._id})
+                    .end(function (err, res) {
+                        checkUser(res);
+                        var numUsers2 = res.body.data.user.users_related.length;
+                        res.body.data.user.users_related.should.be.an.Array;
+                        numUsers2.should.be.equal(numUsers1 + 1);
+                        done();
+                    });
+            });
         });
         it('it should ADD A RELATED_USER using POST', function (done) {
             var user = {
@@ -708,14 +707,13 @@ describe('Users', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            agent.post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
+            oauthLogin(user, function(err, res){
                     var numUsers1 = res.body.data.user.users_related.length;
                     agent.post('/api/users/related/')
+                        .set('Authorization', 'Bearer ' + token)
                         .send({_method: 'put', related_id: testUser3._id})
                         .end(function (err, res) {
-                            checkIsUser(res);
+                            checkUser(res);
                             var numUsers2 = res.body.data.user.users_related.length;
                             res.body.data.user.users_related.should.be.an.Array;
                             numUsers2.should.be.equal(numUsers1 + 1);
@@ -733,8 +731,9 @@ describe('Users', function () {
                 .send({related_id: testUser3._id})
                 .end(function (err, res) {
                     checkError(res);
-                    res.should.have.status(HttpStatus.UNAUTHORIZED);
-                    res.body.code.should.be.equal(AppStatus.USER_NOT_LOGGED);
+                    res.should.have.status(HttpStatus.BAD_REQUEST);
+                    res.body.should.have.property('code', AppStatus.BAD_REQUEST);
+                    res.body.should.have.property('message', 'The access token was not found');
                     done();
                 });
         });
@@ -746,14 +745,13 @@ describe('Users', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            agent.post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
+            oauthLogin(user, function(err, res){
                     var numUsers1 = res.body.data.user.users_related.length;
                     agent.put('/api/users/related/')
+                        .set('Authorization', 'Bearer ' + token)
                         .send({related_id: testUser2._id})
                         .end(function (err, res) {
-                            checkIsUser(res);
+                            checkUser(res);
                             var numUsers2 = res.body.data.user.users_related.length;
                             res.body.data.user.users_related.should.be.an.Array;
                             numUsers2.should.be.equal(numUsers1);
@@ -786,10 +784,9 @@ describe('Users', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            agent.post('/api/users/login')
-                .send(user)
-                .end(function (err, res) {
+            oauthLogin(user, function(err, res){
                     agent.put('/api/users/related/')
+                        .set('Authorization', 'Bearer ' + token)
                         .send({related_id: '5b9b93beb4905736bc99e262'})
                         .end(function (err, res) {
                             checkError(res);
@@ -807,12 +804,12 @@ describe('Users', function () {
                 email: "test@test.com",
                 password: "test"
             };
-            oauthLogin(user, function(err, res){
+            oauthLogin(user, function (err, res) {
                 var agent = chai.request.agent(server);
                 agent.get('/api/users/info')
-                    .set('Authorization', 'Bearer ' + res.body.access_token)
+                    .set('Authorization', 'Bearer ' + token)
                     .end(function (err, res) {
-                        checkIsUser(res);
+                        checkUser(res);
                         done();
                     });
             });
@@ -836,10 +833,10 @@ describe('Users', function () {
                 email: "test@test.com",
                 password: "test"
             };
-            oauthLogin(user, function(err, res){
+            oauthLogin(user, function (err, res) {
                 var agent = chai.request.agent(server);
                 agent.post('/api/users/logout')
-                    .set('Authorization', 'Bearer ' + res.body.access_token)
+                    .set('Authorization', 'Bearer ' + token)
                     .end(function (err, res) {
                         res.should.have.status(HttpStatus.OK);
                         res.body.should.have.property('code', AppStatus.USER_LOG_OUT);
@@ -876,10 +873,10 @@ describe('Users', function () {
                 email: "test@test.com",
                 password: "test"
             };
-            oauthLogin(user, function(err, res){
+            oauthLogin(user, function (err, res) {
                 var agent = chai.request.agent(server);
                 agent.delete('/api/users/')
-                    .set('Authorization', 'Bearer ' + res.body.access_token)
+                    .set('Authorization', 'Bearer ' + token)
                     .send({password: 'test'})
                     .end(function (err, res) {
                         res.should.have.status(HttpStatus.OK);
@@ -894,11 +891,11 @@ describe('Users', function () {
                 email: "test@test.com",
                 password: "test"
             };
-            oauthLogin(user, function(err, res){
+            oauthLogin(user, function (err, res) {
                 var agent = chai.request.agent(server);
                 agent.post('/api/users/')
                     .send({_method: 'delete', password: 'test'})
-                    .set('Authorization', 'Bearer ' + res.body.access_token)
+                    .set('Authorization', 'Bearer ' + token)
                     .end(function (err, res) {
                         res.should.have.status(HttpStatus.OK);
                         res.body.should.have.property('code', AppStatus.USER_DELETED);

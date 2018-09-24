@@ -41,7 +41,7 @@ app.use(app.oauth.errorHandler());
 
 // Routes
 var userRoutes = require('./routes/restrictedArea/userRoutes').userRoutes(app);
-var pdfs = require('./routes/restrictedArea/pdfRoutes');
+var pdfRoutes = require('./routes/restrictedArea/pdfRoutes').pdfRoutes(app);
 // var auth = require('./routes/authorisation/authRoutes');
 
 // Security settings
@@ -66,7 +66,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use('/', index);
 app.use('/api/users', userRoutes);
-app.use('/api/pdfs', pdfs);
+app.use('/api/pdfs', pdfRoutes);
 // app.use('/api/authorisation/authRoutes', auth);
 
 // catch 404 and forward to error handler
@@ -89,6 +89,5 @@ app.use(function (err, req, res, next) {
     });
     res.render('error');
 });
-
 
 module.exports = app;

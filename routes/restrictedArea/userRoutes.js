@@ -15,18 +15,16 @@ var getJsonApp = AppStatus.getJsonApp;
 var GAP_TIME_TO_EMAIL = 1800000; // milliseconds
 var fromEmail = require('./emailConfig').EMAIL_SECRET;
 var fromPass = require('./emailConfig').PASS_SECRET;
-var thisSession; //TODO This is for a server with state
 
-function userRoutes(app){
-
+function userRoutes(app) {
     router.post('/signup', createUser);
     //router.post('/login', loginUser);
-    router.post('/logout', app.oauth.authorise(),logOutUser);
+    router.post('/logout', app.oauth.authorise(), logOutUser);
     router.get('/info', app.oauth.authorise(), getInfoUser);
 
     // Edit user fields
-    router.put('/', editUser);
-    router.post('/', function (req, res, next) {
+    router.put('/', app.oauth.authorise(), editUser);
+    router.post('/', app.oauth.authorise(), function (req, res, next) {
         if (req.body._method == 'put') {
             editUser(req, res, next);
         } else if (req.body._method == 'delete') {
@@ -35,36 +33,36 @@ function userRoutes(app){
             res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
         }
     });
-    router.put('/email', editEmail);
-    router.post('/email', function (req, res, next) {
+    router.put('/email', app.oauth.authorise(), editNextEmail);
+    router.post('/email', app.oauth.authorise(), function (req, res, next) {
         if (req.body._method == 'put') {
-            editEmail(req, res);
+            editNextEmail(req, res);
         } else {
             res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
         }
     });
-    router.put('/password', editPassword);
-    router.post('/password', function (req, res, next) {
+    router.put('/password', app.oauth.authorise(), editPassword);
+    router.post('/password', app.oauth.authorise(), function (req, res, next) {
         if (req.body._method == 'put') {
             editPassword(req, res, next);
         } else {
             res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
         }
     });
-    router.put('/related', addRelated);
-    router.post('/related', function (req, res, next) {
+    router.put('/related', app.oauth.authorise(), addRelated);
+    router.post('/related', app.oauth.authorise(), function (req, res, next) {
         if (req.body._method == 'put') {
             addRelated(req, res, next);
         } else {
             res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
         }
     });
-    router.delete('/',app.oauth.authorise(), deleteUser);
+    router.delete('/', app.oauth.authorise(), deleteUser);
 
-    router.put('/authemail', authEmail);
+    router.put('/authemail', activateUser);
     router.post('/authemail', function (req, res, next) {
         if (req.body._method == 'put') {
-            authEmail(req, res, next);
+            activateUser(req, res, next);
         } else {
             res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
         }
@@ -83,7 +81,7 @@ function userRoutes(app){
 
 /**
  * Delete references to eliminated PDFs
- * @param {Object} user
+ * @param {Object} user - {pdfs_to_sign, users_related}
  */
 function checkUser(user) {
     // Update pdfs
@@ -118,6 +116,8 @@ function checkUser(user) {
  * User exists and activated -> Error
  * User exists and desactivated -> Delete old user and create a new one
  * User not exists -> Create new user
+ * @param {Object} req - body = {email, name, lastname, password}
+ * @param {Object} res - 200 if everything ok
  */
 function createUser(req, res) {
     // console.log(req.get('host'));
@@ -235,8 +235,10 @@ function createUser(req, res) {
 
 /**
  * If code == activation.code put activation.is_activated to true
+ * @param {Object} req - body = {_id, code}
+ * @param {Object} res - 200 if activation.is_activated changes to true
  */
-function authEmail(req, res) {
+function activateUser(req, res) {
     //This check also should be in the front-end
     if (req.body._id == null || req.body._id == '') {
         res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
@@ -283,11 +285,12 @@ function authEmail(req, res) {
     }
 };
 
-
 /**
- * If the code == next_email.code then update email
+ * Update email if req.body.code == next_email.code
+ * @param {Object} req - body = {_id, code}
+ * @param {Object} res - 200 if email was replaced by next_email.email
  */
-function authNextEmail(req, res, next) {
+function authNextEmail(req, res) {
     //This check also should be in the front-end
     if (req.body._id == null || req.body._id == '') {
         res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
@@ -336,8 +339,8 @@ function authNextEmail(req, res, next) {
 
 /**
  * Sends an email
- * @param user = {_id}
- * @param randomString
+ * @param {Object} mailOptions - mailOptions = {to, subject, html}
+ * @callback {function} next
  */
 function sendEmail(mailOptions, next) {
     // Send mail
@@ -360,8 +363,8 @@ function sendEmail(mailOptions, next) {
 };
 
 /**
- * Return a String of the length lenght
- * @param length
+ * Return a String of the length <lenght>
+ * @param {number} length - length of random string which return
  * @returns {string}
  */
 function generateRandomString(length) {
@@ -374,56 +377,14 @@ function generateRandomString(length) {
 };
 
 /**
- * Log in:
- * it starts a new session
- * it returns info of user if password is correct
- */
-function loginUser (req, res) {
-    thisSession = req.session;
-    var thisUser;
-    thisUser = {
-        "email": req.body.email
-    };
-    if (req.body.email == null || req.body.password == null) {
-        res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
-    } else {
-        User.findOne(thisUser, function (err, user) {
-            if (err) {
-                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
-            } else if (user == null) {
-                res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_FOUND));
-            } else if (!user.activation.is_activated) {
-                res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_DESACTIVATED));
-            } else {
-                user.comparePassword(req.body.password, function (err, isMatch) {
-                    if (err) {
-                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.INCORRECT_PASS));
-                    } else if (isMatch) {
-                        thisSession._id = user._id;
-                        checkUser(user);
-                        user.password = undefined;
-                        var response = {
-                            "code": AppStatus.SUCCESS,
-                            "message": "The user has been logged successfully",
-                            "data": {user: user}
-                        };
-                        res.json(response);
-                    } else {
-                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.INCORRECT_PASS));
-                    }
-                });
-            }
-        }).populate('pdfs_owned').populate('pdfs_to_sign').populate('pdfs_signed').populate('users_related', '-password -activation');
-    }
-}
-
-/**
- * Log out: Close the current session
+ * Log out: Delete token
+ * @param {Object} req
+ * @param {Object} res - 200 if token is deleted
  */
 function logOutUser(req, res) {
-    var myToken = req.headers.authorization.split(" ",2)[1];
-    AccessTokenModel.deleteAccessToken(myToken, function(err, result){
-        if(err){
+    var myToken = req.headers.authorization.split(" ", 2)[1];
+    AccessTokenModel.deleteAccessToken(myToken, function (err, result) {
+        if (err) {
             res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
         } else {
             res.json(AppStatus.getJsonApp(AppStatus.USER_LOG_OUT));
@@ -433,13 +394,15 @@ function logOutUser(req, res) {
 
 /**
  * Return info of the user in session
+ * @param {Object} req
+ * @param {Object} res - 200 if user info is sended
  */
 function getInfoUser(req, res) {
-    var myToken = req.headers.authorization.split(" ",2)[1];
-    AccessTokenModel.getAccessToken(myToken, function(err, token){
-        if(err){
+    var myToken = req.headers.authorization.split(" ", 2)[1];
+    AccessTokenModel.getAccessToken(myToken, function (err, token) {
+        if (err) {
             res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
-        } else if(token == null){
+        } else if (token == null) {
             res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));
         } else {
             User.findById(token.user_id, function (err, user) {
@@ -462,17 +425,17 @@ function getInfoUser(req, res) {
     });
 }
 
-
-
 /**
  * Delete user if password is correct
+ * @param {Object} req - body = {password}
+ * @param {Object} res - 200 if password was updated
  */
-function deleteUser(req, res, next) {
-    var myToken = req.headers.authorization.split(" ",2)[1];
-    AccessTokenModel.getAccessToken(myToken, function(err, token){
-        if(err){
+function deleteUser(req, res) {
+    var myToken = req.headers.authorization.split(" ", 2)[1];
+    AccessTokenModel.getAccessToken(myToken, function (err, token) {
+        if (err) {
             res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
-        } else if(token == null){
+        } else if (token == null) {
             res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));
         } else {
             User.findById(token.user_id, function (err, user) {
@@ -511,86 +474,52 @@ function deleteUser(req, res, next) {
 };
 
 /**
- * Edit user (email)
+ * Edit next_email of a user and send a email to it to check it
+ * @param {Object} req - body = {email}
+ * @param {Object} res - 200 if next_email was updated
  */
-function editEmail(req, res) {
-    thisSession = req.session;
-    if (thisSession._id != null) {
-        var randomString = generateRandomString(5);
-        var modUser = {};
-        var isMod = false;
-        if (req.body.email != null && req.body.email != '') {
-            modUser.next_email = {};
-            modUser.next_email.email = req.body.email;
-            modUser.next_email.when = Date.now();
-            modUser.next_email.code = randomString;
-        }
-        var mailOptions = {
-            to: req.body.email,
-            subject: 'Activate your user in Signu',
-            html: '<p>Click <a href="http://localhost:3000/confirmnewemail?_id=' + thisSession._id +
-            '&code=' + randomString +
-            '">here</a> and click on the button to change to your new email. You have 30 minutes to do it.</p>' +
-            '<p>Ignore this email if you did not request it</p>' +
-            '<p>If you prefer, here you have your code to finish your autentication: </p>' +
-            '<p>' + randomString + '</p>' +
-            '<p>Signu team</p>'
-        };
-        sendEmail(mailOptions, function (err, info) {
-            if (err) {
-                res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.EMAIL_ERROR));
-            } else {
-                User.findByIdAndUpdate(thisSession._id, modUser, {new: true}, function (err, user) {
-                    if (err) {
-                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.USER_NOT_FOUND));
-                    } else if (user == null) {
-                        res.status(HttpStatus.FORBIDDEN).json(getJsonApp(AppStatus.USER_NOT_LOGGED));
-                    } else {
-                        user.password = undefined;
-                        if (process.env.NODE_ENV != 'test') {
-                            user.next_email.code = undefined;
-                        }
-                        res.json({
-                            "code": AppStatus.USER_UPDATED,
-                            "message": AppStatus.getStatusText(AppStatus.USER_UPDATED),
-                            "data": {user: user}
-                        });
-                    }
-                });
+function editNextEmail(req, res) {
+    var myToken = req.headers.authorization.split(" ", 2)[1];
+    AccessTokenModel.getAccessToken(myToken, function (err, token) {
+        if (err) {
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
+        } else if (token == null) {
+            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));
+        } else {
+            var randomString = generateRandomString(5);
+            var modUser = {};
+            var isMod = false;
+            if (req.body.email != null && req.body.email != '') {
+                modUser.next_email = {};
+                modUser.next_email.email = req.body.email;
+                modUser.next_email.when = Date.now();
+                modUser.next_email.code = randomString;
             }
-        });
-
-    } else {
-        res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_LOGGED));
-    }
-};
-
-
-/**
- * Edit user (password)
- */
-function editPassword(req, res, next) {
-    thisSession = req.session;
-    if (thisSession._id != null) {
-        User.findById(thisSession._id, function (err, user) {
-            if (err) {
-                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.USER_NOT_FOUND));
-            } else if (user == null) {
-                res.status(HttpStatus.FORBIDDEN).json(getJsonApp(AppStatus.USER_NOT_LOGGED));
-            } else {
-                if (req.body.password == null || req.body.password == '') {
-                    res.status(HttpStatus.NOT_FOUND).json(getJsonApp(AppStatus.USER_NOT_LOGGED));
+            var mailOptions = {
+                to: req.body.email,
+                subject: 'Activate your user in Signu',
+                html: '<p>Click <a href="http://localhost:3000/confirmnewemail?_id=' + token.user_id +
+                '&code=' + randomString +
+                '">here</a> and click on the button to change to your new email. You have 30 minutes to do it.</p>' +
+                '<p>Ignore this email if you did not request it</p>' +
+                '<p>If you prefer, here you have your code to finish your autentication: </p>' +
+                '<p>' + randomString + '</p>' +
+                '<p>Signu team</p>'
+            };
+            sendEmail(mailOptions, function (err, info) {
+                if (err) {
+                    res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.EMAIL_ERROR));
                 } else {
-                    user.last_edition_date = Date.now();
-                    user.password = req.body.password;
-                    user.save(function (err, user) {
+                    User.findByIdAndUpdate(token.user_id, modUser, {new: true}, function (err, user) {
                         if (err) {
-                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
+                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.USER_NOT_FOUND));
                         } else if (user == null) {
-                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.INTERNAL_ERROR));
+                            res.status(HttpStatus.FORBIDDEN).json(getJsonApp(AppStatus.USER_NOT_LOGGED));
                         } else {
                             user.password = undefined;
-                            user.activation = undefined;
+                            if (process.env.NODE_ENV != 'test') {
+                                user.next_email.code = undefined;
+                            }
                             res.json({
                                 "code": AppStatus.USER_UPDATED,
                                 "message": AppStatus.getStatusText(AppStatus.USER_UPDATED),
@@ -599,91 +528,143 @@ function editPassword(req, res, next) {
                         }
                     });
                 }
-            }
-        });
-    } else {
-        res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_LOGGED));
-    }
+            });
+        }
+    });
+};
+
+
+/**
+ * Edit password of user
+ * @param {Object} req - body = {password}
+ * @param {Object} res - 200 if password was updated
+ */
+function editPassword(req, res) {
+    var myToken = req.headers.authorization.split(" ", 2)[1];
+    AccessTokenModel.getAccessToken(myToken, function (err, token) {
+        if (err) {
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
+        } else if (token == null) {
+            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));
+        } else {
+            User.findById(token.user_id, function (err, user) {
+                if (err) {
+                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.USER_NOT_FOUND));
+                } else if (user == null) {
+                    res.status(HttpStatus.FORBIDDEN).json(getJsonApp(AppStatus.USER_NOT_LOGGED));
+                } else {
+                    if (req.body.password == null || req.body.password == '') {
+                        res.status(HttpStatus.NOT_FOUND).json(getJsonApp(AppStatus.USER_NOT_LOGGED));
+                    } else {
+                        user.last_edition_date = Date.now();
+                        user.password = req.body.password;
+                        user.save(function (err, user) {
+                            if (err) {
+                                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
+                            } else if (user == null) {
+                                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.INTERNAL_ERROR));
+                            } else {
+                                user.password = undefined;
+                                user.activation = undefined;
+                                res.json({
+                                    "code": AppStatus.USER_UPDATED,
+                                    "message": AppStatus.getStatusText(AppStatus.USER_UPDATED),
+                                    "data": {user: user}
+                                });
+                            }
+                        });
+                    }
+                }
+            });
+        }
+    });
+
+
 };
 
 /**
  * Edit name and/or lastname of actual user
  * @param {Object} req - body = {name, lastname}
  * @param {Object} res - 200 if user was updated
- * @callback {function} next
  */
-function editUser(req, res, next) {
-    thisSession = req.session;
-    if (thisSession._id != null) {
-        var modUser = {};
-        if (req.body.name != null && req.body.name != '') {
-            modUser.name = req.body.name;
-        }
-        if (req.body.lastname != null && req.body.lastname != '') {
-            modUser.lastname = req.body.lastname;
-        }
-        modUser.last_edition_date = Date.now();
-        User.findByIdAndUpdate(thisSession._id, modUser, {new: true}, function (err, user) {
-            if (err) {
-                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.USER_NOT_FOUND));
-            } else if (user == null) {
-                res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.USER_NOT_FOUND));
-            } else {
-                user.password = undefined;
-                user.activation.code = undefined;
-                res.json({
-                    "code": AppStatus.USER_UPDATED,
-                    "message": AppStatus.getStatusText(AppStatus.USER_UPDATED),
-                    "data": {user: user}
-                });
+function editUser(req, res) {
+    var myToken = req.headers.authorization.split(" ", 2)[1];
+    AccessTokenModel.getAccessToken(myToken, function (err, token) {
+        if (err) {
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
+        } else if (token == null) {
+            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));
+        } else {
+            var modUser = {};
+            if (req.body.name != null && req.body.name != '') {
+                modUser.name = req.body.name;
             }
-        });
-    } else {
-        res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_LOGGED));
-    }
+            if (req.body.lastname != null && req.body.lastname != '') {
+                modUser.lastname = req.body.lastname;
+            }
+            modUser.last_edition_date = Date.now();
+            User.findByIdAndUpdate(token.user_id, modUser, {new: true}, function (err, user) {
+                if (err) {
+                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.USER_NOT_FOUND));
+                } else if (user == null) {
+                    res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.USER_NOT_FOUND));
+                } else {
+                    user.password = undefined;
+                    user.activation.code = undefined;
+                    res.json({
+                        "code": AppStatus.USER_UPDATED,
+                        "message": AppStatus.getStatusText(AppStatus.USER_UPDATED),
+                        "data": {user: user}
+                    });
+                }
+            });
+        }
+    });
 };
 
 /**
  * Add a related_id to users_related list of actual user
- * @param req
- * @param res
+ * @param {Object} req - body = {related_id}
+ * @param {Object} res - 200 if related_id was added
  */
 function addRelated(req, res) {
-    thisSession = req.session;
-    if (thisSession._id == null) {
-        res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_LOGGED));
-    } else if (req.body.related_id == null) {
-        res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
-    } else {
-        User.count({_id: req.body.related_id}, function (err, count) {
-            if (err) {
-                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.BAD_REQUEST));
-            } else if (count <= 0) {
-                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.USER_NOT_FOUND));
-            } else {
-                User.findByIdAndUpdate(thisSession._id, {$addToSet: {users_related: req.body.related_id}}, {
-                    new: true,
-                    safe: true
-                }, function (err, user) {
-                    if (err) {
-                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.BAD_REQUEST));
-                    } else if (user == null) {
-                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.USER_NOT_FOUND));
-                    } else if (user.activation.is_activated != true) {
-                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_DESACTIVATED));
-                    } else {
-                        user.password = undefined;
-                        user.activation.code = undefined;
-                        res.json({
-                            "code": AppStatus.USER_UPDATED,
-                            "message": AppStatus.getStatusText(AppStatus.USER_UPDATED),
-                            "data": {user: user}
-                        });
-                    }
-                });
-            }
-        });
-    }
+    var myToken = req.headers.authorization.split(" ", 2)[1];
+    AccessTokenModel.getAccessToken(myToken, function (err, token) {
+        if (err) {
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
+        } else if (token == null) {
+            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));
+        } else {
+            User.count({_id: req.body.related_id}, function (err, count) {
+                if (err) {
+                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.BAD_REQUEST));
+                } else if (count <= 0) {
+                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.USER_NOT_FOUND));
+                } else {
+                    User.findByIdAndUpdate(token.user_id, {$addToSet: {users_related: req.body.related_id}}, {
+                        new: true,
+                        safe: true
+                    }, function (err, user) {
+                        if (err) {
+                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.BAD_REQUEST));
+                        } else if (user == null) {
+                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.USER_NOT_FOUND));
+                        } else if (user.activation.is_activated != true) {
+                            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_DESACTIVATED));
+                        } else {
+                            user.password = undefined;
+                            user.activation.code = undefined;
+                            res.json({
+                                "code": AppStatus.USER_UPDATED,
+                                "message": AppStatus.getStatusText(AppStatus.USER_UPDATED),
+                                "data": {user: user}
+                            });
+                        }
+                    });
+                }
+            });
+        }
+    });
 };
 
 //////////////
