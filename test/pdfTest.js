@@ -327,15 +327,15 @@ describe('Pdfs', function () {
         });
 
         it('it should NOT POST/UPLOAD a PDF cause I am not logged', function (done) {
-            var pdf = {
-                signers: [testUser._id]
-            };
             var agent = chai.request.agent(server);
-            agent.post('/api/pdfs/')
+            agent.post('/api/pdfs')
+                .set('Authorization', 'Bearer ' + 'aaa')
                 .set('content-type', 'multipart/form-data')
                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                 .end(function (err, res) {
                     checkError(res);
+                    res.should.have.status(HttpStatus.BAD_REQUEST);
+                    res.body.should.have.property('message', 'The access token provided is invalid.')
                     done();
                 });
         });
@@ -588,6 +588,23 @@ describe('Pdfs', function () {
                     });
             });
         });
+        it('it should NOT UPDATE/SIGN a PDF cause I am not logged', function (done) {
+            var agent = chai.request.agent(server);
+            var tempPdf = {pdf_id: testPdf._id};
+            agent.put('/api/pdfs/unlock/' + testPdf._id)
+                .end(function (err, res) {
+                    agent.put('/api/pdfs/' + testPdf._id.toString())
+                        .field('content-type', 'multipart/form-data')
+                        .field('pdf_id', testPdf._id.toString())
+                        .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
+                        .end(function (err, res) {
+                            checkError(res);
+                            res.should.have.status(HttpStatus.BAD_REQUEST);
+                            res.body.should.have.property('message', 'The access token was not found');
+                            done();
+                        });
+                });
+        });
         it('it should UPDATE/SIGN a PDF using POST', function (done) {
             var user = {
                 email: "test2@test2",
@@ -752,46 +769,46 @@ describe('Pdfs', function () {
             };
             var agent1 = chai.request.agent(server);
             var agent2 = chai.request.agent(server);
-            oauthLogin(user1, function(err, res, resToken1) {
+            oauthLogin(user1, function (err, res, resToken1) {
+                checkUser(res);
+                var tempPdf = {pdf_id: testPdf5._id};
+                oauthLogin(user2, function (err, res, resToken2) {
                     checkUser(res);
                     var tempPdf = {pdf_id: testPdf5._id};
-                    oauthLogin(user2, function(err, res, resToken2) {
-                            checkUser(res);
-                            var tempPdf = {pdf_id: testPdf5._id};
-                            agent1.put('/api/pdfs/unlock/' + testPdf5._id.toString())
-                                .set('Authorization', 'Bearer ' + resToken1.body.access_token)
+                    agent1.put('/api/pdfs/unlock/' + testPdf5._id.toString())
+                        .set('Authorization', 'Bearer ' + resToken1.body.access_token)
+                        .end(function (err, res) {
+                            checkPdf(res);
+                            agent2.put('/api/pdfs/unlock/' + testPdf5._id)
+                                .set('Authorization', 'Bearer ' + resToken2.body.access_token)
                                 .end(function (err, res) {
-                                    checkPdf(res);
-                                    agent2.put('/api/pdfs/unlock/' + testPdf5._id)
+                                    checkError(res);
+                                    //res.should.have.status(HttpStatus.LOCKED);
+                                    agent2.put('/api/pdfs/' + testPdf5._id.toString())
                                         .set('Authorization', 'Bearer ' + resToken2.body.access_token)
+                                        .field('content-type', 'multipart/form-data')
+                                        .field('pdf_id', testPdf5._id.toString())
+                                        .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                         .end(function (err, res) {
                                             checkError(res);
-                                            //res.should.have.status(HttpStatus.LOCKED);
-                                            agent2.put('/api/pdfs/' + testPdf5._id.toString())
-                                                .set('Authorization', 'Bearer ' + resToken2.body.access_token)
+                                            res.should.have.status(HttpStatus.UNAUTHORIZED);
+                                            agent1.put('/api/pdfs/' + testPdf5._id.toString())
+                                                .set('Authorization', 'Bearer ' + resToken1.body.access_token)
                                                 .field('content-type', 'multipart/form-data')
                                                 .field('pdf_id', testPdf5._id.toString())
                                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                                 .end(function (err, res) {
-                                                    checkError(res);
-                                                    res.should.have.status(HttpStatus.UNAUTHORIZED);
-                                                    agent1.put('/api/pdfs/' + testPdf5._id.toString())
-                                                        .set('Authorization', 'Bearer ' + resToken1.body.access_token)
-                                                        .field('content-type', 'multipart/form-data')
-                                                        .field('pdf_id', testPdf5._id.toString())
-                                                        .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
-                                                        .end(function (err, res) {
-                                                            checkPdf(res);
-                                                            res.body.data.pdf.signers.length.should.be.eql(2);
-                                                            (res.body.data.pdf.signers[0].is_signed * res.body.data.pdf.signers[1].is_signed).should.be.eql(0);
-                                                            done();
-                                                        });
+                                                    checkPdf(res);
+                                                    res.body.data.pdf.signers.length.should.be.eql(2);
+                                                    (res.body.data.pdf.signers[0].is_signed * res.body.data.pdf.signers[1].is_signed).should.be.eql(0);
+                                                    done();
                                                 });
                                         });
-
                                 });
+
                         });
                 });
+            });
         });
         it('it should UPDATE/SIGN a PDF in less than 50 sec', function (done) {
             var user1 = {
@@ -804,48 +821,48 @@ describe('Pdfs', function () {
             };
             var agent1 = chai.request.agent(server);
             var agent2 = chai.request.agent(server);
-            oauthLogin(user1, function(err, res, resToken1) {
+            oauthLogin(user1, function (err, res, resToken1) {
+                checkUser(res);
+                var tempPdf = {pdf_id: testPdf5._id};
+                oauthLogin(user2, function (err, res, resToken2) {
                     checkUser(res);
                     var tempPdf = {pdf_id: testPdf5._id};
-                    oauthLogin(user2, function(err, res, resToken2) {
-                            checkUser(res);
-                            var tempPdf = {pdf_id: testPdf5._id};
-                            agent1.put('/api/pdfs/unlock/' + testPdf5._id.toString())
+                    agent1.put('/api/pdfs/unlock/' + testPdf5._id.toString())
+                        .set('Authorization', 'Bearer ' + resToken1.body.access_token)
+                        .end(function (err, res) {
+                            console.log(res.body);
+                            checkPdf(res);
+                            agent1.put('/api/pdfs/' + testPdf5._id.toString())
                                 .set('Authorization', 'Bearer ' + resToken1.body.access_token)
+                                .field('content-type', 'multipart/form-data')
+                                .field('pdf_id', testPdf5._id.toString())
+                                .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                 .end(function (err, res) {
-                                    console.log(res.body);
                                     checkPdf(res);
-                                    agent1.put('/api/pdfs/' + testPdf5._id.toString())
-                                        .set('Authorization', 'Bearer ' + resToken1.body.access_token)
-                                        .field('content-type', 'multipart/form-data')
-                                        .field('pdf_id', testPdf5._id.toString())
-                                        .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
+                                    res.body.data.pdf.signers.length.should.be.eql(2);
+                                    (res.body.data.pdf.signers[0].is_signed * res.body.data.pdf.signers[1].is_signed).should.be.eql(0);
+                                    agent2.put('/api/pdfs/unlock/' + testPdf5._id)
+                                        .set('Authorization', 'Bearer ' + resToken2.body.access_token)
                                         .end(function (err, res) {
                                             checkPdf(res);
-                                            res.body.data.pdf.signers.length.should.be.eql(2);
-                                            (res.body.data.pdf.signers[0].is_signed * res.body.data.pdf.signers[1].is_signed).should.be.eql(0);
-                                            agent2.put('/api/pdfs/unlock/' + testPdf5._id)
+                                            //res.should.have.status(HttpStatus.LOCKED);
+                                            agent2.put('/api/pdfs/' + testPdf5._id.toString())
                                                 .set('Authorization', 'Bearer ' + resToken2.body.access_token)
+                                                .field('content-type', 'multipart/form-data')
+                                                .field('pdf_id', testPdf5._id.toString())
+                                                .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                                 .end(function (err, res) {
                                                     checkPdf(res);
-                                                    //res.should.have.status(HttpStatus.LOCKED);
-                                                    agent2.put('/api/pdfs/' + testPdf5._id.toString())
-                                                        .set('Authorization', 'Bearer ' + resToken2.body.access_token)
-                                                        .field('content-type', 'multipart/form-data')
-                                                        .field('pdf_id', testPdf5._id.toString())
-                                                        .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
-                                                        .end(function (err, res) {
-                                                            checkPdf(res);
-                                                            res.body.data.pdf.signers.length.should.be.eql(2);
-                                                            res.body.data.pdf.signers.pop().is_signed.should.be.eql(true);
-                                                            res.body.data.pdf.signers.pop().is_signed.should.be.eql(true);
-                                                            done();
-                                                        });
+                                                    res.body.data.pdf.signers.length.should.be.eql(2);
+                                                    res.body.data.pdf.signers.pop().is_signed.should.be.eql(true);
+                                                    res.body.data.pdf.signers.pop().is_signed.should.be.eql(true);
+                                                    done();
                                                 });
                                         });
                                 });
                         });
                 });
+            });
         });
     });
     describe('GET tests', function () {

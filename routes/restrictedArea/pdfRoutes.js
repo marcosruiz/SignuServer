@@ -20,6 +20,7 @@ var LOCK_TIME = 60000; // 60 seg
 var UserRoutes = require('./userRoutes.js');
 
 function pdfRoutes(app) {
+
     router.get('/:pdf_id', app.oauth.authorise(), getPdf);
     router.get('/status/:pdf_id', app.oauth.authorise(), getInfoPdf);
     router.put('/unlock/:pdf_id', app.oauth.authorise(), unlockPdf);
@@ -30,24 +31,24 @@ function pdfRoutes(app) {
             res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
         }
     });
-    router.put('/addsigners/:pdf_id', app.oauth.authorise(), upload.single('pdf'), addSignersToPdf);
-    router.post('/addsigners/:pdf_id', app.oauth.authorise(), upload.single('pdf'), function (req, res) {
+    router.put('/addsigners/:pdf_id', upload.single('pdf'), app.oauth.authorise(), addSignersToPdf);
+    router.post('/addsigners/:pdf_id', upload.single('pdf'), app.oauth.authorise(), function (req, res) {
         if (req.body._method = 'put') {
             addSignersToPdf(req, res);
         } else {
             res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
         }
     });
-    router.put('/addsigner/:pdf_id', app.oauth.authorise(), upload.single('pdf'), addSignerToPdf);
-    router.post('/addsigner/:pdf_id', app.oauth.authorise(), upload.single('pdf'), function (req, res, next) {
+    router.put('/addsigner/:pdf_id', upload.single('pdf'), app.oauth.authorise(), addSignerToPdf);
+    router.post('/addsigner/:pdf_id', upload.single('pdf'), app.oauth.authorise(), function (req, res, next) {
         if (req.body._method == 'put') {
             addSignerToPdf(req, res, next);
         } else {
             res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
         }
     });
-    router.post('/', app.oauth.authorise(), upload.single('pdf'), postPdf);
-    router.post('/:pdf_id', app.oauth.authorise(), upload.single('pdf'), function (req, res, next) {
+    router.post('/', upload.single('pdf'), app.oauth.authorise(), uploadPdf);
+    router.post('/:pdf_id', upload.single('pdf'), app.oauth.authorise(), function (req, res, next) {
         if (req.body._method == 'delete') {
             deletePdf(req, res, next); // Delete pdf
         } else if (req.body._method == 'put') {
@@ -56,7 +57,7 @@ function pdfRoutes(app) {
             res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
         }
     });
-    router.put('/:pdf_id', app.oauth.authorise(), upload.single('pdf'), signPdf);
+    router.put('/:pdf_id', upload.single('pdf'), app.oauth.authorise(), signPdf);
     router.delete('/:pdf_id', app.oauth.authorise(), deletePdf);
 
     return router;
@@ -103,11 +104,10 @@ function getPdf(req, res) {
  * (there is no previus signer or
  * previus signer LOCK_TIME expired or
  * previus signer signed with success )
- * @param req
- * @param res
+ * @param {Object} req
+ * @param {Object} res
  */
 function unlockPdf(req, res) {
-
     var myToken = req.headers.authorization.split(" ", 2)[1];
     AccessTokenModel.getAccessToken(myToken, function (err, token) {
         if (err) {
@@ -152,7 +152,7 @@ function unlockPdf(req, res) {
 /**
  * Upload a new PDF with pending signatures
  */
-function postPdf(req, res) {
+function uploadPdf(req, res) {
     var myToken = req.headers.authorization.split(" ", 2)[1];
     AccessTokenModel.getAccessToken(myToken, function (err, token) {
         if (err) {
@@ -169,7 +169,7 @@ function postPdf(req, res) {
                 "with_stamp": false,
                 "encoding": req.file.encoding,
                 "creation_date": Date.now(),
-                "owner_id": token.user_id,
+                "owner_id": token.user_id
             });
 
             // Add signatures
