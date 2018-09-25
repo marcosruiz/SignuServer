@@ -140,6 +140,7 @@ describe('Users', function () {
                                     encoding: "7bit",
                                     is_any_user_signing: undefined,
                                     creation_date: Date.now(),
+                                    last_edition_date: Date.now(),
                                     signers: [{
                                         _id: testUser2._id,
                                         is_signed: false,
