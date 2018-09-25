@@ -14,7 +14,7 @@ const pdfSchema = new Schema({
     with_stamp :  {type: Boolean, default: false},
     encoding : {type: String},
     creation_date : {type: Date, default: Date.now()},
-    last_edition_date : {type: Date},
+    last_edition_date : {type: Date, required: true},
     owner_id: {type: ObjectId, ref: 'User'},
     is_any_user_signing: {_id: {type: ObjectId, ref: 'User'}, when: {type: Date}, success: {type: Boolean, defalut: false}}, // Shows who tried to sign
     signers: [{_id: {type: ObjectId, ref: 'Pdf'}, is_signed: {type: Boolean, defalut:false}, signature_date: {type: Date, defalut: null}}]

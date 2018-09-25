@@ -142,6 +142,7 @@ describe('Pdfs', function () {
                                 encoding: "7bit",
                                 is_any_user_signing: undefined,
                                 creation_date: Date.now(),
+                                last_edition_date: Date.now(),
                                 signers: [{
                                     _id: testUser2._id,
                                     is_signed: false,
@@ -159,6 +160,7 @@ describe('Pdfs', function () {
                                 encoding: "7bit",
                                 is_any_user_signing: undefined,
                                 creation_date: Date.now(),
+                                last_edition_date: Date.now(),
                                 signers: [{
                                     _id: testUser2._id,
                                     is_signed: true,
@@ -175,6 +177,7 @@ describe('Pdfs', function () {
                                 encoding: "7bit",
                                 is_any_user_signing: undefined,
                                 creation_date: Date.now(),
+                                last_edition_date: Date.now(),
                                 signers: []
                             });
                             var newPdf4 = new Pdf({
@@ -187,6 +190,7 @@ describe('Pdfs', function () {
                                 encoding: "7bit",
                                 is_any_user_signing: undefined,
                                 creation_date: Date.now(),
+                                last_edition_date: Date.now(),
                                 signers: [{
                                     _id: testUser2._id,
                                     is_signed: true,
@@ -208,6 +212,7 @@ describe('Pdfs', function () {
                                 encoding: "7bit",
                                 is_any_user_signing: undefined,
                                 creation_date: Date.now(),
+                                last_edition_date: Date.now(),
                                 signers: [{
                                     _id: testUser2._id,
                                     is_signed: false,
@@ -568,9 +573,9 @@ describe('Pdfs', function () {
                 password: "test2"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
-                checkUser(res);
-                var tempPdf = {pdf_id: testPdf._id};
+            oauthLogin(user, function (err, resUser) {
+                checkUser(resUser);
+                var tempPdf = {pdf_id: testPdf._id, last_edition_date: testPdf.last_edition_date};
                 agent.put('/api/pdfs/unlock/' + testPdf._id)
                     .set('Authorization', 'Bearer ' + token)
                     .end(function (err, res) {
@@ -578,8 +583,10 @@ describe('Pdfs', function () {
                             .set('Authorization', 'Bearer ' + token)
                             .field('content-type', 'multipart/form-data')
                             .field('pdf_id', testPdf._id.toString())
+                            .field('last_edition_date', testPdf.last_edition_date.toString())
                             .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                             .end(function (err, res) {
+                                console.log(res.body);
                                 checkPdf(res);
                                 res.body.data.pdf.signers.length.should.be.eql(1);
                                 res.body.data.pdf.signers.pop().is_signed.should.be.eql(true);
@@ -596,6 +603,7 @@ describe('Pdfs', function () {
                     agent.put('/api/pdfs/' + testPdf._id.toString())
                         .field('content-type', 'multipart/form-data')
                         .field('pdf_id', testPdf._id.toString())
+                        .field('last_edition_date', testPdf.last_edition_date.toString())
                         .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                         .end(function (err, res) {
                             checkError(res);
@@ -622,6 +630,7 @@ describe('Pdfs', function () {
                             .field('_method', 'put')
                             .field('content-type', 'multipart/form-data')
                             .field('pdf_id', testPdf._id.toString())
+                            .field('last_edition_date', testPdf.last_edition_date.toString())
                             .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                             .end(function (err, res) {
                                 checkPdf(res);
@@ -646,6 +655,7 @@ describe('Pdfs', function () {
                         agent.put('/api/pdfs/' + testPdf2._id.toString())
                             .set('Authorization', 'Bearer ' + token)
                             .field('pdf_id', testPdf2._id.toString())
+                            .field('last_edition_date', testPdf2.last_edition_date.toString())
                             .field('content-type', 'multipart/form-data')
                             .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                             .end(function (err, res) {
@@ -671,6 +681,7 @@ describe('Pdfs', function () {
                         agent.put('/api/pdfs/' + testPdf4._id)
                             .set('Authorization', 'Bearer ' + token)
                             .field('pdf_id', testPdf4._id.toString())
+                            .field('last_edition_date', testPdf4.last_edition_date.toString())
                             .field('content-type', 'multipart/form-data')
                             .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                             .end(function (err, res) {
@@ -700,6 +711,7 @@ describe('Pdfs', function () {
                         agent.put('/api/pdfs/' + testPdf._id.toString())
                             .set('Authorization', 'Bearer ' + token)
                             .field('pdf_id', testPdf._id.toString())
+                            .field('last_edition_date', testPdf.last_edition_date.toString())
                             .field('content-type', 'multipart/form-data')
                             .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                             .end(function (err, res) {
@@ -728,6 +740,7 @@ describe('Pdfs', function () {
                             .set('Authorization', 'Bearer ' + token)
                             .field('content-type', 'multipart/form-data')
                             .field('pdf_id', testPdf._id.toString())
+                            .field('last_edition_date', testPdf.last_edition_date.toString())
                             .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                             .end(function (err, res) {
                                 checkError(res);
@@ -750,6 +763,7 @@ describe('Pdfs', function () {
                     .set('Authorization', 'Bearer ' + token)
                     .field('content-type', 'multipart/form-data')
                     .field('pdf_id', testPdf._id.toString())
+                    .field('last_edition_date', testPdf.last_edition_date.toString())
                     .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                     .end(function (err, res) {
                         checkError(res);
@@ -788,6 +802,7 @@ describe('Pdfs', function () {
                                         .set('Authorization', 'Bearer ' + resToken2.body.access_token)
                                         .field('content-type', 'multipart/form-data')
                                         .field('pdf_id', testPdf5._id.toString())
+                                        .field('last_edition_date', testPdf5.last_edition_date.toString())
                                         .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                         .end(function (err, res) {
                                             checkError(res);
@@ -796,6 +811,7 @@ describe('Pdfs', function () {
                                                 .set('Authorization', 'Bearer ' + resToken1.body.access_token)
                                                 .field('content-type', 'multipart/form-data')
                                                 .field('pdf_id', testPdf5._id.toString())
+                                                .field('last_edition_date', testPdf5.last_edition_date.toString())
                                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                                 .end(function (err, res) {
                                                     checkPdf(res);
@@ -836,6 +852,7 @@ describe('Pdfs', function () {
                                 .set('Authorization', 'Bearer ' + resToken1.body.access_token)
                                 .field('content-type', 'multipart/form-data')
                                 .field('pdf_id', testPdf5._id.toString())
+                                .field('last_edition_date', testPdf5.last_edition_date.toString())
                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                 .end(function (err, res) {
                                     checkPdf(res);
@@ -850,6 +867,7 @@ describe('Pdfs', function () {
                                                 .set('Authorization', 'Bearer ' + resToken2.body.access_token)
                                                 .field('content-type', 'multipart/form-data')
                                                 .field('pdf_id', testPdf5._id.toString())
+                                                .field('last_edition_date', testPdf5.last_edition_date.toString())
                                                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                                                 .end(function (err, res) {
                                                     checkPdf(res);

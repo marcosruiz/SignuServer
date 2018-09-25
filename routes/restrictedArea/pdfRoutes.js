@@ -169,6 +169,7 @@ function uploadPdf(req, res) {
                 "with_stamp": false,
                 "encoding": req.file.encoding,
                 "creation_date": Date.now(),
+                "last_edition_date" : Date.now(),
                 "owner_id": token.user_id
             });
 
