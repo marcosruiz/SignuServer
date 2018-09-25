@@ -210,6 +210,7 @@
     },
     "/users/login": {
       "post": {
+        "deprecated": true,
         "tags": [
           "user"
         ],
@@ -365,6 +366,11 @@
     },
     "/users": {
       "put": {
+        "security": [
+          {
+            "OAuth2": []
+          }
+        ],
         "tags": [
           "user"
         ],
@@ -457,6 +463,11 @@
         }
       },
       "delete": {
+        "security": [
+          {
+            "OAuth2": []
+          }
+        ],
         "tags": [
           "user"
         ],
@@ -540,6 +551,11 @@
     },
     "/users/related": {
       "put": {
+        "security": [
+          {
+            "OAuth2": []
+          }
+        ],
         "tags": [
           "user"
         ],
@@ -632,6 +648,11 @@
     },
     "/users/password": {
       "put": {
+        "security": [
+          {
+            "OAuth2": []
+          }
+        ],
         "tags": [
           "user"
         ],
@@ -722,6 +743,11 @@
     },
     "/users/logout": {
       "post": {
+        "security": [
+          {
+            "OAuth2": []
+          }
+        ],
         "tags": [
           "user"
         ],
@@ -789,6 +815,11 @@
     },
     "/users/email": {
       "put": {
+        "security": [
+          {
+            "OAuth2": []
+          }
+        ],
         "tags": [
           "user"
         ],
@@ -973,6 +1004,11 @@
     },
     "/pdfs/{pdf_id}": {
       "get": {
+        "security": [
+          {
+            "OAuth2": []
+          }
+        ],
         "tags": [
           "pdf"
         ],
@@ -1051,6 +1087,11 @@
         }
       },
       "delete": {
+        "security": [
+          {
+            "OAuth2": []
+          }
+        ],
         "tags": [
           "pdf"
         ],
@@ -1140,6 +1181,11 @@
         }
       },
       "put": {
+        "security": [
+          {
+            "OAuth2": []
+          }
+        ],
         "tags": [
           "pdf"
         ],
@@ -1153,6 +1199,14 @@
             "required": true,
             "type": "string",
             "format": "ObjectId"
+          },
+          {
+            "name": "last_edition_date",
+            "in": "path",
+            "description": "Last edition date of PDF",
+            "required": true,
+            "type": "string",
+            "format": "Date"
           }
         ],
         "responses": {
@@ -1231,6 +1285,11 @@
     },
     "/pdfs/status/{pdf_id}": {
       "get": {
+        "security": [
+          {
+            "OAuth2": []
+          }
+        ],
         "tags": [
           "pdf"
         ],
@@ -1330,6 +1389,11 @@
     },
     "/pdfs/unlock/{pdf_id}": {
       "put": {
+        "security": [
+          {
+            "OAuth2": []
+          }
+        ],
         "tags": [
           "pdf"
         ],
@@ -1429,6 +1493,11 @@
     },
     "/pdfs/addsigner/{pdf_id}": {
       "put": {
+        "security": [
+          {
+            "OAuth2": []
+          }
+        ],
         "tags": [
           "pdf"
         ],
@@ -1528,10 +1597,11 @@
     }
   },
   "securityDefinitions": {
-    "user_auth": {
+    "OAuth2": {
       "type": "oauth2",
-      "authorizationUrl": "http://localhost:3000/api/users/login",
-      "flow": "implicit"
+      "tokenUrl": "http://localhost:3000/oauth2/token",
+      "flow": "password",
+      "description": "OAuth 2.0 with Client Password Credentials Grant type"
     }
   },
   "definitions": {

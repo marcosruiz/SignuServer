@@ -338,7 +338,7 @@ function isSignerThere(signersArray, userId) {
 
 /**
  * Sign a PDF. You should previusly unlock
- * @param req
+ * @param {Object} req - req : {}
  * @param res
  */
 function signPdf(req, res) {
@@ -360,7 +360,9 @@ function signPdf(req, res) {
                         res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
                     } else if (pdf == null) {
                         res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
-                    } else if (pdf.is_any_user_signing == null || pdf.is_any_user_signing._id == null) {
+                    } else if(pdf.last_edition_date.toString() != req.body.last_edition_date){
+                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.PDF_OUTDATED));
+                    }else if (pdf.is_any_user_signing == null || pdf.is_any_user_signing._id == null) {
                         res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.PDF_NOT_LOCKED));
                     } else if (!pdf.is_any_user_signing._id.equals(token.user_id)) {
                         res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.PDF_LOCKED));

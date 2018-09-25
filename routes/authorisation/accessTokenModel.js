@@ -77,7 +77,7 @@ var dump = function () {
  */
 
 var getAccessToken = function (bearerToken, callback) {
-    console.log('getAccessToken() called and bearerToken is: ', bearerToken);
+    // console.log('getAccessToken() called and bearerToken is: ', bearerToken);
     tokenModel.findOne({
         accessToken: bearerToken
     }, callback);
@@ -99,7 +99,7 @@ var deleteAccessToken = function (bearerToken, callback){
  */
 
 var getClient = function (clientId, clientSecret, callback) {
-    console.log('getClient() called');
+    // console.log('getClient() called');
     clientModel.findOne({
         clientId: clientId,
         clientSecret: clientSecret
@@ -111,7 +111,7 @@ var getClient = function (clientId, clientSecret, callback) {
  */
 
 var grantTypeAllowed = function (clientId, grantType, callback) {
-    console.log('grantTypeAllowed() called');
+    // console.log('grantTypeAllowed() called');
     callback(false, grantType === "password");
 };
 
@@ -120,7 +120,7 @@ var grantTypeAllowed = function (clientId, grantType, callback) {
  */
 
 var saveAccessToken = function (accessToken, clientId, expires, user, callback) {
-    console.log('saveAccessToken() called');
+    // console.log('saveAccessToken() called');
     var token = new tokenModel({
         accessToken: accessToken,
         expires: expires,
@@ -136,7 +136,7 @@ var saveAccessToken = function (accessToken, clientId, expires, user, callback) 
  */
 
 var getUser = function (username, password, callback) {
-    console.log('getUser() called and username is: ', username);
+    // console.log('getUser() called and username is: ', username);
     userModel.findOne({
         email: username
     }, function(err, user){
