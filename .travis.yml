@@ -6,7 +6,12 @@ services:
 before_script:
 
 before_install:
-
+  # Decripting files and moving it to their place
+  - openssl aes-256-cbc -K $encrypted_0a6446eb3ae3_key -iv $encrypted_0a6446eb3ae3_iv -in .travis/emailConfig.js.enc -out routes/restrictedArea/emailConfig.js -d
+  - mv .travis/emailConfig.js routes/restrictedArea/emailConfig.js
+  - openssl aes-256-cbc -K $encrypted_0a6446eb3ae3_key -iv $encrypted_0a6446eb3ae3_iv -in .travis/server.crt.js.enc -out .travis/server.crt -d
+  - mv .travis/server.crt sslcert/server.crt
+  - openssl aes-256-cbc -K $encrypted_0a6446eb3ae3_key -iv $encrypted_0a6446eb3ae3_iv -in .travis/server.key.js.enc -out .travis/server.key -d
+  - mv .travis/server.key sslcert/server.key
 after_success:
   # Sync with codecov
-  

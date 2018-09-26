@@ -28,4 +28,12 @@ Server to manage PDFs and users of Signu mobile app
 You can check the api in route localhost:3000/api-docs
 
 
+## TravisCI
+
+If you want to use travisCI in this repository you will need:
+
+- Ruby: https://rubyinstaller.org/downloads/
+- Gem: https://rubygems.org/pages/download
+- run "gem install travis"
+
 

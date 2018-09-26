@@ -1,4 +1,4 @@
 {
-  "DBHost": "mongodb://localhost/dev",
+  "DBHost": "mongodb://localhost/SignuServer",
   "uploads_dir" : "uploads/"
 }
