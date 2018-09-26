@@ -36,4 +36,14 @@ If you want to use travisCI in this repository you will need:
 - Gem: https://rubygems.org/pages/download
 - run "gem install travis"
 
+## Problems and solutions
+
+If file .gitignore don't update files (un)ignored write this on root directory
+
+```
+git rm -r --cached .
+git add .
+git commit -m "fixed untracked files"
+```
+
 
