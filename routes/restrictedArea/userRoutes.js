@@ -509,8 +509,7 @@ function editNextEmail(req, res) {
             };
             sendEmail(mailOptions, function (err, info) {
                 if (err) {
-                    // res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.EMAIL_ERROR));
-                    res.send(info);
+                    res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.EMAIL_ERROR));
                 } else {
                     User.findByIdAndUpdate(token.user_id, modUser, {new: true}, function (err, user) {
                         if (err) {
