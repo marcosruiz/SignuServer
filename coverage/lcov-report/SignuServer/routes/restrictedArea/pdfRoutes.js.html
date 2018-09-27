@@ -1,0 +1,1523 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for SignuServer\routes\restrictedArea\pdfRoutes.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../../index.html">all files</a> / <a href="index.html">SignuServer/routes/restrictedArea/</a> pdfRoutes.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">77.17% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>196/254</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">62.94% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>90/143</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">95.12% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>39/41</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">77.17% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>196/254</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line medium'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259
+260
+261
+262
+263
+264
+265
+266
+267
+268
+269
+270
+271
+272
+273
+274
+275
+276
+277
+278
+279
+280
+281
+282
+283
+284
+285
+286
+287
+288
+289
+290
+291
+292
+293
+294
+295
+296
+297
+298
+299
+300
+301
+302
+303
+304
+305
+306
+307
+308
+309
+310
+311
+312
+313
+314
+315
+316
+317
+318
+319
+320
+321
+322
+323
+324
+325
+326
+327
+328
+329
+330
+331
+332
+333
+334
+335
+336
+337
+338
+339
+340
+341
+342
+343
+344
+345
+346
+347
+348
+349
+350
+351
+352
+353
+354
+355
+356
+357
+358
+359
+360
+361
+362
+363
+364
+365
+366
+367
+368
+369
+370
+371
+372
+373
+374
+375
+376
+377
+378
+379
+380
+381
+382
+383
+384
+385
+386
+387
+388
+389
+390
+391
+392
+393
+394
+395
+396
+397
+398
+399
+400
+401
+402
+403
+404
+405
+406
+407
+408
+409
+410
+411
+412
+413
+414
+415
+416
+417
+418
+419
+420
+421
+422
+423
+424
+425
+426
+427
+428
+429
+430
+431
+432
+433
+434
+435
+436
+437
+438
+439
+440
+441
+442
+443
+444
+445
+446
+447
+448
+449
+450
+451
+452
+453
+454
+455
+456
+457
+458
+459
+460
+461
+462
+463
+464
+465
+466
+467
+468
+469
+470
+471
+472
+473
+474
+475
+476
+477
+478
+479
+480
+481
+482
+483
+484
+485
+486
+487</td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">11×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">10×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">13×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">9×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">7×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">6×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">4×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">3×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span></td><td class="text"><pre class="prettyprint lang-js">/**
+ * Created by Marcos on 11/05/2017.
+ */
+"use strict";
+var express = require('express');
+var router = express.Router();
+var fs = require('fs');
+var PdfModel = require('../models/pdf');
+var UserModel = require('../models/user');
+var AccessTokenModel = require('../authorisation/accessTokenModel');
+const path = require('path');
+var multer = require('multer');
+var config = require('config');
+var upload = multer({dest: config.uploads_dir});
+var HttpStatus = require('http-status-codes');
+var AppStatus = require('../../public/routes/app-err-codes-en');
+var getJsonAppError = AppStatus.getJsonApp;
+var newPdf;
+var LOCK_TIME = 60000; // 60 seg
+var UserRoutes = require('./userRoutes.js');
+&nbsp;
+function pdfRoutes(app) {
+&nbsp;
+    router.get('/:pdf_id', app.oauth.authorise(), getPdf);
+    router.get('/status/:pdf_id', app.oauth.authorise(), getInfoPdf);
+    router.put('/unlock/:pdf_id', app.oauth.authorise(), unlockPdf);
+    router.post('/unlock/:pdf_id', app.oauth.authorise(), <span class="fstat-no" title="function not covered" >function (req, res, next) {</span>
+<span class="cstat-no" title="statement not covered" >        if (req.body._method == 'put') {</span>
+<span class="cstat-no" title="statement not covered" >            unlockPdf(req, res);</span>
+        } else {
+<span class="cstat-no" title="statement not covered" >            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));</span>
+        }
+    });
+    router.put('/addsigners/:pdf_id', upload.single('pdf'), app.oauth.authorise(), addSignersToPdf);
+    router.post('/addsigners/:pdf_id', upload.single('pdf'), app.oauth.authorise(), function (req, res) {
+        <span class="missing-if-branch" title="else path not taken" >E</span>if (req.body._method = 'put') {
+            addSignersToPdf(req, res);
+        } else {
+<span class="cstat-no" title="statement not covered" >            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));</span>
+        }
+    });
+    router.put('/addsigner/:pdf_id', upload.single('pdf'), app.oauth.authorise(), addSignerToPdf);
+    router.post('/addsigner/:pdf_id', upload.single('pdf'), app.oauth.authorise(), function (req, res, next) {
+        <span class="missing-if-branch" title="else path not taken" >E</span>if (req.body._method == 'put') {
+            addSignerToPdf(req, res, next);
+        } else {
+<span class="cstat-no" title="statement not covered" >            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));</span>
+        }
+    });
+    router.post('/', upload.single('pdf'), app.oauth.authorise(), uploadPdf);
+    router.post('/:pdf_id', upload.single('pdf'), app.oauth.authorise(), function (req, res, next) {
+        if (req.body._method == 'delete') {
+            deletePdf(req, res, next); // Delete pdf
+        } else <span class="missing-if-branch" title="else path not taken" >E</span>if (req.body._method == 'put') {
+            signPdf(req, res, next); // Update pdf
+        } else {
+<span class="cstat-no" title="statement not covered" >            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));</span>
+        }
+    });
+    router.put('/:pdf_id', upload.single('pdf'), app.oauth.authorise(), signPdf);
+    router.delete('/:pdf_id', app.oauth.authorise(), deletePdf);
+&nbsp;
+    return router;
+}
+&nbsp;
+/**
+ * Download pdf
+ */
+function getPdf(req, res) {
+    var myToken = req.headers.authorization.split(" ", 2)[1];
+    AccessTokenModel.getAccessToken(myToken, function (err, token) {
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));</span>
+        } else <span class="missing-if-branch" title="if path not taken" >I</span>if (token == null) {
+<span class="cstat-no" title="statement not covered" >            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));</span>
+        } else {
+            PdfModel.findById(req.params.pdf_id, function (err, pdf) {
+                <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));</span>
+                } else <span class="missing-if-branch" title="if path not taken" >I</span>if (pdf == null) {
+<span class="cstat-no" title="statement not covered" >                    res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));</span>
+                } else {
+                    if (pdf.owner_id.toString() == token.user_id) {
+                        res.download(pdf.path, pdf.original_name);
+                    } else {
+                        var isSigner = pdf.signers.some(function (signer) {
+                            return signer._id.toString() == token.user_id;
+                        });
+                        if (isSigner) {
+                            res.download(pdf.path, pdf.original_name);
+                        } else {
+                            res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
+                        }
+                    }
+                }
+            });
+        }
+    });
+}
+&nbsp;
+/**
+ * Unlock a pdf during 1 min to a specific user if
+ * pdf exists and
+ * (there is no previus signer or
+ * previus signer LOCK_TIME expired or
+ * previus signer signed with success )
+ * @param {Object} req
+ * @param {Object} res
+ */
+function unlockPdf(req, res) {
+    var myToken = req.headers.authorization.split(" ", 2)[1];
+    AccessTokenModel.getAccessToken(myToken, function (err, token) {
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));</span>
+        } else <span class="missing-if-branch" title="if path not taken" >I</span>if (token == null) {
+<span class="cstat-no" title="statement not covered" >            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));</span>
+        } else {
+            var isAnyUserSigning = {success: false};
+            PdfModel.findById(req.params.pdf_id, function (err, pdf) {
+                var timeDiff = (Date.now() - pdf.is_any_user_signing.when);
+                <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));</span>
+                } else <span class="missing-if-branch" title="if path not taken" >I</span>if (pdf == null) {
+<span class="cstat-no" title="statement not covered" >                    res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));</span>
+                } else if (pdf.is_any_user_signing._id == null || timeDiff &gt;= LOCK_TIME || pdf.is_any_user_signing.success == true) {
+                    // Everything OK: no one more is trying to sign this pdf
+                    var newPdf = {
+                        is_any_user_signing: {_id: token.user_id, when: Date.now(), success: false}
+                    };
+                    PdfModel.findByIdAndUpdate(pdf._id, newPdf, null, function (err, pdf) {
+                        <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));</span>
+                        } else <span class="missing-if-branch" title="if path not taken" >I</span>if (pdf == null) {
+<span class="cstat-no" title="statement not covered" >                            res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));</span>
+                        } else {
+                            res.json({
+                                code: AppStatus.PDF_UNLOCKED,
+                                message: AppStatus.getStatusText(AppStatus.PDF_UNLOCKED),
+                                data: {pdf: pdf}
+                            });
+                        }
+                    });
+                } else {
+                    res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.PDF_NOT_LOCKED_BY_YOU));
+                }
+            });
+        }
+    });
+}
+&nbsp;
+&nbsp;
+/**
+ * Upload a new PDF with pending signatures
+ */
+function uploadPdf(req, res) {
+    var myToken = req.headers.authorization.split(" ", 2)[1];
+    AccessTokenModel.getAccessToken(myToken, function (err, token) {
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));</span>
+        } else <span class="missing-if-branch" title="if path not taken" >I</span>if (token == null) {
+<span class="cstat-no" title="statement not covered" >            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));</span>
+        } else {
+            newPdf = new PdfModel({
+                "original_name": req.file.originalname,
+                "mime_type": req.file.mimetype,
+                "file_name": req.file.filename,
+                "destination": req.file.destination,
+                "path": req.file.path,
+                "with_stamp": false,
+                "encoding": req.file.encoding,
+                "creation_date": Date.now(),
+                "last_edition_date" : Date.now(),
+                "owner_id": token.user_id
+            });
+&nbsp;
+            // Add signatures
+            var signers = [];
+            <span class="missing-if-branch" title="if path not taken" >I</span>if (req.body.signers != null) {
+                // Creates a array of signers without duplicates
+<span class="cstat-no" title="statement not covered" >                var uniqueSigners = [];</span>
+<span class="cstat-no" title="statement not covered" >                var signer;</span>
+<span class="cstat-no" title="statement not covered" >                uniqueSigners = req.body.signers.filter(<span class="fstat-no" title="function not covered" >function (item, pos) {</span></span>
+<span class="cstat-no" title="statement not covered" >                    return (req.body.signers.indexOf(item) == pos);</span>
+                });
+&nbsp;
+<span class="cstat-no" title="statement not covered" >                for (var i = 0; i &lt; uniqueSigners; i++) {</span>
+<span class="cstat-no" title="statement not covered" >                    if (req.body.signers[i] != '') {</span>
+<span class="cstat-no" title="statement not covered" >                        signer = {_id: uniqueSigners[i], is_signed: false, signature_date: null};</span>
+<span class="cstat-no" title="statement not covered" >                        signers.push(signer);</span>
+                    }
+                }
+            }
+&nbsp;
+            newPdf.signers = signers;
+&nbsp;
+            newPdf.save(function (err, pdf) {
+                <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));</span>
+                } else {
+                    UserRoutes.addPdfToUsers(pdf);
+                    res.json({
+                        code: AppStatus.PDF_CREATED,
+                        message: AppStatus.getStatusText(AppStatus.PDF_CREATED),
+                        data: {pdf: pdf}
+                    });
+                }
+            });
+        }
+    });
+}
+&nbsp;
+/**
+ * Add signers to pdf
+ * @param req
+ * @param res
+ */
+function addSignersToPdf(req, res) {
+&nbsp;
+    var myToken = req.headers.authorization.split(" ", 2)[1];
+    AccessTokenModel.getAccessToken(myToken, function (err, token) {
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));</span>
+        } else <span class="missing-if-branch" title="if path not taken" >I</span>if (token == null) {
+<span class="cstat-no" title="statement not covered" >            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));</span>
+        } else {
+            PdfModel.findById(req.params.pdf_id, function (err, pdf) {
+                <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));</span>
+                } else <span class="missing-if-branch" title="if path not taken" >I</span>if (pdf == null) {
+<span class="cstat-no" title="statement not covered" >                    res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));</span>
+                } else if (pdf.owner_id.toString() != token.user_id) {
+                    res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_OWNER));
+                } else if (pdf.with_stamp) {
+                    res.status(HttpStatus.FORBIDDEN).json(getJsonAppError(AppStatus.PDF_WITH_STAMP));
+                } else {
+                    newPdf = {signers: []};
+                    pdf.signers.forEach(function (signer) {
+                        newPdf.signers.push(signer);
+                    });
+                    // Inserts signers if they are not duplicated
+                    req.body.signers.forEach(function (signer) {
+                        var found = isSignerThere(pdf.signers, signer._id);
+                        var found2 = isSignerThere(req.body.signers, signer._id);
+                        if (found == 0 &amp;&amp; found2 == 1) {
+                            var itemAux = {
+                                _id: signer._id,
+                                is_signed: false,
+                                when: undefined
+                            }
+                            newPdf.signers.push(itemAux);
+                        }
+                    });
+                    if (pdf.signers.length &gt;= newPdf.signers.length) {
+                        // There is no new correct signers
+                        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+                    } else {
+                        PdfModel.findByIdAndUpdate(req.params.pdf_id, newPdf, {new: true}, function (err, pdf) {
+                            <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >                                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));</span>
+                            } else <span class="missing-if-branch" title="if path not taken" >I</span>if (pdf == null) {
+<span class="cstat-no" title="statement not covered" >                                res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));</span>
+                            } else {
+                                res.json({
+                                    code: AppStatus.PDF_SIGNER_ADDED,
+                                    message: AppStatus.getStatusText(AppStatus.PDF_SIGNER_ADDED),
+                                    data: {pdf: pdf}
+                                });
+                            }
+                        });
+                    }
+                }
+            });
+        }
+    });
+}
+&nbsp;
+/**
+ * Add a signer to pdf
+ */
+function addSignerToPdf(req, res) {
+&nbsp;
+    var myToken = req.headers.authorization.split(" ", 2)[1];
+    AccessTokenModel.getAccessToken(myToken, function (err, token) {
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));</span>
+        } else <span class="missing-if-branch" title="if path not taken" >I</span>if (token == null) {
+<span class="cstat-no" title="statement not covered" >            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));</span>
+        } else {
+            PdfModel.findById(req.params.pdf_id, function (err, pdf) {
+                <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));</span>
+                } else <span class="missing-if-branch" title="if path not taken" >I</span>if (pdf == null) {
+<span class="cstat-no" title="statement not covered" >                    res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));</span>
+                } else <span class="missing-if-branch" title="if path not taken" >I</span>if (pdf.owner_id.toString() != token.user_id) {
+<span class="cstat-no" title="statement not covered" >                    res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_OWNER));</span>
+                } else <span class="missing-if-branch" title="if path not taken" >I</span>if (pdf.with_stamp) {
+<span class="cstat-no" title="statement not covered" >                    res.status(HttpStatus.FORBIDDEN).json(getJsonAppError(AppStatus.PDF_WITH_STAMP));</span>
+                } else {
+                    var newSigner = {_id: req.body.signer_id, is_signed: false, when: undefined};
+                    PdfModel.findOneAndUpdate({
+                        _id: req.params.pdf_id,
+                        'signers._id': {$ne: newSigner._id}
+                    }, {$push: {signers: newSigner}}, {new: true, safe: false}, function (err, newPdf) {
+                        <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));</span>
+                        } else if (newPdf == null) {
+                            res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
+                        } else <span class="missing-if-branch" title="if path not taken" >I</span>if (newPdf.signers.length == pdf.signers.length) {
+<span class="cstat-no" title="statement not covered" >                            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));</span>
+                        } else {
+                            res.json({
+                                code: AppStatus.PDF_SIGNER_ADDED,
+                                message: AppStatus.getStatusText(AppStatus.PDF_SIGNER_ADDED),
+                                data: {pdf: newPdf}
+                            });
+                        }
+                    });
+                }
+            });
+        }
+    });
+}
+&nbsp;
+/**
+ * checks how many times is the id
+ * @param signersArray
+ * @param userId
+ * @returns {boolean}
+ */
+function isSignerThere(signersArray, userId) {
+    var found = 0;
+    for (var i = 0; i &lt; signersArray.length; i++) {
+        <span class="missing-if-branch" title="else path not taken" >E</span>if (signersArray[i]._id == userId) {
+            found++;
+        }
+    }
+    return found;
+}
+&nbsp;
+/**
+ * Sign a PDF. You should previusly unlock
+ * @param {Object} req - req : {}
+ * @param res
+ */
+function signPdf(req, res) {
+    var myToken = req.headers.authorization.split(" ", 2)[1];
+    AccessTokenModel.getAccessToken(myToken, function (err, token) {
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));</span>
+        } else <span class="missing-if-branch" title="if path not taken" >I</span>if (token == null) {
+<span class="cstat-no" title="statement not covered" >            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));</span>
+        } else {
+            <span class="missing-if-branch" title="if path not taken" >I</span>if (token.user_id == null) {
+<span class="cstat-no" title="statement not covered" >                res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));</span>
+            } else <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >                res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));</span>
+            } else {
+                PdfModel.findById(req.body.pdf_id, function (err, pdf) {
+                    var timeDiff = (Date.now() - pdf.is_any_user_signing.when);
+                    <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));</span>
+                    } else <span class="missing-if-branch" title="if path not taken" >I</span>if (pdf == null) {
+<span class="cstat-no" title="statement not covered" >                        res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));</span>
+                    } else <span class="missing-if-branch" title="if path not taken" >I</span>if(pdf.last_edition_date.toString() != req.body.last_edition_date){
+<span class="cstat-no" title="statement not covered" >                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.PDF_OUTDATED));</span>
+                    }else if (pdf.is_any_user_signing == null || pdf.is_any_user_signing._id == null) {
+                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.PDF_NOT_LOCKED));
+                    } else if (!pdf.is_any_user_signing._id.equals(token.user_id)) {
+                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.PDF_LOCKED));
+                    } else <span class="missing-if-branch" title="if path not taken" >I</span>if (timeDiff &gt;= LOCK_TIME) {
+<span class="cstat-no" title="statement not covered" >                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.PDF_TIMEOUT));</span>
+                    } else {
+                        var arraySigner = pdf.signers.filter(function (item) {
+                            return item._id.equals(token.user_id);
+                        });
+                        var actualSigner = arraySigner[0];
+                        var index = pdf.signers.indexOf(actualSigner);
+                        if (arraySigner.length &lt; 1) {
+                            res.status(HttpStatus.FORBIDDEN).json(getJsonAppError(AppStatus.PDF_NOT_SIGNER));
+                        } else if (actualSigner.is_signed) {
+                            res.status(HttpStatus.FORBIDDEN).json(getJsonAppError(AppStatus.PDF_SIGNED));
+                        } else {
+                            // Delete old file
+                            fs.unlink(pdf.path, function (err) {
+                                <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >                                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));</span>
+                                } else {
+                                    // Update database
+                                    pdf.path = req.file.path;
+                                    pdf.file_name = req.file.filename;
+                                    // pdf.destination = req.file.destination;
+                                    pdf.encoding = req.file.encoding;
+                                    // pdf.mime_type = req.file.mimetype;
+                                    // pdf.signers[index].signer_id = token.user_id;
+                                    pdf.is_any_user_signing.success = true;
+                                    pdf.signers[index].is_signed = true;
+                                    pdf.signers[index].signature_date = Date.now();
+                                    PdfModel.findByIdAndUpdate(pdf._id, pdf, {new: true}, function (err, pdf) {
+                                        <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >                                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));</span>
+                                        } else <span class="missing-if-branch" title="if path not taken" >I</span>if (pdf == null) {
+<span class="cstat-no" title="statement not covered" >                                            res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));</span>
+                                        } else {
+                                            res.json({
+                                                code: AppStatus.PDF_SIGNED,
+                                                message: AppStatus.getStatusText(AppStatus.PDF_SIGNED),
+                                                data: {pdf: pdf}
+                                            });
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+        }
+    });
+}
+&nbsp;
+/**
+ * Delete a pdf from database and filesystem
+ * @param req
+ * @param res
+ */
+function deletePdf(req, res) {
+&nbsp;
+    var myToken = req.headers.authorization.split(" ", 2)[1];
+    AccessTokenModel.getAccessToken(myToken, function (err, token) {
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));</span>
+        } else <span class="missing-if-branch" title="if path not taken" >I</span>if (token == null) {
+<span class="cstat-no" title="statement not covered" >            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));</span>
+        } else {
+            PdfModel.findById(req.params.pdf_id, function (err, pdf) {
+                <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));</span>
+                } else if (pdf == null) {
+                    res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
+                } else if (token.user_id != pdf.owner_id.toString()) {
+                    res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_OWNER));
+                } else {
+                    fs.unlink(pdf.path, function (err, result) {
+                        <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >                            res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));</span>
+                        } else {
+                            PdfModel.findByIdAndRemove(req.params.pdf_id, function (err, pdf) {
+                                <span class="missing-if-branch" title="if path not taken" >I</span>if (err) {
+<span class="cstat-no" title="statement not covered" >                                    res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));</span>
+                                } else <span class="missing-if-branch" title="if path not taken" >I</span>if (pdf == null) {
+<span class="cstat-no" title="statement not covered" >                                    res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));</span>
+                                } else {
+                                    UserRoutes.deletePdfOfUsers(pdf);
+                                    res.json({
+                                        'code': AppStatus.PDF_DELETED,
+                                        'message': AppStatus.getStatusText(AppStatus.PDF_DELETED)
+                                    });
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        }
+    });
+}
+&nbsp;
+/**
+ * Get info of pdf
+ */
+function getInfoPdf(req, res) {
+    PdfModel.findById(req.params.pdf_id, function (err, pdf) {
+        if (err) {
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+        } else if (pdf == null) {
+            res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
+        } else {
+            res.send({
+                code: AppStatus.SUCCESS,
+                message: AppStatus.getStatusText(AppStatus.SUCCESS),
+                data: {pdf: pdf}
+            });
+        }
+    });
+}
+&nbsp;
+module.exports.pdfRoutes = pdfRoutes;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Sep 27 2018 13:52:53 GMT+0200 (Hora de verano romance)
+</div>
+</div>
+<script src="../../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../../sorter.js"></script>
+</body>
+</html>

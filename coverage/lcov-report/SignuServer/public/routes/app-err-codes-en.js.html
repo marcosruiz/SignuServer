@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for SignuServer\public\routes\app-err-codes-en.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../../index.html">all files</a> / <a href="index.html">SignuServer/public/routes/</a> app-err-codes-en.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">98.15% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>53/54</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">50% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>1/2</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>2/2</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">98.15% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>53/54</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line high'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87</td><td class="line-coverage quiet"><span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">23×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">23×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1×</span>
+<span class="cline-any cline-yes">100×</span>
+<span class="cline-any cline-yes">100×</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">var statusCodes = {};
+&nbsp;
+statusCodes[exports.SUCCESS = 0] = "Success";
+&nbsp;
+statusCodes[exports.USER_CREATED = 1] = "User created successfully. Check your e-mail";
+statusCodes[exports.USER_UPDATED = 2] = "User updated successfully";
+statusCodes[exports.USER_DELETED = 3] = "User deleted successfully";
+statusCodes[exports.USER_DESACTIVATED = 4] = "User desactivated successfully";
+statusCodes[exports.EMAIL_SENDED = 5] = "Email was sended successfully. Check your email to confirm your email";
+statusCodes[exports.USER_ACTIVATED = 6] = "User activated successfully";
+statusCodes[exports.USER_LOG_OUT = 7] = "User logged out successfully";
+&nbsp;
+statusCodes[exports.PDF_CREATED = 101] = "PDF created successfully";
+statusCodes[exports.PDF_UPDATED = 102] = "PDF updated successfully";
+statusCodes[exports.PDF_DELETED = 103] = "PDF deleted successfully";
+statusCodes[exports.PDF_DELETED = 104] = "PDF deleted successfully";
+statusCodes[exports.PDF_SIGNED = 105] = "PDF signed successfully";
+statusCodes[exports.PDF_UNLOCKED = 106] = "PDF unlocked successfully";
+statusCodes[exports.PDF_SIGNER_ADDED = 107] = "Added signer(s) to PDF successfully";
+&nbsp;
+// Generic errors
+statusCodes[exports.INTERNAL_ERROR = 1000] = "Internal error";
+statusCodes[exports.NOT_FOUND = 1001] = "Not found";
+statusCodes[exports.INCORRECT_PASS = 1002] = "Password do not match";
+statusCodes[exports.BAD_REQUEST = 1003] = "Bad request";
+statusCodes[exports.DATABASE_ERROR = 1004] = "Database error";
+statusCodes[exports.UNKNOWN = 1006] = "Unknown error";
+statusCodes[exports.PASS_NOT_MATCH = 1007] = "Passwords do not match";
+statusCodes[exports.PERMISION_DENIED = 1008] = "Permision denied";
+statusCodes[exports.NO_BODY = 1009] = "Request without body";
+statusCodes[exports.ERROR_AC = 1010] = "Activation code error";
+statusCodes[exports.TIMEOUT = 1011] = "Timeout";
+statusCodes[exports.AC_NOT_MATCH = 1012] = "Activation code is wrong";
+statusCodes[exports.HANDLER_ERROR = 1012] = "Handler error";
+&nbsp;
+// User errors
+statusCodes[exports.USER_NOT_FOUND = 2000] = "User not found";
+statusCodes[exports.USER_DESACTIVATED = 2001] = "User is desactivated";
+statusCodes[exports.USER_ALREADY_EXISTS = 2002] = "Email is already used by other user";
+statusCodes[exports.EMAIL_ERROR = 2003] = "Email was not valid";
+statusCodes[exports.USER_NOT_OWNER = 2004] = "User is not a owner";
+statusCodes[exports.USER_NOT_SIGNER = 2005] = "User is not a signer";
+statusCodes[exports.USER_NOT_LOGGED = 2006] = "You are not logged";
+&nbsp;
+// PDF errors
+statusCodes[exports.PDF_NOT_FOUND = 3000] = "PDF not found";
+statusCodes[exports.PDF_NOT_LOCKED = 3001] = "Pdf is not locked";
+statusCodes[exports.PDF_NOT_SIGNER = 3002] = "You can't sign this PDF";
+statusCodes[exports.PDF_LOCKED = 3003] = "PDF locked";
+statusCodes[exports.PDF_WITH_STAMP = 3004] = "PDF has stamp. You can not add new signatures";
+statusCodes[exports.PDF_TIMEOUT = 3005] = "PDF timeout";
+statusCodes[exports.PDF_SIGNED = 3006] = "PDF already signed by user";
+statusCodes[exports.PDF_NOT_LOCKED_BY_YOU = 3007] = "PDF not locked by you";
+statusCodes[exports.PDF_OUTDATED = 3008] = "PDF is outdated, download the last version of PDF and send it again";
+&nbsp;
+// TOKEN errors
+statusCodes[exports.TOKEN_NOT_FOUND = 4000] = "TOKEN not found";
+&nbsp;
+// CLIENT errors
+statusCodes[exports.CLIENT_NOT_FOUND = 5000] = "CLIENT not found";
+&nbsp;
+&nbsp;
+/**
+ * Return a json with code and message code
+ * @param code
+ * @returns {{code: {number}, message: {string}}}
+ */
+exports.getJsonApp = function (statusCode) {
+    var res = {
+        code: statusCode,
+        message: statusCodes[statusCode]
+    };
+    return res;
+};
+&nbsp;
+/**
+ * Return text that correspond to statusCode
+ * @param statusCode
+ * @returns {*}
+ */
+exports.getStatusText = function (statusCode) {
+    <span class="missing-if-branch" title="else path not taken" >E</span>if (statusCodes.hasOwnProperty(statusCode)) {
+        return statusCodes[statusCode];
+    } else {
+<span class="cstat-no" title="statement not covered" >        throw new Error("Status code does not exist: " + statusCode);</span>
+    }
+};</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Sep 27 2018 13:52:53 GMT+0200 (Hora de verano romance)
+</div>
+</div>
+<script src="../../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../../sorter.js"></script>
+</body>
+</html>
