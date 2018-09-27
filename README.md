@@ -38,7 +38,7 @@ If you want to use travisCI in this repository you will need:
 
 ## Problems and solutions
 
-If file .gitignore don't update files (un)ignored write this on root directory
+If file .gitignore don't update files (un)ignored write this on root directory on Intellij
 
 ```
 git rm -r --cached .
