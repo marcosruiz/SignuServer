@@ -30,7 +30,7 @@ Server to manage PDFs and users of Signu mobile app
 
 ## API
 
-You can check the api in route localhost:3000/api-docs
+You can check our API in http://signu-server.herokuapp.com/api-docs
 
 ## TravisCI
 
