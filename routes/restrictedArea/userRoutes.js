@@ -357,7 +357,7 @@ function sendEmail(mailOptions, next) {
     mailOptions.from = fromEmail;
 
     if (process.env.NODE_ENV == 'test') {
-        next(false);
+        next();
     } else {
         transporter.sendMail(mailOptions, next);
     }
@@ -509,7 +509,8 @@ function editNextEmail(req, res) {
             };
             sendEmail(mailOptions, function (err, info) {
                 if (err) {
-                    res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.EMAIL_ERROR));
+                    // res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.EMAIL_ERROR));
+                    res.send(info);
                 } else {
                     User.findByIdAndUpdate(token.user_id, modUser, {new: true}, function (err, user) {
                         if (err) {
