@@ -2,10 +2,12 @@ language: node_js
 node_js:
 - 8.10.0
 install:
+  - npm install mocha
   - npm install -g istanbul
   - npm install -g codecov
 services:
   - mongodb
 script:
-  - istanbul cover ./node_modules/mocha/bin/_mocha -- -R spec
-  - codecov
+  - cd .
+  - cd ./node_modules/mocha
+  - istanbul cover ./node_modules/mocha/bin/_mocha -- -R spec && codecov
