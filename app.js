@@ -23,7 +23,7 @@ app.use(bodyParser.json());
 
 //Mongose
 mongoose.Promise = global.Promise; // To avoid a warning
-mongoose.connect(config.DBHost, {useMongoClient: true}, function (err, res) {
+mongoose.connect(process.env.DBHOST || config.DBHost, {useMongoClient: true}, function (err, res) {
     if (err) {
         console.error('Error connecting to "%s":', config.DBHost, err);
     } else {

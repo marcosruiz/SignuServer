@@ -13,8 +13,8 @@ var HttpStatus = require('http-status-codes');
 var AppStatus = require('../../public/routes/app-err-codes-en');
 var getJsonApp = AppStatus.getJsonApp;
 var GAP_TIME_TO_EMAIL = 1800000; // milliseconds
-var fromEmail = require('./emailConfig').EMAIL_SECRET;
-var fromPass = require('./emailConfig').PASS_SECRET;
+var fromEmail = process.env.EMAIL_SECRET;
+var fromPass = process.env.PASS_SECRET;
 
 function userRoutes(app) {
     router.post('/signup', createUser);
