@@ -2,11 +2,11 @@
 
 Server to manage PDFs and users of Signu mobile app
 
-## Info
-
 ## Status
 
 [![Build Status](https://travis-ci.com/marcosruiz/SignuServer.svg?branch=master)](https://travis-ci.com/marcosruiz/SignuServer)
+
+[![codecov](https://codecov.io/gh/marcosruiz/SignuServer/branch/master/graph/badge.svg)](https://codecov.io/gh/marcosruiz/SignuServer)
 
 
 ## How to install
