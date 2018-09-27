@@ -3,10 +3,6 @@
 node_modules/*
 uploads/
 uploads-test/
-routes/restrictedArea/emailConfig.js
-routes/authorisation/config.js
-# sslcert/csr.csr
-# sslcert/server.crt
 sslcert/server.key
 .nyc_output/
 .idea/
