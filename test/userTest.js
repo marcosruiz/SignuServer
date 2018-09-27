@@ -51,8 +51,7 @@ describe('Users', function () {
             if (err) {
                 console.log(err);
             } else {
-                done();
-            }
+                done();            }
         });
     });
 
