@@ -18,7 +18,10 @@ Server to manage PDFs and users of Signu mobile app
 - Add MONGO_PATH as a Enviroment Variable
 - Add %MONGO_HOME%/bin to your path (if you are in Windows)
 - Start "mongod" in a prompt
-- Rename routes/restrictedArea/emailConfigExample.js to emailConfig.js and write a valid email
+- Add enviroment variables such as
+    - EMAIL_SECRET
+    - PASS_SECRET
+    - TOKEN_SECRET
 - If you want to let your google account send mails, go there and put ON the less secure options or use an application password: https://myaccount.google.com/lesssecureapps?pli=1
 - Copy in sslcert/ server.crt and server.key (you can use sslcert and command lines to do that). This is necessary to use the protocol HTTPS
 - Run test/pdfTest.js to check everything is OK
