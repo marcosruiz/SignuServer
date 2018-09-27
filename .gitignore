@@ -6,4 +6,4 @@ uploads-test/
 sslcert/server.key
 .nyc_output/
 .idea/
-coverage/
+coverage/*
