@@ -43,7 +43,7 @@ describe('Users', function () {
     var testClient1;
 
     /**
-     * Create client
+     * Create a client
      */
     mocha.before(function (done) {
         testClient1 = new Client({clientId: 'application', clientSecret: 'secret'});
@@ -67,7 +67,6 @@ describe('Users', function () {
                 done();
             }
         });
-
     });
 
     /**
@@ -198,7 +197,6 @@ describe('Users', function () {
                 });
             }
         });
-
     });
 
     /**

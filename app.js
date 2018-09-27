@@ -21,10 +21,10 @@ app.use(bodyParser.urlencoded({extended: true, parameterLimit: '1000000', limit:
 app.use(bodyParser.json());
 
 //Mongose
-mongoose.Promise = global.Promise; // To avoid a warning
-mongoose.connect(config.DBHost, function (err, res) {
+// mongoose.Promise = global.Promise; // To avoid a warning
+mongoose.connect(config.DBHost, {useMongoClient: true}, function (err, res) {
     if (err) {
-        return console.error('Error connecting to "%s":', config.DBHost, err);
+        console.error('Error connecting to "%s":', config.DBHost, err);
     } else {
         console.log('Connected successfully to "%s"', config.DBHost);
     }

@@ -291,14 +291,26 @@ describe('Pdfs', function () {
     });
 
     /**
-     * Delete all clients
+     * Delete all clients, users and pdfs
      */
     mocha.after(function (done) {
         Client.remove({}, function (err) {
             if (err) {
                 console.log(err);
             } else {
-                done();
+                User.remove({}, function (err) {
+                    if (err) {
+                        console.log(err);
+                    } else {
+                        Pdf.remove({}, function () {
+                            if (err) {
+                                console.log(err);
+                            } else {
+                                done();
+                            }
+                        });
+                    }
+                });
             }
         });
 
@@ -586,7 +598,6 @@ describe('Pdfs', function () {
                             .field('last_edition_date', testPdf.last_edition_date.toString())
                             .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                             .end(function (err, res) {
-                                console.log(res.body);
                                 checkPdf(res);
                                 res.body.data.pdf.signers.length.should.be.eql(1);
                                 res.body.data.pdf.signers.pop().is_signed.should.be.eql(true);
@@ -846,7 +857,6 @@ describe('Pdfs', function () {
                     agent1.put('/api/pdfs/unlock/' + testPdf5._id.toString())
                         .set('Authorization', 'Bearer ' + resToken1.body.access_token)
                         .end(function (err, res) {
-                            console.log(res.body);
                             checkPdf(res);
                             agent1.put('/api/pdfs/' + testPdf5._id.toString())
                                 .set('Authorization', 'Bearer ' + resToken1.body.access_token)
