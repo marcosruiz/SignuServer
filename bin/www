@@ -20,7 +20,7 @@ var https = require('https');
  * Get port from environment and store in Express.
  */
 
-var port = normalizePort(process.env.PORT_HTTP || '3000');
+var port = normalizePort(process.env.PORT || '3000');
 app.set('httpPort', port);
 // app.set('httpsPort', httpsPort);
 
@@ -30,7 +30,9 @@ app.set('httpPort', port);
 var httpServer = http.createServer(app);
 
 // Listen on provided port, on all network interfaces.
-httpServer.listen(port);
+httpServer.listen(port, function () {
+    console.log("Server is listening on port %d in %s mode", port, app.settings.env);
+});
 httpServer.on('error', onError);
 httpServer.on('listening', onListening);
 
