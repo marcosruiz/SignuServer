@@ -8,6 +8,6 @@ install:
 services:
   - mongodb
 script:
-  - cd .
-  - cd ./node_modules/mocha
+  - ls .
+  - ls ./node_modules/mocha
   - istanbul cover ./node_modules/mocha/bin/_mocha -- -R spec && codecov
