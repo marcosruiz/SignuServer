@@ -150,10 +150,11 @@ function createUser(req, res) {
                     } else if (user == null) {
                         res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_FOUND));
                     } else {
+                        var route = req.protocol + '://' +req.get('host') + '/activateuser?_id=' + user._id + '&code=' + randomString;
                         var mailOptions = {
                             to: user.email,
                             subject: 'Activate your user in Signu',
-                            html: '<p>Click <a href="http://localhost:3000/activateuser?_id=' + user._id + '&code=' + randomString + '">here</a> and click on the button to activate your email. You have 30 minutes to do it.</p>' +
+                            html: '<p>Click <a href="' + route + '">here</a> and click on the button to activate your email. You have 30 minutes to do it.</p>' +
                             '<p>Ignore this email if you did not request it</p>' +
                             '<p>Here you have your code to finish your autentication: </p>' +
                             '<h1>' + randomString + '</h1>' +
