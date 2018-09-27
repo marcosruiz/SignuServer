@@ -281,39 +281,33 @@ describe('Pdfs', function () {
      */
     mocha.before(function (done) {
         testClient1 = new Client({clientId: 'application', clientSecret: 'secret'});
-        testClient1.save(function (err, client) {
-            if (err) {
-                console.log(err);
-            } else {
-                done();
-            }
-        });
+        done();
+        // testClient1.save(function (err, client) {
+        //     if (err) {
+        //         console.log(err);
+        //     } else {
+        //         done();
+        //     }
+        // });
     });
 
     /**
      * Delete all clients, users and pdfs
      */
     mocha.after(function (done) {
-        Client.remove({}, function (err) {
+        User.remove({}, function (err) {
             if (err) {
                 console.log(err);
             } else {
-                User.remove({}, function (err) {
+                Pdf.remove({}, function () {
                     if (err) {
                         console.log(err);
                     } else {
-                        Pdf.remove({}, function () {
-                            if (err) {
-                                console.log(err);
-                            } else {
-                                done();
-                            }
-                        });
+                        done();
                     }
                 });
             }
         });
-
     });
 
     /**

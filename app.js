@@ -14,6 +14,7 @@ var swaggerDocument = require('./swagger.json');
 var OAuth2Server = require('oauth2-server');
 var HttpStatus = require('http-status-codes');
 var AppStatus = require('./public/routes/app-err-codes-en');
+var Client = require('./routes/models/client');
 
 var app = express();
 
@@ -21,12 +22,31 @@ app.use(bodyParser.urlencoded({extended: true, parameterLimit: '1000000', limit:
 app.use(bodyParser.json());
 
 //Mongose
-// mongoose.Promise = global.Promise; // To avoid a warning
+mongoose.Promise = global.Promise; // To avoid a warning
 mongoose.connect(config.DBHost, {useMongoClient: true}, function (err, res) {
     if (err) {
         console.error('Error connecting to "%s":', config.DBHost, err);
     } else {
         console.log('Connected successfully to "%s"', config.DBHost);
+        // Add client application if not exists
+        var client = new Client({clientId: 'application', clientSecret: 'secret'});
+        Client.findOne({clientId: 'application', clientSecret: 'secret'}, function(err, res){
+            if(err){
+                console.log(err);
+            } else {
+                if(res){
+                    console.log("Client not created cause it already was created");
+                } else{
+                    client.save(function (err, client) {
+                        if (err) {
+                            console.log(err);
+                        } else{
+                            console.log("Client created");
+                        }
+                    });
+                }
+            }
+        });
     }
 });
 
