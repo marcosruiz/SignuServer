@@ -1388,6 +1388,7 @@
       }
     },
     "/pdfs/unlock/{pdf_id}": {
+      "deprecated": true,
       "put": {
         "security": [
           {

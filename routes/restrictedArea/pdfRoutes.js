@@ -21,16 +21,8 @@ var UserRoutes = require('./userRoutes.js');
 
 function pdfRoutes(app) {
 
-    router.get('/:pdf_id', app.oauth.authorise(), getPdf);
+    router.get('/:pdf_id', app.oauth.authorise(), downloadPdf);
     router.get('/status/:pdf_id', app.oauth.authorise(), getInfoPdf);
-    router.put('/unlock/:pdf_id', app.oauth.authorise(), unlockPdf);
-    router.post('/unlock/:pdf_id', app.oauth.authorise(), function (req, res, next) {
-        if (req.body._method == 'put') {
-            unlockPdf(req, res);
-        } else {
-            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
-        }
-    });
     router.put('/addsigners/:pdf_id', upload.single('pdf'), app.oauth.authorise(), addSignersToPdf);
     router.post('/addsigners/:pdf_id', upload.single('pdf'), app.oauth.authorise(), function (req, res) {
         if (req.body._method = 'put') {
@@ -64,9 +56,11 @@ function pdfRoutes(app) {
 }
 
 /**
- * Download pdf
+ * Download a pdf
+ * @param {Object} req - req.params.pdf_id
+ * @param {Object} res -
  */
-function getPdf(req, res) {
+function downloadPdf(req, res) {
     var myToken = req.headers.authorization.split(" ", 2)[1];
     AccessTokenModel.getAccessToken(myToken, function (err, token) {
         if (err) {
@@ -98,59 +92,11 @@ function getPdf(req, res) {
     });
 }
 
-/**
- * Unlock a pdf during 1 min to a specific user if
- * pdf exists and
- * (there is no previus signer or
- * previus signer LOCK_TIME expired or
- * previus signer signed with success )
- * @param {Object} req
- * @param {Object} res
- */
-function unlockPdf(req, res) {
-    var myToken = req.headers.authorization.split(" ", 2)[1];
-    AccessTokenModel.getAccessToken(myToken, function (err, token) {
-        if (err) {
-            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
-        } else if (token == null) {
-            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));
-        } else {
-            var isAnyUserSigning = {success: false};
-            PdfModel.findById(req.params.pdf_id, function (err, pdf) {
-                var timeDiff = (Date.now() - pdf.is_any_user_signing.when);
-                if (err) {
-                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
-                } else if (pdf == null) {
-                    res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
-                } else if (pdf.is_any_user_signing._id == null || timeDiff >= LOCK_TIME || pdf.is_any_user_signing.success == true) {
-                    // Everything OK: no one more is trying to sign this pdf
-                    var newPdf = {
-                        is_any_user_signing: {_id: token.user_id, when: Date.now(), success: false}
-                    };
-                    PdfModel.findByIdAndUpdate(pdf._id, newPdf, null, function (err, pdf) {
-                        if (err) {
-                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
-                        } else if (pdf == null) {
-                            res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
-                        } else {
-                            res.json({
-                                code: AppStatus.PDF_UNLOCKED,
-                                message: AppStatus.getStatusText(AppStatus.PDF_UNLOCKED),
-                                data: {pdf: pdf}
-                            });
-                        }
-                    });
-                } else {
-                    res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.PDF_NOT_LOCKED_BY_YOU));
-                }
-            });
-        }
-    });
-}
-
 
 /**
  * Upload a new PDF with pending signatures
+ * @param {Object} req - req.body : {signers}
+ * @param {Object} res - 200 if everything OK
  */
 function uploadPdf(req, res) {
     var myToken = req.headers.authorization.split(" ", 2)[1];
@@ -169,7 +115,7 @@ function uploadPdf(req, res) {
                 "with_stamp": false,
                 "encoding": req.file.encoding,
                 "creation_date": Date.now(),
-                "last_edition_date" : Date.now(),
+                "last_edition_date": Date.now(),
                 "owner_id": token.user_id
             });
 
@@ -211,11 +157,10 @@ function uploadPdf(req, res) {
 
 /**
  * Add signers to pdf
- * @param req
- * @param res
+ * @param {Object} req - req.params.pdf_id req.body.signers
+ * @param {Object} res - 200 if everything OK
  */
 function addSignersToPdf(req, res) {
-
     var myToken = req.headers.authorization.split(" ", 2)[1];
     AccessTokenModel.getAccessToken(myToken, function (err, token) {
         if (err) {
@@ -276,9 +221,10 @@ function addSignersToPdf(req, res) {
 
 /**
  * Add a signer to pdf
+ * @param {Object} req - req.params.pdf_id req.body : {signer_id}
+ * @param {Object} res - 200 if signer is added to pdf
  */
 function addSignerToPdf(req, res) {
-
     var myToken = req.headers.authorization.split(" ", 2)[1];
     AccessTokenModel.getAccessToken(myToken, function (err, token) {
         if (err) {
@@ -338,9 +284,9 @@ function isSignerThere(signersArray, userId) {
 }
 
 /**
- * Sign a PDF. You should previusly unlock
- * @param {Object} req - req : {}
- * @param res
+ * Sign a PDF
+ * @param {Object} req - req.body : {pdf_id, last_edition_date}
+ * @param {Object} res - 200 if everything OK
  */
 function signPdf(req, res) {
     var myToken = req.headers.authorization.split(" ", 2)[1];
@@ -355,62 +301,38 @@ function signPdf(req, res) {
             } else if (err) {
                 res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
             } else {
-                PdfModel.findById(req.body.pdf_id, function (err, pdf) {
-                    var timeDiff = (Date.now() - pdf.is_any_user_signing.when);
+                var pdfToFind = {
+                    _id: req.body.pdf_id,
+                    encoding: req.file.encoding,
+                    last_edition_date: req.body.last_edition_date,
+                    signers: {_id: token.user_id, is_signed: false}
+                };
+                var now = Date.now();
+                var pdfToUpdate = {
+                    path: req.file.path,
+                    filename: req.file.filename,
+                    mime_type: req.file.mime_type,
+                    last_edition_date: now,
+                    'signers.$.is_signed': true,
+                    'signers.$.signature_date': now
+                };
+                PdfModel.findOneAndUpdate(pdfToFind, pdfToUpdate, {new: true}, function (err, pdf) {
                     if (err) {
                         res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
                     } else if (pdf == null) {
                         res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
-                    } else if(pdf.last_edition_date.toString() != req.body.last_edition_date){
-                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.PDF_OUTDATED));
-                    }else if (pdf.is_any_user_signing == null || pdf.is_any_user_signing._id == null) {
-                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.PDF_NOT_LOCKED));
-                    } else if (!pdf.is_any_user_signing._id.equals(token.user_id)) {
-                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.PDF_LOCKED));
-                    } else if (timeDiff >= LOCK_TIME) {
-                        res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.PDF_TIMEOUT));
                     } else {
-                        var arraySigner = pdf.signers.filter(function (item) {
-                            return item._id.equals(token.user_id);
+                        // Delete old file
+                        fs.unlink(pdf.path, function (err) {
+                            if (err) {
+                                console.error(err);
+                            }
                         });
-                        var actualSigner = arraySigner[0];
-                        var index = pdf.signers.indexOf(actualSigner);
-                        if (arraySigner.length < 1) {
-                            res.status(HttpStatus.FORBIDDEN).json(getJsonAppError(AppStatus.PDF_NOT_SIGNER));
-                        } else if (actualSigner.is_signed) {
-                            res.status(HttpStatus.FORBIDDEN).json(getJsonAppError(AppStatus.PDF_SIGNED));
-                        } else {
-                            // Delete old file
-                            fs.unlink(pdf.path, function (err) {
-                                if (err) {
-                                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
-                                } else {
-                                    // Update database
-                                    pdf.path = req.file.path;
-                                    pdf.file_name = req.file.filename;
-                                    // pdf.destination = req.file.destination;
-                                    pdf.encoding = req.file.encoding;
-                                    // pdf.mime_type = req.file.mimetype;
-                                    // pdf.signers[index].signer_id = token.user_id;
-                                    pdf.is_any_user_signing.success = true;
-                                    pdf.signers[index].is_signed = true;
-                                    pdf.signers[index].signature_date = Date.now();
-                                    PdfModel.findByIdAndUpdate(pdf._id, pdf, {new: true}, function (err, pdf) {
-                                        if (err) {
-                                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
-                                        } else if (pdf == null) {
-                                            res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
-                                        } else {
-                                            res.json({
-                                                code: AppStatus.PDF_SIGNED,
-                                                message: AppStatus.getStatusText(AppStatus.PDF_SIGNED),
-                                                data: {pdf: pdf}
-                                            });
-                                        }
-                                    });
-                                }
-                            });
-                        }
+                        res.json({
+                            code: AppStatus.PDF_SIGNED,
+                            message: AppStatus.getStatusText(AppStatus.PDF_SIGNED),
+                            data: {pdf: pdf}
+                        });
                     }
                 });
             }
@@ -420,11 +342,10 @@ function signPdf(req, res) {
 
 /**
  * Delete a pdf from database and filesystem
- * @param req
- * @param res
+ * @param {Object} req - req.params.pdf_id
+ * @param {Object} res - 200 if pdf is deleted from filesystem and database
  */
 function deletePdf(req, res) {
-
     var myToken = req.headers.authorization.split(" ", 2)[1];
     AccessTokenModel.getAccessToken(myToken, function (err, token) {
         if (err) {
@@ -467,6 +388,8 @@ function deletePdf(req, res) {
 
 /**
  * Get info of pdf
+ * @param {Object} req - req.params.pdf_id
+ * @param {Object} res - 200 if everything OK
  */
 function getInfoPdf(req, res) {
     PdfModel.findById(req.params.pdf_id, function (err, pdf) {
