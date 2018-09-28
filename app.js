@@ -107,7 +107,7 @@ app.use(function (err, req, res, next) {
         code: AppStatus.BAD_REQUEST,
         message: err.message || AppStatus.getStatusText(AppStatus.BAD_REQUEST)
     });
-    res.render('error');
+    // res.render('error');
 });
 
 module.exports = app;

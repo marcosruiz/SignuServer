@@ -47,25 +47,14 @@ describe('Users', function () {
      */
     mocha.before(function (done) {
         testClient1 = new Client({clientId: 'application', clientSecret: 'secret'});
-        testClient1.save(function (err, client) {
-            if (err) {
-                console.log(err);
-            } else {
-                done();            }
-        });
+        done();
     });
 
     /**
      * Delete all clients
      */
     mocha.after(function (done) {
-        Client.remove({}, function (err) {
-            if (err) {
-                console.log(err);
-            } else {
-                done();
-            }
-        });
+        done();
     });
 
     /**
@@ -233,7 +222,7 @@ describe('Users', function () {
     /*
      * Test the /POST route
      */
-    describe('CREATE USER or SIGNUP tests', function () {
+    describe('CREATE USER tests', function () {
         it('it should POST a user', function (done) {
             var user = {
                 email: "testEmail@test",
@@ -242,8 +231,7 @@ describe('Users', function () {
                 password: "TestPassword"
             };
             var agent = chai.request.agent(server);
-            var url = agent.get('').url;
-            agent.post('/api/users/signup')
+            agent.post('/api/users/create')
                 .send(user)
                 .end(function (err, res) {
                     checkUser(res);
@@ -261,7 +249,7 @@ describe('Users', function () {
                 password: "TestPassword"
             };
             chai.request(server)
-                .post('/api/users/signup')
+                .post('/api/users/create')
                 .send(user)
                 .end(function (err, res) {
                     checkUser(res);
@@ -290,7 +278,7 @@ describe('Users', function () {
                 password: "TestPassword"
             };
             chai.request(server)
-                .post('/api/users/signup')
+                .post('/api/users/create')
                 .send(user)
                 .end(function (err, res) {
                     checkUser(res);
@@ -322,7 +310,7 @@ describe('Users', function () {
                 password: "passwordTest"
             };
             chai.request(server)
-                .post('/api/users/signup')
+                .post('/api/users/create')
                 .send(user)
                 .end(function (err, res) {
                     checkUser(res);
@@ -657,26 +645,26 @@ describe('Users', function () {
                 wrong: "newPassTest"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function(err, res){
-                    var user1 = res.body.data.user;
-                    agent.put('/api/users/')
-                        .set('Authorization', 'Bearer ' + token)
-                        .send(editedUser)
-                        .end(function (err, res) {
-                            checkUser(res);
-                            var user2 = res.body.data.user;
-                            expect(user1.creation_date).to.equal(user2.creation_date);
-                            expect(user1.email).to.equal(user2.email);
-                            expect(user1._id).to.equal(user2._id);
-                            expect(user1.last_edition_date).to.not.equal(user2.last_edition_date);
-                            expect(user1.pdfs_owned.length).to.equal(user2.pdfs_owned.length);
-                            expect(user1.pdfs_to_sign.length).to.equal(user2.pdfs_to_sign.length);
-                            expect(user1.users_related.length).to.equal(user2.users_related.length);
-                            expect(user1.name).to.equal(user2.name);
-                            expect(user1.lastname).to.equal(user2.lastname);
-                            done();
-                        });
-                });
+            oauthLogin(user, function (err, res) {
+                var user1 = res.body.data.user;
+                agent.put('/api/users/')
+                    .set('Authorization', 'Bearer ' + token)
+                    .send(editedUser)
+                    .end(function (err, res) {
+                        checkUser(res);
+                        var user2 = res.body.data.user;
+                        expect(user1.creation_date).to.equal(user2.creation_date);
+                        expect(user1.email).to.equal(user2.email);
+                        expect(user1._id).to.equal(user2._id);
+                        expect(user1.last_edition_date).to.not.equal(user2.last_edition_date);
+                        expect(user1.pdfs_owned.length).to.equal(user2.pdfs_owned.length);
+                        expect(user1.pdfs_to_sign.length).to.equal(user2.pdfs_to_sign.length);
+                        expect(user1.users_related.length).to.equal(user2.users_related.length);
+                        expect(user1.name).to.equal(user2.name);
+                        expect(user1.lastname).to.equal(user2.lastname);
+                        done();
+                    });
+            });
         });
 
         it('it should ADD A RELATED_USER', function (done) {
@@ -685,7 +673,7 @@ describe('Users', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function(err, res){
+            oauthLogin(user, function (err, res) {
                 var numUsers1 = res.body.data.user.users_related.length;
                 agent.put('/api/users/related/')
                     .set('Authorization', 'Bearer ' + token)
@@ -705,19 +693,19 @@ describe('Users', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function(err, res){
-                    var numUsers1 = res.body.data.user.users_related.length;
-                    agent.post('/api/users/related/')
-                        .set('Authorization', 'Bearer ' + token)
-                        .send({_method: 'put', related_id: testUser3._id})
-                        .end(function (err, res) {
-                            checkUser(res);
-                            var numUsers2 = res.body.data.user.users_related.length;
-                            res.body.data.user.users_related.should.be.an.Array;
-                            numUsers2.should.be.equal(numUsers1 + 1);
-                            done();
-                        });
-                });
+            oauthLogin(user, function (err, res) {
+                var numUsers1 = res.body.data.user.users_related.length;
+                agent.post('/api/users/related/')
+                    .set('Authorization', 'Bearer ' + token)
+                    .send({_method: 'put', related_id: testUser3._id})
+                    .end(function (err, res) {
+                        checkUser(res);
+                        var numUsers2 = res.body.data.user.users_related.length;
+                        res.body.data.user.users_related.should.be.an.Array;
+                        numUsers2.should.be.equal(numUsers1 + 1);
+                        done();
+                    });
+            });
         });
         it('it should NOT ADD A RELATED_USER cause I am not logged', function (done) {
             var user = {
@@ -743,19 +731,19 @@ describe('Users', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function(err, res){
-                    var numUsers1 = res.body.data.user.users_related.length;
-                    agent.put('/api/users/related/')
-                        .set('Authorization', 'Bearer ' + token)
-                        .send({related_id: testUser2._id})
-                        .end(function (err, res) {
-                            checkUser(res);
-                            var numUsers2 = res.body.data.user.users_related.length;
-                            res.body.data.user.users_related.should.be.an.Array;
-                            numUsers2.should.be.equal(numUsers1);
-                            done();
-                        });
-                });
+            oauthLogin(user, function (err, res) {
+                var numUsers1 = res.body.data.user.users_related.length;
+                agent.put('/api/users/related/')
+                    .set('Authorization', 'Bearer ' + token)
+                    .send({related_id: testUser2._id})
+                    .end(function (err, res) {
+                        checkUser(res);
+                        var numUsers2 = res.body.data.user.users_related.length;
+                        res.body.data.user.users_related.should.be.an.Array;
+                        numUsers2.should.be.equal(numUsers1);
+                        done();
+                    });
+            });
         });
 
         it('it should NOT ADD A RELATED_USER cause it is invalid', function (done) {
@@ -782,22 +770,22 @@ describe('Users', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function(err, res){
-                    agent.put('/api/users/related/')
-                        .set('Authorization', 'Bearer ' + token)
-                        .send({related_id: '5b9b93beb4905736bc99e262'})
-                        .end(function (err, res) {
-                            checkError(res);
-                            res.body.code.should.be.equal(AppStatus.USER_NOT_FOUND);
-                            done();
-                        });
-                });
+            oauthLogin(user, function (err, res) {
+                agent.put('/api/users/related/')
+                    .set('Authorization', 'Bearer ' + token)
+                    .send({related_id: '5b9b93beb4905736bc99e262'})
+                    .end(function (err, res) {
+                        checkError(res);
+                        res.body.code.should.be.equal(AppStatus.USER_NOT_FOUND);
+                        done();
+                    });
+            });
         });
     });
 
     describe('GET INFO user tests', function () {
 
-        it('it should GET a user using OAUTH2', function (done) {
+        it('it should GET a user', function (done) {
             var user = {
                 email: "test@test.com",
                 password: "test"

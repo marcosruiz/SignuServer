@@ -3,7 +3,7 @@ extends layout
 block content
   h1= title
   div
-    form(action='api/users/signup', method='post')
+    form(action='api/users/create', method='post')
       div(data-role='fieldcontain')
         fieldset(data-role='controlgroup')
           label(for='name') name

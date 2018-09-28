@@ -774,7 +774,7 @@ describe('Pdfs', function () {
                                 .end(function (err, res) {
                                     checkError(res);
                                     res.body.code.should.be.eql(AppStatus.PDF_NOT_FOUND);
-                                    agent1.get('/api/pdfs/status/' + testPdf5._id.toString())
+                                    agent1.get('/api/pdfs/info/' + testPdf5._id.toString())
                                         .set('Authorization', 'Bearer ' + resToken1.body.access_token)
                                         .end(function (err, res) {
                                             checkPdf(res);
@@ -841,7 +841,7 @@ describe('Pdfs', function () {
             var agent = chai.request.agent(server);
             oauthLogin(user, function (err, res) {
                 checkUser(res);
-                agent.get('/api/pdfs/status/' + testPdf._id)
+                agent.get('/api/pdfs/info/' + testPdf._id)
                     .set('Authorization', 'Bearer ' + token)
                     .end(function (err, res) {
                         checkPdf(res);
@@ -855,7 +855,7 @@ describe('Pdfs', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            agent.get('/api/pdfs/status/' + testPdf._id)
+            agent.get('/api/pdfs/info/' + testPdf._id)
                 .set('Authorization', 'Bearer ' + token)
                 .end(function (err, res) {
                     checkPdf(res);
@@ -870,7 +870,7 @@ describe('Pdfs', function () {
             var agent = chai.request.agent(server);
             oauthLogin(user, function (err, res) {
                 checkUser(res);
-                agent.get('/api/pdfs/status/' + "fdsjflk")
+                agent.get('/api/pdfs/info/' + "fdsjflk")
                     .set('Authorization', 'Bearer ' + token)
                     .end(function (err, res) {
                         res.should.have.status(HttpStatus.INTERNAL_SERVER_ERROR);
@@ -887,7 +887,7 @@ describe('Pdfs', function () {
             var agent = chai.request.agent(server);
             oauthLogin(user, function (err, res) {
                 checkUser(res);
-                agent.get('/api/pdfs/status/' + "5b9239b82a839517ac9e2011")
+                agent.get('/api/pdfs/info/' + "5b9239b82a839517ac9e2011")
                     .set('Authorization', 'Bearer ' + token)
                     .end(function (err, res) {
                         res.should.have.status(HttpStatus.NOT_FOUND);

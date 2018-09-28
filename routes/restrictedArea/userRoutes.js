@@ -17,8 +17,7 @@ var fromEmail = process.env.EMAIL_SECRET;
 var fromPass = process.env.PASS_SECRET;
 
 function userRoutes(app) {
-    router.post('/signup', createUser);
-    //router.post('/login', loginUser);
+    router.post('/create', createUser);
     router.post('/logout', app.oauth.authorise(), logOutUser);
     router.get('/info', app.oauth.authorise(), getInfoUser);
 
@@ -83,34 +82,34 @@ function userRoutes(app) {
  * Delete references to eliminated PDFs
  * @param {Object} user - {pdfs_to_sign, users_related}
  */
-function checkUser(user) {
-    // Update pdfs
-    if (user.pdfs_to_sign != undefined) {
-        user.pdfs_to_sign.forEach(function (pdf_id) {
-            Pdf.findById(pdf_id, function (err, pdf) {
-                if (err) {
-                } else if (pdf == undefined) {
-                    // Delete from my pdfs
-                    User.findByIdAndUpdate(user._id, {$pull: ({"pdfs_to_sign": pdf_id})});
-                }
-            });
-        });
-    }
-    // Update related users
-    if (user.users_related != undefined) {
-        user.users_related.forEach(function (pdf_id) {
-            Pdf.findById(pdf_id, function (err, pdf) {
-                if (err) {
-                } else if (pdf == null) {
-                    // Delete from my pdfs
-                    User.findByIdAndUpdate(user._id, {$pull: ({"users_related": pdf_id})});
-                }
-            });
-        });
-    }
-
-    return;
-}
+// function checkUser(user) {
+//     // Update pdfs
+//     if (user.pdfs_to_sign != undefined) {
+//         user.pdfs_to_sign.forEach(function (pdf_id) {
+//             Pdf.findById(pdf_id, function (err, pdf) {
+//                 if (err) {
+//                 } else if (pdf == undefined) {
+//                     // Delete from my pdfs
+//                     User.findByIdAndUpdate(user._id, {$pull: ({"pdfs_to_sign": pdf_id})});
+//                 }
+//             });
+//         });
+//     }
+//     // Update related users
+//     if (user.users_related != undefined) {
+//         user.users_related.forEach(function (pdf_id) {
+//             Pdf.findById(pdf_id, function (err, pdf) {
+//                 if (err) {
+//                 } else if (pdf == null) {
+//                     // Delete from my pdfs
+//                     User.findByIdAndUpdate(user._id, {$pull: ({"users_related": pdf_id})});
+//                 }
+//             });
+//         });
+//     }
+//
+//     return;
+// }
 
 /**
  * User exists and activated -> Error

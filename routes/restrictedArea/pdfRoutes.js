@@ -22,7 +22,7 @@ var UserRoutes = require('./userRoutes.js');
 function pdfRoutes(app) {
 
     router.get('/:pdf_id', app.oauth.authorise(), downloadPdf);
-    router.get('/status/:pdf_id', app.oauth.authorise(), getInfoPdf);
+    router.get('/info/:pdf_id', app.oauth.authorise(), getInfoPdf);
     router.put('/addsigners/:pdf_id', upload.single('pdf'), app.oauth.authorise(), addSignersToPdf);
     router.post('/addsigners/:pdf_id', upload.single('pdf'), app.oauth.authorise(), function (req, res) {
         if (req.body._method = 'put') {
@@ -119,7 +119,7 @@ function uploadPdf(req, res) {
                 "owner_id": token.user_id
             });
 
-            // Add signatures
+            // Add signers
             var signers = [];
             if (req.body.signers != null) {
                 // Creates a array of signers without duplicates
@@ -131,7 +131,7 @@ function uploadPdf(req, res) {
 
                 for (var i = 0; i < uniqueSigners; i++) {
                     if (req.body.signers[i] != '') {
-                        signer = {_id: uniqueSigners[i], is_signed: false, signature_date: null};
+                        signer = {_id: uniqueSigners[i], is_signed: false, signature_date: undefined};
                         signers.push(signer);
                     }
                 }
