@@ -496,7 +496,8 @@ function editNextEmail(req, res) {
                 modUser.next_email.when = Date.now();
                 modUser.next_email.code = randomString;
             }
-            var route = req.protocol + '://' +req.get('host') + '/confirmnewemail?_id=' + user._id + '&code=' + randomString;
+            var route = req.protocol + '://' +req.get('host') + '/confirmnewemail?_id=' + token.user_id + '&code=' + randomString;
+
             var mailOptions = {
                 to: req.body.email,
                 subject: 'Activate your user in Signu',
