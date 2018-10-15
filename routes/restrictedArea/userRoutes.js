@@ -192,10 +192,11 @@ function createUser(req, res) {
                             } else if (user == null) {
                                 res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_FOUND));
                             } else {
+                                var route = req.protocol + '://' +req.get('host') + '/activateuser?_id=' + user._id + '&code=' + randomString;
                                 var mailOptions = {
                                     to: user.email,
                                     subject: 'Activate your user in Signu',
-                                    html: '<p>Click <a href="http://localhost:3000/activateuser?_id=' + user._id + '&code=' + randomString + '">here</a> and click on the button to activate your email. You have 30 minutes to do it.</p>' +
+                                    html: '<p>Click <a href="' + route + '">here</a> and click on the button to activate your email. You have 30 minutes to do it.</p>' +
                                     '<p>Ignore this email if you did not request it</p>' +
                                     '<p>Here you have your code to finish your autentication: </p>' +
                                     '<h1>' + randomString + '</h1>' +
@@ -495,11 +496,11 @@ function editNextEmail(req, res) {
                 modUser.next_email.when = Date.now();
                 modUser.next_email.code = randomString;
             }
+            var route = req.protocol + '://' +req.get('host') + '/confirmnewemail?_id=' + user._id + '&code=' + randomString;
             var mailOptions = {
                 to: req.body.email,
                 subject: 'Activate your user in Signu',
-                html: '<p>Click <a href="http://localhost:3000/confirmnewemail?_id=' + token.user_id +
-                '&code=' + randomString +
+                html: '<p>Click <a href="' + route +
                 '">here</a> and click on the button to change to your new email. You have 30 minutes to do it.</p>' +
                 '<p>Ignore this email if you did not request it</p>' +
                 '<p>If you prefer, here you have your code to finish your autentication: </p>' +

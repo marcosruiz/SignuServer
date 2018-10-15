@@ -15,13 +15,13 @@
   ],
   "basePath": "/api/",
   "paths": {
-    "/users/signup": {
+    "/users/create": {
       "post": {
         "tags": [
           "user"
         ],
         "summary": "Create a new user desactivated",
-        "description": "Return a user",
+        "description": "Return a user and send a confirmation email",
         "parameters": [
           {
             "in": "body",
