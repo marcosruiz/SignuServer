@@ -205,6 +205,7 @@ function addSignersToPdf(req, res) {
                             } else if (pdf == null) {
                                 res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
                             } else {
+                                UserRoutes.addPdfToUsers(pdf);
                                 res.json({
                                     code: AppStatus.PDF_SIGNER_ADDED,
                                     message: AppStatus.getStatusText(AppStatus.PDF_SIGNER_ADDED),
@@ -254,6 +255,7 @@ function addSignerToPdf(req, res) {
                         } else if (newPdf.signers.length == pdf.signers.length) {
                             res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
                         } else {
+                            UserRoutes.addPdfToUsers(newPdf);
                             res.json({
                                 code: AppStatus.PDF_SIGNER_ADDED,
                                 message: AppStatus.getStatusText(AppStatus.PDF_SIGNER_ADDED),
@@ -328,6 +330,7 @@ function signPdf(req, res) {
                                 console.error(err);
                             }
                         });
+                        UserRoutes.notifySign(token.user_id, pdf._id);
                         res.json({
                             code: AppStatus.PDF_SIGNED,
                             message: AppStatus.getStatusText(AppStatus.PDF_SIGNED),

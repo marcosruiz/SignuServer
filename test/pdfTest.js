@@ -30,7 +30,7 @@ var checkError = require('./commonTestFunctions').checkError;
 chai.use(chaiHttp);
 
 var token;
-var testUser, testUser2, testUser3, testPdf, testPdf2, testPdf3, testPdf4, testPdf5;
+var testUser1, testUser2, testUser3, testPdf1, testPdf2, testPdf3, testPdf4, testPdf5; // From mongo
 var testClient1;
 
 /**
@@ -81,7 +81,7 @@ describe('Pdfs', function () {
 
         // Add users and pdfs
         User.remove({}, function (err) {
-            // Owner
+            // Owner on 1,2,3,4,5 and singer on 4,5
             var newUser1 = new User({
                 "password": "test",
                 "email": "test@test",
@@ -95,7 +95,7 @@ describe('Pdfs', function () {
                 "related_people": [],
                 "activation": {is_activated: true, when: Date.now()}
             });
-            // Signer
+            // Signer on 1,2,4,5
             var newUser2 = new User({
                 "password": "test2",
                 "email": "test2@test2",
@@ -126,7 +126,7 @@ describe('Pdfs', function () {
 
             // Adding users
             newUser1.save(function (err, user) {
-                testUser = user;
+                testUser1 = user;
                 newUser2.save(function (err, user) {
                     testUser2 = user;
                     newUser3.save(function (err, user) {
@@ -134,7 +134,7 @@ describe('Pdfs', function () {
                         Pdf.remove({}, function () {
                             var newPdf = new Pdf({
                                 original_name: "original_name",
-                                owner_id: testUser._id,
+                                owner_id: testUser1._id,
                                 mime_type: "application/pdf",
                                 file_name: "test",
                                 path: config.uploads_dir + "test",
@@ -151,7 +151,7 @@ describe('Pdfs', function () {
                             });
                             var newPdf2 = new Pdf({
                                 original_name: "original_name",
-                                owner_id: testUser._id,
+                                owner_id: testUser1._id,
                                 mime_type: "application/pdf",
                                 with_stamp: false,
                                 file_name: "test2",
@@ -169,7 +169,7 @@ describe('Pdfs', function () {
                             });
                             var newPdf3 = new Pdf({
                                 original_name: "original_name",
-                                owner_id: testUser._id,
+                                owner_id: testUser1._id,
                                 mime_type: "application/pdf",
                                 file_name: "test3",
                                 path: config.uploads_dir + "test3",
@@ -182,7 +182,7 @@ describe('Pdfs', function () {
                             });
                             var newPdf4 = new Pdf({
                                 original_name: "original_name",
-                                owner_id: testUser._id,
+                                owner_id: testUser1._id,
                                 mime_type: "application/pdf",
                                 file_name: "test4",
                                 path: config.uploads_dir + "test4",
@@ -196,7 +196,7 @@ describe('Pdfs', function () {
                                     is_signed: true,
                                     signature_date: Date.now()
                                 }, {
-                                    _id: testUser._id,
+                                    _id: testUser1._id,
                                     is_signed: false,
                                     signature_date: undefined
                                 }],
@@ -204,7 +204,7 @@ describe('Pdfs', function () {
                             });
                             var newPdf5 = new Pdf({
                                 original_name: "original_name",
-                                owner_id: testUser._id,
+                                owner_id: testUser1._id,
                                 mime_type: "application/pdf",
                                 file_name: "test5",
                                 path: config.uploads_dir + "test5",
@@ -218,7 +218,7 @@ describe('Pdfs', function () {
                                     is_signed: false,
                                     signature_date: undefined
                                 }, {
-                                    _id: testUser._id,
+                                    _id: testUser1._id,
                                     is_signed: false,
                                     signature_date: undefined
                                 }],
@@ -228,7 +228,7 @@ describe('Pdfs', function () {
                                 if (err) {
                                     console.log(err);
                                 } else {
-                                    testPdf = pdf;
+                                    testPdf1 = pdf;
                                     newPdf2.save(function (err, pdf) {
                                         if (err) {
                                             console.log(err);
@@ -249,6 +249,32 @@ describe('Pdfs', function () {
                                                                     console.log(err);
                                                                 } else {
                                                                     testPdf5 = pdf;
+                                                                    // Edit users
+                                                                    // TODO: ADD users
+                                                                    testUser1.password = "test";
+                                                                    testUser2.password = "test2";
+                                                                    testUser1.pdfs_owned = [testPdf1._id, testPdf2._id, testPdf3._id, testPdf4._id, testPdf5._id];
+                                                                    testUser1.pdfs_to_sign = [testPdf4._id, testPdf5._id];
+                                                                    testUser2.pdfs_to_sign = [testPdf1._id, testPdf2._id, testPdf4._id, testPdf5._id];
+                                                                    testUser1.save(function(err, res){
+                                                                        if(err){
+                                                                            console.log(err)
+                                                                        } else {
+                                                                            testUser2.save(function(err, res){
+                                                                                if(err){
+                                                                                    console.log(err)
+                                                                                } else{
+                                                                                    //Create a test file
+                                                                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test'));
+                                                                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test2'));
+                                                                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test3'));
+                                                                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test4'));
+                                                                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test5'));
+                                                                                    done();
+                                                                                }
+                                                                            });
+                                                                        }
+                                                                    });
                                                                 }
                                                             });
                                                         }
@@ -257,13 +283,6 @@ describe('Pdfs', function () {
                                             });
                                         }
                                     });
-                                    //Create a test file
-                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test'));
-                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test2'));
-                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test3'));
-                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test4'));
-                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test5'));
-                                    done();
                                 }
                             });
                         });
@@ -313,19 +332,27 @@ describe('Pdfs', function () {
                 password: "test"
             };
             var pdf = {
-                signers: [testUser._id, testUser2._id, testUser3._id]
+                signers: [testUser1._id, testUser2._id, testUser3._id]
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
-                checkUser(res);
+            oauthLogin(user, function (err, res1) {
+                checkUser(res1);
                 agent.post('/api/pdfs/')
                     .set('Authorization', 'Bearer ' + token)
                     .set('content-type', 'multipart/form-data')
                     .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
-                    .end(function (err, res) {
-                        checkPdf(res);
-                        testPdf = res.body;
-                        done();
+                    .end(function (err, res2) {
+                        checkPdf(res2);
+                        testPdf1 = res2.body;
+                        agent.get('/api/users/info')
+                            .set('Authorization', 'Bearer ' + token)
+                            .end(function (err, res3) {
+                                checkUser(res3);
+                                var nPdfs1 = res1.body.data.user.pdfs_owned.length;
+                                var nPdfs2 = res3.body.data.user.pdfs_owned.length;
+                                (nPdfs2).should.be.equal(nPdfs1 + 1);
+                                done();
+                            });
                     });
             });
         });
@@ -351,44 +378,71 @@ describe('Pdfs', function () {
                 email: "test@test",
                 password: "test"
             };
-            var signer_id = {
+            var user2 = {
+                email: "test2@test2",
+                password: "test2"
+            };
+            var body = {
                 signer_id: testUser2._id
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
-                checkUser(res);
-                agent.put('/api/pdfs/addsigner/' + testPdf3._id)
-                    .set('Authorization', 'Bearer ' + token)
-                    .send(signer_id)
-                    .end(function (err, res) {
-                        checkPdf(res);
-                        res.body.data.pdf.signers.length.should.be.eql(1);
-                        res.body.data.pdf.signers.pop().is_signed.should.be.eql(false);
-                        done();
-                    });
+            oauthLogin(user, function (err, resUser1, resToken1) {
+                checkUser(resUser1);
+                oauthLogin(user2, function(err, resUser2, resToken2){
+                    checkUser(resUser2);
+                    agent.put('/api/pdfs/addsigner/' + testPdf3._id)
+                        .set('Authorization', 'Bearer ' + resToken1.body.access_token)
+                        .send(body)
+                        .end(function (err, res) {
+                            checkPdf(res);
+                            agent.get('/api/users/info')
+                                .set('Authorization', 'Bearer ' + resToken2.body.access_token)
+                                .end(function (err, res3) {
+                                    checkUser(res3);
+                                    var nPdfs1 = resUser2.body.data.user.pdfs_to_sign.length;
+                                    var nPdfs2 = res3.body.data.user.pdfs_to_sign.length;
+                                    (nPdfs2).should.be.equal(nPdfs1 + 1);
+                                    done();
+                                });
+                        });
+                });
             });
         });
-        it('it should ADD a signer to a PDF using POST', function (done) {
+
+        it('it should ADD a signer to a PDF using post', function (done) {
             var user = {
                 email: "test@test",
                 password: "test"
             };
-            var signer_id = {
-                _method: 'put',
-                signer_id: testUser2._id
+            var user2 = {
+                email: "test2@test2",
+                password: "test2"
+            };
+            var body = {
+                signer_id: testUser2._id,
+                _method: 'put'
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
-                checkUser(res);
-                agent.post('/api/pdfs/addsigner/' + testPdf3._id)
-                    .set('Authorization', 'Bearer ' + token)
-                    .send(signer_id)
-                    .end(function (err, res) {
-                        checkPdf(res);
-                        res.body.data.pdf.signers.length.should.be.eql(1);
-                        res.body.data.pdf.signers.pop().is_signed.should.be.eql(false);
-                        done();
-                    });
+            oauthLogin(user, function (err, resUser1, resToken1) {
+                checkUser(resUser1);
+                oauthLogin(user2, function(err, resUser2, resToken2){
+                    checkUser(resUser2);
+                    agent.post('/api/pdfs/addsigner/' + testPdf3._id)
+                        .set('Authorization', 'Bearer ' + resToken1.body.access_token)
+                        .send(body)
+                        .end(function (err, res) {
+                            checkPdf(res);
+                            agent.get('/api/users/info')
+                                .set('Authorization', 'Bearer ' + resToken2.body.access_token)
+                                .end(function (err, res3) {
+                                    checkUser(res3);
+                                    var nPdfs1 = resUser2.body.data.user.pdfs_to_sign.length;
+                                    var nPdfs2 = res3.body.data.user.pdfs_to_sign.length;
+                                    (nPdfs2).should.be.equal(nPdfs1 + 1);
+                                    done();
+                                });
+                        });
+                });
             });
         });
         it('it should NOT ADD a signer to a PDF two times (is_signed: false)', function (done) {
@@ -444,67 +498,114 @@ describe('Pdfs', function () {
     });
 
     describe('PUT.ADDSIGNERS tests', function () {
+
         it('it should ADD a signer to a PDF', function (done) {
             var user = {
                 email: "test@test",
                 password: "test"
             };
-            var pdf = {
+            var user2 = {
+                email: "test2@test2",
+                password: "test2"
+            };
+            var body = {
                 signers: [{_id: testUser2._id}]
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
-                checkUser(res);
-                agent.put('/api/pdfs/addsigners/' + testPdf3._id)
-                    .set('Authorization', 'Bearer ' + token)
-                    .send(pdf)
-                    .end(function (err, res) {
-                        checkPdf(res);
-                        res.body.data.pdf.signers.length.should.be.eql(1);
-                        done();
-                    });
+            oauthLogin(user, function (err, resUser1, resToken1) {
+                checkUser(resUser1);
+                oauthLogin(user2, function(err, resUser2, resToken2){
+                    checkUser(resUser2);
+                    agent.put('/api/pdfs/addsigners/' + testPdf3._id)
+                        .set('Authorization', 'Bearer ' + resToken1.body.access_token)
+                        .send(body)
+                        .end(function (err, res) {
+                            checkPdf(res);
+                            agent.get('/api/users/info')
+                                .set('Authorization', 'Bearer ' + resToken2.body.access_token)
+                                .end(function (err, res3) {
+                                    checkUser(res3);
+                                    var nPdfs1 = resUser2.body.data.user.pdfs_to_sign.length;
+                                    var nPdfs2 = res3.body.data.user.pdfs_to_sign.length;
+                                    (nPdfs2).should.be.equal(nPdfs1 + 1);
+                                    done();
+                                });
+                        });
+                });
             });
         });
-        it('it should ADD a signer to a PDF using POST', function (done) {
+
+        it('it should ADD a signer to a PDF using post', function (done) {
             var user = {
                 email: "test@test",
                 password: "test"
             };
-            var pdf = {
+            var user2 = {
+                email: "test2@test2",
+                password: "test2"
+            };
+            var body = {
                 _method: 'put',
                 signers: [{_id: testUser2._id}]
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
-                checkUser(res);
-                agent.post('/api/pdfs/addsigners/' + testPdf3._id)
-                    .set('Authorization', 'Bearer ' + token)
-                    .send(pdf)
-                    .end(function (err, res) {
-                        checkPdf(res);
-                        res.body.data.pdf.signers.length.should.be.eql(1);
-                        done();
-                    });
+            oauthLogin(user, function (err, resUser1, resToken1) {
+                checkUser(resUser1);
+                oauthLogin(user2, function(err, resUser2, resToken2){
+                    checkUser(resUser2);
+                    agent.post('/api/pdfs/addsigners/' + testPdf3._id)
+                        .set('Authorization', 'Bearer ' + resToken1.body.access_token)
+                        .send(body)
+                        .end(function (err, res) {
+                            checkPdf(res);
+                            agent.get('/api/users/info')
+                                .set('Authorization', 'Bearer ' + resToken2.body.access_token)
+                                .end(function (err, res3) {
+                                    checkUser(res3);
+                                    var nPdfs1 = resUser2.body.data.user.pdfs_to_sign.length;
+                                    var nPdfs2 = res3.body.data.user.pdfs_to_sign.length;
+                                    (nPdfs2).should.be.equal(nPdfs1 + 1);
+                                    done();
+                                });
+                        });
+                });
             });
         });
+
         it('it should NOT ADD a signer to a PDF cause is already a signer', function (done) {
             var user = {
                 email: "test@test",
                 password: "test"
             };
+            var user2 = {
+                email: "test2@test2",
+                password: "test2"
+            };
             var pdf = {
                 signers: [{_id: testUser2._id}]
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
-                checkUser(res);
+            oauthLogin(user, function (err, res1) {
+                checkUser(res1);
                 agent.put('/api/pdfs/addsigners/' + testPdf2._id)
                     .set('Authorization', 'Bearer ' + token)
                     .send(pdf)
                     .end(function (err, res) {
                         checkError(res);
                         res.should.have.status(HttpStatus.BAD_REQUEST);
-                        done();
+                        // Check user
+                        oauthLogin(user2, function (err, res1) {
+                            checkUser(res1);
+                            agent.get('/api/users/info')
+                                .set('Authorization', 'Bearer ' + token)
+                                .end(function (err, res3) {
+                                    checkUser(res3);
+                                    var nPdfs1 = res1.body.data.user.pdfs_to_sign.length;
+                                    var nPdfs2 = res3.body.data.user.pdfs_to_sign.length;
+                                    (nPdfs2).should.be.equal(nPdfs1);
+                                    done();
+                                });
+                        });
                     });
             });
         });
@@ -517,15 +618,24 @@ describe('Pdfs', function () {
                 signers: [{_id: testUser3._id}]
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
-                checkUser(res);
+            oauthLogin(user, function (err, res1) {
+                checkUser(res1);
                 agent.put('/api/pdfs/addsigners/' + testPdf4._id)
                     .set('Authorization', 'Bearer ' + token)
                     .send(pdf)
                     .end(function (err, res) {
                         checkError(res);
                         res.should.have.status(HttpStatus.FORBIDDEN);
-                        done();
+                        // Check user
+                        agent.get('/api/users/info')
+                            .set('Authorization', 'Bearer ' + token)
+                            .end(function (err, res3) {
+                                checkUser(res3);
+                                var nPdfs1 = res1.body.data.user.pdfs_to_sign.length;
+                                var nPdfs2 = res3.body.data.user.pdfs_to_sign.length;
+                                (nPdfs2).should.be.equal(nPdfs1);
+                                done();
+                            });
                     });
             });
         });
@@ -538,15 +648,24 @@ describe('Pdfs', function () {
                 signers: [{_id: testUser3._id}]
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
-                checkUser(res);
+            oauthLogin(user, function (err, res1) {
+                checkUser(res1);
                 agent.put('/api/pdfs/addsigners/' + testPdf3._id)
                     .set('Authorization', 'Bearer ' + token)
                     .send(pdf)
                     .end(function (err, res) {
                         checkError(res);
                         res.should.have.status(HttpStatus.UNAUTHORIZED);
-                        done();
+                        // Check user
+                        agent.get('/api/users/info')
+                            .set('Authorization', 'Bearer ' + token)
+                            .end(function (err, res3) {
+                                checkUser(res3);
+                                var nPdfs1 = res1.body.data.user.pdfs_to_sign.length;
+                                var nPdfs2 = res3.body.data.user.pdfs_to_sign.length;
+                                (nPdfs2).should.be.equal(nPdfs1);
+                                done();
+                            });
                     });
             });
         });
@@ -574,29 +693,41 @@ describe('Pdfs', function () {
             var agent = chai.request.agent(server);
             oauthLogin(user, function (err, resUser) {
                 checkUser(resUser);
-                var tempPdf = {pdf_id: testPdf._id, last_edition_date: testPdf.last_edition_date};
-                agent.put('/api/pdfs/' + testPdf._id)
+                var tempPdf = {pdf_id: testPdf1._id, last_edition_date: testPdf1.last_edition_date};
+                agent.put('/api/pdfs/' + testPdf1._id)
                     .set('Authorization', 'Bearer ' + token)
                     .field('content-type', 'multipart/form-data')
-                    .field('pdf_id', testPdf._id.toString())
-                    .field('last_edition_date', testPdf.last_edition_date.valueOf())
+                    .field('pdf_id', testPdf1._id.toString())
+                    .field('last_edition_date', testPdf1.last_edition_date.valueOf())
                     .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                     .end(function (err, res) {
                         console.log(res.body.data.pdf.signers);
                         checkPdf(res);
                         res.body.data.pdf.signers.length.should.be.eql(1);
                         res.body.data.pdf.signers.pop().is_signed.should.be.eql(true);
-                        done();
+                        // Check user
+                        agent.get('/api/users/info')
+                            .set('Authorization', 'Bearer ' + token)
+                            .end(function (err, res3) {
+                                checkUser(res3);
+                                var nPdfsToSign1 = resUser.body.data.user.pdfs_to_sign.length;
+                                var nPdfsSigned1 = resUser.body.data.user.pdfs_signed.length;
+                                var nPdfsToSign2 = res3.body.data.user.pdfs_to_sign.length;
+                                var nPdfsSigned2 = res3.body.data.user.pdfs_signed.length;
+                                (nPdfsSigned2).should.be.equal(nPdfsSigned1 + 1);
+                                (nPdfsToSign2).should.be.equal(nPdfsToSign1 - 1);
+                                done();
+                            });
                     });
             });
         });
         it('it should NOT UPDATE/SIGN a PDF cause I am not logged', function (done) {
             var agent = chai.request.agent(server);
-            var tempPdf = {pdf_id: testPdf._id};
-            agent.put('/api/pdfs/' + testPdf._id.toString())
+            var tempPdf = {pdf_id: testPdf1._id};
+            agent.put('/api/pdfs/' + testPdf1._id.toString())
                 .field('content-type', 'multipart/form-data')
-                .field('pdf_id', testPdf._id.toString())
-                .field('last_edition_date', testPdf.last_edition_date.valueOf())
+                .field('pdf_id', testPdf1._id.toString())
+                .field('last_edition_date', testPdf1.last_edition_date.valueOf())
                 .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                 .end(function (err, res) {
                     checkError(res);
@@ -613,13 +744,13 @@ describe('Pdfs', function () {
             var agent = chai.request.agent(server);
             oauthLogin(user, function (err, res) {
                 checkUser(res);
-                var tempPdf = {pdf_id: testPdf._id};
-                agent.post('/api/pdfs/' + testPdf._id.toString())
+                var tempPdf = {pdf_id: testPdf1._id};
+                agent.post('/api/pdfs/' + testPdf1._id.toString())
                     .set('Authorization', 'Bearer ' + token)
                     .field('_method', 'put')
                     .field('content-type', 'multipart/form-data')
-                    .field('pdf_id', testPdf._id.toString())
-                    .field('last_edition_date', testPdf.last_edition_date.valueOf())
+                    .field('pdf_id', testPdf1._id.toString())
+                    .field('last_edition_date', testPdf1.last_edition_date.valueOf())
                     .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                     .end(function (err, res) {
                         checkPdf(res);
@@ -677,15 +808,15 @@ describe('Pdfs', function () {
                 password: "test3"
             };
             var pdf = {
-                signers: [testUser._id]
+                signers: [testUser1._id]
             };
             var agent = chai.request.agent(server);
             oauthLogin(user, function (err, res) {
                 checkUser(res);
-                agent.put('/api/pdfs/' + testPdf._id.toString())
+                agent.put('/api/pdfs/' + testPdf1._id.toString())
                     .set('Authorization', 'Bearer ' + token)
-                    .field('pdf_id', testPdf._id.toString())
-                    .field('last_edition_date', testPdf.last_edition_date.valueOf())
+                    .field('pdf_id', testPdf1._id.toString())
+                    .field('last_edition_date', testPdf1.last_edition_date.valueOf())
                     .field('content-type', 'multipart/form-data')
                     .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                     .end(function (err, res) {
@@ -701,16 +832,16 @@ describe('Pdfs', function () {
                 password: "test"
             };
             var pdf = {
-                signers: [testUser._id]
+                signers: [testUser1._id]
             };
             var agent = chai.request.agent(server);
             oauthLogin(user, function (err, res) {
                 checkUser(res);
-                agent.put('/api/pdfs/' + testPdf._id.toString())
+                agent.put('/api/pdfs/' + testPdf1._id.toString())
                     .set('Authorization', 'Bearer ' + token)
                     .field('content-type', 'multipart/form-data')
-                    .field('pdf_id', testPdf._id.toString())
-                    .field('last_edition_date', testPdf.last_edition_date.valueOf())
+                    .field('pdf_id', testPdf1._id.toString())
+                    .field('last_edition_date', testPdf1.last_edition_date.valueOf())
                     .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                     .end(function (err, res) {
                         checkError(res);
@@ -727,12 +858,12 @@ describe('Pdfs', function () {
             var agent = chai.request.agent(server);
             oauthLogin(user, function (err, res) {
                 checkUser(res);
-                var tempPdf = {pdf_id: testPdf._id};
-                agent.put('/api/pdfs/' + testPdf._id.toString())
+                var tempPdf = {pdf_id: testPdf1._id};
+                agent.put('/api/pdfs/' + testPdf1._id.toString())
                     .set('Authorization', 'Bearer ' + token)
                     .field('content-type', 'multipart/form-data')
-                    .field('pdf_id', testPdf._id.toString())
-                    .field('last_edition_date', testPdf.last_edition_date.valueOf())
+                    .field('pdf_id', testPdf1._id.toString())
+                    .field('last_edition_date', testPdf1.last_edition_date.valueOf())
                     .attach("pdf", fs.readFileSync('test/testFiles/prueba1.pdf'), "pdf")
                     .end(function (err, res) {
                         checkPdf(res);
@@ -841,7 +972,7 @@ describe('Pdfs', function () {
             var agent = chai.request.agent(server);
             oauthLogin(user, function (err, res) {
                 checkUser(res);
-                agent.get('/api/pdfs/info/' + testPdf._id)
+                agent.get('/api/pdfs/info/' + testPdf1._id)
                     .set('Authorization', 'Bearer ' + token)
                     .end(function (err, res) {
                         checkPdf(res);
@@ -855,7 +986,7 @@ describe('Pdfs', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            agent.get('/api/pdfs/info/' + testPdf._id)
+            agent.get('/api/pdfs/info/' + testPdf1._id)
                 .set('Authorization', 'Bearer ' + token)
                 .end(function (err, res) {
                     checkPdf(res);
@@ -904,7 +1035,7 @@ describe('Pdfs', function () {
             var agent = chai.request.agent(server);
             oauthLogin(user, function (err, res) {
                 checkUser(res);
-                agent.get('/api/pdfs/' + testPdf._id)
+                agent.get('/api/pdfs/' + testPdf1._id)
                     .set('Authorization', 'Bearer ' + token)
                     .end(function (err, res) {
                         res.should.have.status(200);
@@ -920,7 +1051,7 @@ describe('Pdfs', function () {
             var agent = chai.request.agent(server);
             oauthLogin(user, function (err, res) {
                 checkUser(res);
-                agent.get('/api/pdfs/' + testPdf._id)
+                agent.get('/api/pdfs/' + testPdf1._id)
                     .set('Authorization', 'Bearer ' + token)
                     .end(function (err, res) {
                         res.should.have.status(200);
@@ -936,7 +1067,7 @@ describe('Pdfs', function () {
             var agent = chai.request.agent(server);
             oauthLogin(user, function (err, res) {
                 checkUser(res);
-                agent.get('/api/pdfs/' + testPdf._id)
+                agent.get('/api/pdfs/' + testPdf1._id)
                     .set('Authorization', 'Bearer ' + token)
                     .end(function (err, res) {
                         res.should.have.status(200);
@@ -953,7 +1084,7 @@ describe('Pdfs', function () {
             var agent = chai.request.agent(server);
             oauthLogin(user, function (err, res) {
                 checkUser(res);
-                agent.get('/api/pdfs/' + testPdf._id)
+                agent.get('/api/pdfs/' + testPdf1._id)
                     .set('Authorization', 'Bearer ' + token)
                     .end(function (err, res) {
                         res.should.have.status(HttpStatus.UNAUTHORIZED);
@@ -963,7 +1094,7 @@ describe('Pdfs', function () {
         });
         it('it should NOT DOWNLOAD a pdf cause I am not logged', function (done) {
             var agent = chai.request.agent(server);
-            agent.get('/api/pdfs/' + testPdf._id)
+            agent.get('/api/pdfs/' + testPdf1._id)
                 .set('Authorization', 'Bearer ' + token)
                 .end(function (err, res) {
                     res.should.have.status(HttpStatus.UNAUTHORIZED);
@@ -979,7 +1110,7 @@ describe('Pdfs', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            agent.delete('/api/pdfs/' + testPdf._id)
+            agent.delete('/api/pdfs/' + testPdf1._id)
                 .set('Authorization', 'Bearer ' + token)
                 .end(function (err, res) {
                     res.should.have.status(HttpStatus.UNAUTHORIZED);
@@ -993,7 +1124,7 @@ describe('Pdfs', function () {
                 password: "test2"
             };
             var agent = chai.request.agent(server);
-            agent.delete('/api/pdfs/' + testPdf._id)
+            agent.delete('/api/pdfs/' + testPdf1._id)
                 .set('Authorization', 'Bearer ' + token)
                 .end(function (err, res) {
                     res.should.have.status(HttpStatus.UNAUTHORIZED);
@@ -1009,7 +1140,7 @@ describe('Pdfs', function () {
             var agent = chai.request.agent(server);
             oauthLogin(user, function (err, res) {
                 checkUser(res);
-                agent.delete('/api/pdfs/' + testPdf._id.toString())
+                agent.delete('/api/pdfs/' + testPdf1._id.toString())
                     .set('Authorization', 'Bearer ' + token)
                     .end(function (err, res) {
                         res.should.have.status(HttpStatus.OK);
@@ -1027,7 +1158,7 @@ describe('Pdfs', function () {
             var agent = chai.request.agent(server);
             oauthLogin(user, function (err, res) {
                 checkUser(res);
-                agent.post('/api/pdfs/' + testPdf._id.toString())
+                agent.post('/api/pdfs/' + testPdf1._id.toString())
                     .set('Authorization', 'Bearer ' + token)
                     .field('_method', 'delete')
                     .end(function (err, res) {

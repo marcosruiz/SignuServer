@@ -149,7 +149,7 @@ function createUser(req, res) {
                     } else if (user == null) {
                         res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_FOUND));
                     } else {
-                        var route = req.protocol + '://' +req.get('host') + '/activateuser?_id=' + user._id + '&code=' + randomString;
+                        var route = req.protocol + '://' + req.get('host') + '/activateuser?_id=' + user._id + '&code=' + randomString;
                         var mailOptions = {
                             to: user.email,
                             subject: 'Activate your user in Signu',
@@ -192,7 +192,7 @@ function createUser(req, res) {
                             } else if (user == null) {
                                 res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_FOUND));
                             } else {
-                                var route = req.protocol + '://' +req.get('host') + '/activateuser?_id=' + user._id + '&code=' + randomString;
+                                var route = req.protocol + '://' + req.get('host') + '/activateuser?_id=' + user._id + '&code=' + randomString;
                                 var mailOptions = {
                                     to: user.email,
                                     subject: 'Activate your user in Signu',
@@ -415,6 +415,7 @@ function getInfoUser(req, res) {
                         "message": AppStatus.getStatusText(AppStatus.USER_NOT_FOUND)
                     });
                 } else {
+
                     res.json({
                         "code": AppStatus.SUCCESS,
                         "message": AppStatus.getStatusText(AppStatus.SUCCESS),
@@ -496,7 +497,7 @@ function editNextEmail(req, res) {
                 modUser.next_email.when = Date.now();
                 modUser.next_email.code = randomString;
             }
-            var route = req.protocol + '://' +req.get('host') + '/confirmnewemail?_id=' + token.user_id + '&code=' + randomString;
+            var route = req.protocol + '://' + req.get('host') + '/confirmnewemail?_id=' + token.user_id + '&code=' + randomString;
 
             var mailOptions = {
                 to: req.body.email,
@@ -679,12 +680,25 @@ function addRelated(req, res) {
  */
 function addPdfToUsers(pdf) {
     var newPdf = {_id: pdf._id};
-    User.findByIdAndUpdate(pdf.owner_id, {$addToSet: {pdfs_owned: newPdf}}, {safe: false});
+    User.findByIdAndUpdate(pdf.owner_id, {$addToSet: {pdfs_owned: pdf._id}}, {new: true}, function (err, user) {
+        if (err) {
+            console.log(err);
+        }
+    });
+
     pdf.signers.forEach(function (signer) {
         if (signer.is_signed) {
-            User.findByIdAndUpdate(signer._id, {$addToSet: {pdfs_signed: newPdf}}, {safe: false});
+            User.findByIdAndUpdate(signer._id, {$addToSet: {pdfs_signed: pdf._id}}, {new: true}, function (err, user) {
+                if (err) {
+                    console.log(err)
+                }
+            });
         } else {
-            User.findByIdAndUpdate(signer._id, {$addToSet: {pdfs_to_sign: newPdf}}, {safe: false});
+            User.findByIdAndUpdate(signer._id, {$addToSet: {pdfs_to_sign: pdf._id}}, {new: true}, function (err, user) {
+                if (err) {
+                    console.log(err)
+                }
+            });
         }
     });
 };
@@ -694,16 +708,33 @@ function addPdfToUsers(pdf) {
  * @param {Object} pdf - pdf = {_id, owner_id}
  */
 function deletePdfOfUsers(pdf) {
-    User.findByIdAndUpdate(pdf.owner_id, {$pull: {"pdfs_owned": pdf._id}}, {safe: true});
+    User.findByIdAndUpdate(pdf.owner_id, {$pull: {"pdfs_owned": pdf._id}});
     pdf.signers.forEach(function (signer) {
         if (signer.is_signed) {
-            User.findByIdAndUpdate(signer._id, {$pull: {"pdfs_to_sign": pdf._id}}, {safe: true});
+            User.findByIdAndUpdate(signer._id, {$pull: {"pdfs_to_sign": pdf._id}});
         } else {
-            User.findByIdAndUpdate(signer._id, {$pull: {"pdfs_signed": pdf._id}}, {safe: true});
+            User.findByIdAndUpdate(signer._id, {$pull: {"pdfs_signed": pdf._id}});
         }
     });
 };
 
+/**
+ * Add
+ * @param user_id
+ * @param pdf_id
+ */
+function notifySign(user_id, pdf_id) {
+    User.findByIdAndUpdate(user_id, {
+        $pull: {pdfs_to_sign: pdf_id},
+        $addToSet: {pdfs_signed: pdf_id}
+    }, function (err, res) {
+        if (err) {
+            console.log(err);
+        }
+    });
+}
+
 module.exports.userRoutes = userRoutes;
 module.exports.addPdfToUsers = addPdfToUsers;
 module.exports.deletePdfOfUsers = deletePdfOfUsers;
+module.exports.notifySign = notifySign;
