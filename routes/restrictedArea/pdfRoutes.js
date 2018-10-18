@@ -121,15 +121,16 @@ function uploadPdf(req, res) {
 
             // Add signers
             var signers = [];
-            if (req.body.signers != null) {
+            if (req.body.signers != null && req.body.signers.length > 0) {
                 // Creates a array of signers without duplicates
                 var uniqueSigners = [];
                 var signer;
+                // TODO fix this
                 uniqueSigners = req.body.signers.filter(function (item, pos) {
                     return (req.body.signers.indexOf(item) == pos);
                 });
 
-                for (var i = 0; i < uniqueSigners; i++) {
+                for (var i = 0; i < uniqueSigners.length; i++) {
                     if (req.body.signers[i] != '') {
                         signer = {_id: uniqueSigners[i], is_signed: false, signature_date: undefined};
                         signers.push(signer);
