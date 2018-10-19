@@ -305,7 +305,7 @@ function signPdf(req, res) {
                 res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
             } else {
                 var pdfToFind = {
-                    _id: req.body.pdf_id,
+                    _id: req.params.pdf_id,
                     encoding: req.file.encoding,
                     last_edition_date: req.body.last_edition_date,
                     signers: {_id: token.user_id, is_signed: false}
@@ -361,12 +361,15 @@ function deletePdf(req, res) {
                 if (err) {
                     res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
                 } else if (pdf == null) {
+                    var pdf = {_id: req.parms.pdf_id, owner_id: token.user_id}
+                    UserRoutes.deletePdfOfUsers(pdf);
                     res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
                 } else if (token.user_id != pdf.owner_id.toString()) {
                     res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_OWNER));
                 } else {
                     fs.unlink(pdf.path, function (err, result) {
                         if (err) {
+                            UserRoutes.deletePdfOfUsers(pdf);
                             res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
                         } else {
                             PdfModel.findByIdAndRemove(req.params.pdf_id, function (err, pdf) {
@@ -396,19 +399,25 @@ function deletePdf(req, res) {
  * @param {Object} res - 200 if everything OK
  */
 function getInfoPdf(req, res) {
-    PdfModel.findById(req.params.pdf_id, function (err, pdf) {
-        if (err) {
-            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
-        } else if (pdf == null) {
-            res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
-        } else {
-            res.send({
-                code: AppStatus.SUCCESS,
-                message: AppStatus.getStatusText(AppStatus.SUCCESS),
-                data: {pdf: pdf}
-            });
-        }
+    var myToken = req.headers.authorization.split(" ", 2)[1];
+    AccessTokenModel.getAccessToken(myToken, function (err, token) {
+        PdfModel.findById(req.params.pdf_id, function (err, pdf) {
+            if (err) {
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+            } else if (pdf == null) {
+                var pdf = {_id: req.params.pdf_id, owner_id: token.user_id}
+                UserRoutes.deletePdfOfUsers(pdf);
+                res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
+            } else {
+                res.send({
+                    code: AppStatus.SUCCESS,
+                    message: AppStatus.getStatusText(AppStatus.SUCCESS),
+                    data: {pdf: pdf}
+                });
+            }
+        });
     });
+
 }
 
 module.exports.pdfRoutes = pdfRoutes;

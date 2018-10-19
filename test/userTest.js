@@ -26,6 +26,7 @@ var AppStatus = require('../public/routes/app-err-codes-en');
 var checkUser = require('./commonTestFunctions').checkUser;
 var checkToken = require('./commonTestFunctions').checkToken;
 var checkError = require('./commonTestFunctions').checkError;
+var oauthLogin = require('./commonTestFunctions').oauthLogin;
 
 chai.use(chaiHttp);
 
@@ -34,8 +35,6 @@ const userCredentials = {
     password: 'test'
 }
 var authenticatedUser = request.agent(server);
-
-var token;
 
 describe('Users', function () {
     var testUser1, testUser2, testUser3;
@@ -186,38 +185,6 @@ describe('Users', function () {
             }
         });
     });
-
-    /**
-     * Login using Oauth2 and return info user
-     * @param {Object} user - user: {email, password}
-     * @callback next(err, res)
-     */
-    function oauthLogin(user, next) {
-        request(server).post('/oauth2/token')
-            .type('form')
-            .send({
-                grant_type: 'password',
-                username: user.email,
-                password: user.password,
-                client_id: "application",
-                client_secret: "secret"
-            })
-            .expect(HttpStatus.OK)
-            .expect(function (res) {
-                token = res.body.access_token;
-            })
-            .end(function (err, res) {
-                checkToken(res);
-                // Check user exists
-                request(server).get('/api/users/info')
-                    .set('Authorization', 'Bearer ' + token)
-                    .expect(HttpStatus.OK)
-                    .end(function (err, res) {
-                        checkUser(res);
-                        next(err, res);
-                    });
-            });
-    };
 
     /*
      * Test the /POST route
@@ -424,19 +391,19 @@ describe('Users', function () {
                 password: "test"
             };
             var editedUser = {
+                email: "test@test.com",
                 password: "newPassTest"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 agent.put('/api/users/password')
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .send(editedUser)
                     .end(function (err, res) {
                         checkUser(res);
                         res.body.data.user.should.have.property('lastname', 'test');
                         res.body.data.user.should.have.property('name', 'test');
                         res.body.data.user.should.have.property('email', 'test@test.com');
-                        editedUser.email = user.email;
                         oauthLogin(editedUser, function (err, res) {
                             done();
                         });
@@ -453,9 +420,9 @@ describe('Users', function () {
                 password: "newPassTest"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 agent.post('/api/users/password')
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .send(editedUser)
                     .end(function (err, res) {
                         checkUser(res);
@@ -478,9 +445,9 @@ describe('Users', function () {
                 name: "newNameTest"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 agent.put('/api/users/')
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .send(editedUser)
                     .end(function (err, res) {
                         checkUser(res);
@@ -502,9 +469,9 @@ describe('Users', function () {
                 lastname: "newLastnameTest"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 agent.put('/api/users/')
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .send(editedUser)
                     .end(function (err, res) {
                         checkUser(res);
@@ -527,9 +494,9 @@ describe('Users', function () {
                 lastname: "newLastnameTest"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 agent.post('/api/users/')
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .send(editedUser)
                     .end(function (err, res) {
                         checkUser(res);
@@ -550,9 +517,9 @@ describe('Users', function () {
                 lastname: "newLastnameTest"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 agent.put('/api/users/')
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .send(editedUser)
                     .end(function (err, res) {
                         checkUser(res);
@@ -574,9 +541,9 @@ describe('Users', function () {
                 email: "sobrenombre@gmail.com"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 agent.put('/api/users/email')
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .send(editedUser)
                     .end(function (err, res) {
                         checkUser(res);
@@ -604,9 +571,9 @@ describe('Users', function () {
                 email: "sobrenombre@gmail.com"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 agent.post('/api/users/email')
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .send(editedUser)
                     .end(function (err, res) {
                         checkUser(res);
@@ -645,10 +612,10 @@ describe('Users', function () {
                 wrong: "newPassTest"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 var user1 = res.body.data.user;
                 agent.put('/api/users/')
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .send(editedUser)
                     .end(function (err, res) {
                         checkUser(res);
@@ -673,10 +640,11 @@ describe('Users', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
-                var numUsers1 = res.body.data.user.users_related.length;
+            oauthLogin(user, function (err, resUser, resToken) {
+                var numUsers1 = resUser.body.data.user.users_related.length;
+                var auth = 'Bearer ' + resToken.body.access_token;
                 agent.put('/api/users/related/')
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', auth)
                     .send({related_id: testUser3._id})
                     .end(function (err, res) {
                         checkUser(res);
@@ -693,10 +661,10 @@ describe('Users', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 var numUsers1 = res.body.data.user.users_related.length;
                 agent.post('/api/users/related/')
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .send({_method: 'put', related_id: testUser3._id})
                     .end(function (err, res) {
                         checkUser(res);
@@ -731,10 +699,10 @@ describe('Users', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 var numUsers1 = res.body.data.user.users_related.length;
                 agent.put('/api/users/related/')
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .send({related_id: testUser2._id})
                     .end(function (err, res) {
                         checkUser(res);
@@ -770,9 +738,9 @@ describe('Users', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 agent.put('/api/users/related/')
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .send({related_id: '5b9b93beb4905736bc99e262'})
                     .end(function (err, res) {
                         checkError(res);
@@ -790,10 +758,10 @@ describe('Users', function () {
                 email: "test@test.com",
                 password: "test"
             };
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 var agent = chai.request.agent(server);
                 agent.get('/api/users/info')
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .end(function (err, res) {
                         checkUser(res);
                         done();
@@ -819,10 +787,10 @@ describe('Users', function () {
                 email: "test@test.com",
                 password: "test"
             };
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 var agent = chai.request.agent(server);
                 agent.post('/api/users/logout')
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .end(function (err, res) {
                         res.should.have.status(HttpStatus.OK);
                         res.body.should.have.property('code', AppStatus.USER_LOG_OUT);
@@ -859,10 +827,10 @@ describe('Users', function () {
                 email: "test@test.com",
                 password: "test"
             };
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 var agent = chai.request.agent(server);
                 agent.delete('/api/users/')
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .send({password: 'test'})
                     .end(function (err, res) {
                         res.should.have.status(HttpStatus.OK);
@@ -877,11 +845,11 @@ describe('Users', function () {
                 email: "test@test.com",
                 password: "test"
             };
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 var agent = chai.request.agent(server);
                 agent.post('/api/users/')
                     .send({_method: 'delete', password: 'test'})
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .end(function (err, res) {
                         res.should.have.status(HttpStatus.OK);
                         res.body.should.have.property('code', AppStatus.USER_DELETED);

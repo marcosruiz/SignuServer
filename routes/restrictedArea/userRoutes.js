@@ -394,11 +394,11 @@ function logOutUser(req, res) {
 }
 
 /**
- * Return info of the user in session
+ * Return info of the user in session populated
  * @param {Object} req
  * @param {Object} res - 200 if user info is sended
  */
-function getInfoUser(req, res) {
+function getInfoUserPopulated(req, res) {
     var myToken = req.headers.authorization.split(" ", 2)[1];
     AccessTokenModel.getAccessToken(myToken, function (err, token) {
         if (err) {
@@ -423,6 +423,39 @@ function getInfoUser(req, res) {
                     });
                 }
             }).populate('pdfs_owned').populate('pdfs_to_sign').populate('pdfs_signed').populate('users_related', '-password -activation');
+        }
+    });
+}
+
+/**
+ * Return info of the user in session
+ * @param {Object} req
+ * @param {Object} res - 200 if user info is sended
+ */
+function getInfoUser(req, res) {
+    var myToken = req.headers.authorization.split(" ", 2)[1];
+    AccessTokenModel.getAccessToken(myToken, function (err, token) {
+        if (err) {
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
+        } else if (token == null) {
+            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));
+        } else {
+            User.findById(token.user_id, function (err, user) {
+                if (err) {
+                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.INTERNAL_ERROR));
+                } else if (user == null) {
+                    res.status(HttpStatus.UNAUTHORIZED).json({
+                        "code": AppStatus.USER_NOT_FOUND,
+                        "message": AppStatus.getStatusText(AppStatus.USER_NOT_FOUND)
+                    });
+                } else {
+                    res.json({
+                        "code": AppStatus.SUCCESS,
+                        "message": AppStatus.getStatusText(AppStatus.SUCCESS),
+                        "data": {user: user}
+                    });
+                }
+            });
         }
     });
 }
@@ -708,14 +741,28 @@ function addPdfToUsers(pdf) {
  * @param {Object} pdf - pdf = {_id, owner_id}
  */
 function deletePdfOfUsers(pdf) {
-    User.findByIdAndUpdate(pdf.owner_id, {$pull: {"pdfs_owned": pdf._id}});
-    pdf.signers.forEach(function (signer) {
-        if (signer.is_signed) {
-            User.findByIdAndUpdate(signer._id, {$pull: {"pdfs_to_sign": pdf._id}});
-        } else {
-            User.findByIdAndUpdate(signer._id, {$pull: {"pdfs_signed": pdf._id}});
+    User.findByIdAndUpdate(pdf.owner_id, {$pull: {"pdfs_owned": pdf._id}}, {new: true}, function (err, user) {
+        if (err) {
+            console.log(err)
         }
     });
+    if(pdf.signers != null){
+        pdf.signers.forEach(function (signer) {
+            if (signer.is_signed) {
+                User.findByIdAndUpdate(signer._id, {$pull: {"pdfs_to_sign": pdf._id}}, {new: true}, function (err, user) {
+                    if (err) {
+                        console.log(err)
+                    }
+                });
+            } else {
+                User.findByIdAndUpdate(signer._id, {$pull: {"pdfs_signed": pdf._id}}, {new: true}, function (err, user) {
+                    if (err) {
+                        console.log(err)
+                    }
+                });
+            }
+        });
+    }
 };
 
 /**

@@ -27,10 +27,10 @@ var checkUser = require('./commonTestFunctions').checkUser;
 var checkPdf = require('./commonTestFunctions').checkPdf;
 var checkToken = require('./commonTestFunctions').checkToken;
 var checkError = require('./commonTestFunctions').checkError;
+var oauthLogin = require('./commonTestFunctions').oauthLogin;
 
 chai.use(chaiHttp);
 
-var token;
 var testUser1, testUser2, testUser3, testPdf1, testPdf2, testPdf3, testPdf4, testPdf5; // From mongo
 var testClient1;
 
@@ -45,39 +45,6 @@ var user2 = {
 var user3 = {
     email: "test3@test3",
     password: "test3"
-};
-
-
-/**
- * Login using Oauth2 and return info user
- * @param {Object} user - user: {email, password}
- * @callback next(err, res)
- */
-function oauthLogin(user, next) {
-    request(server).post('/oauth2/token')
-        .type('form')
-        .send({
-            grant_type: 'password',
-            username: user.email,
-            password: user.password,
-            client_id: "application",
-            client_secret: "secret"
-        })
-        .expect(HttpStatus.OK)
-        .expect(function (res) {
-            token = res.body.access_token;
-        })
-        .end(function (err, resToken) {
-            checkToken(resToken);
-            // Check user exists
-            request(server).get('/api/users/info')
-                .set('Authorization', 'Bearer ' + token)
-                .expect(HttpStatus.OK)
-                .end(function (err, resUser) {
-                    checkUser(resUser);
-                    next(err, resUser, resToken);
-                });
-        });
 };
 
 describe('Pdfs', function () {
@@ -511,17 +478,17 @@ describe('Pdfs', function () {
                 signer_id: testUser2._id
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 checkUser(res);
                 agent.put('/api/pdfs/addsigner/' + testPdf3._id)
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .send(signer_id)
                     .end(function (err, res) {
                         checkPdf(res);
                         res.body.data.pdf.signers.length.should.be.eql(1);
                         res.body.data.pdf.signers[0].is_signed.should.be.eql(false);
                         agent.put('/api/pdfs/addsigner/' + testPdf3._id)
-                            .set('Authorization', 'Bearer ' + token)
+                            .set('Authorization', 'Bearer ' + resToken.body.access_token)
                             .send(signer_id)
                             .end(function (err, res) {
                                 checkError(res);
@@ -540,10 +507,10 @@ describe('Pdfs', function () {
                 signer_id: testUser2._id
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 checkUser(res);
                 agent.put('/api/pdfs/addsigner/' + testPdf2._id)
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .send(signer_id)
                     .end(function (err, res) {
                         checkError(res);
@@ -642,19 +609,19 @@ describe('Pdfs', function () {
                 signers: [{_id: testUser2._id}]
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res1) {
+            oauthLogin(user, function (err, res1, resToken) {
                 checkUser(res1);
                 agent.put('/api/pdfs/addsigners/' + testPdf2._id)
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .send(pdf)
                     .end(function (err, res) {
                         checkError(res);
                         res.should.have.status(HttpStatus.BAD_REQUEST);
                         // Check user
-                        oauthLogin(user2, function (err, res1) {
+                        oauthLogin(user2, function (err, res1, resToken) {
                             checkUser(res1);
                             agent.get('/api/users/info')
-                                .set('Authorization', 'Bearer ' + token)
+                                .set('Authorization', 'Bearer ' + resToken.body.access_token)
                                 .end(function (err, res3) {
                                     checkUser(res3);
                                     var nPdfs1 = res1.body.data.user.pdfs_to_sign.length;
@@ -675,17 +642,17 @@ describe('Pdfs', function () {
                 signers: [{_id: testUser3._id}]
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res1) {
+            oauthLogin(user, function (err, res1, resToken) {
                 checkUser(res1);
                 agent.put('/api/pdfs/addsigners/' + testPdf4._id)
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .send(pdf)
                     .end(function (err, res) {
                         checkError(res);
                         res.should.have.status(HttpStatus.FORBIDDEN);
                         // Check user
                         agent.get('/api/users/info')
-                            .set('Authorization', 'Bearer ' + token)
+                            .set('Authorization', 'Bearer ' + resToken.body.access_token)
                             .end(function (err, res3) {
                                 checkUser(res3);
                                 var nPdfs1 = res1.body.data.user.pdfs_to_sign.length;
@@ -705,17 +672,17 @@ describe('Pdfs', function () {
                 signers: [{_id: testUser3._id}]
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res1) {
+            oauthLogin(user, function (err, res1,resToken) {
                 checkUser(res1);
                 agent.put('/api/pdfs/addsigners/' + testPdf3._id)
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .send(pdf)
                     .end(function (err, res) {
                         checkError(res);
                         res.should.have.status(HttpStatus.UNAUTHORIZED);
                         // Check user
                         agent.get('/api/users/info')
-                            .set('Authorization', 'Bearer ' + token)
+                            .set('Authorization', 'Bearer ' + resToken.body.access_token)
                             .end(function (err, res3) {
                                 checkUser(res3);
                                 var nPdfs1 = res1.body.data.user.pdfs_to_sign.length;
@@ -748,11 +715,11 @@ describe('Pdfs', function () {
                 password: "test2"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, resUser) {
+            oauthLogin(user, function (err, resUser, resToken) {
                 checkUser(resUser);
                 var tempPdf = {pdf_id: testPdf1._id, last_edition_date: testPdf1.last_edition_date};
                 agent.put('/api/pdfs/' + testPdf1._id)
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .field('content-type', 'multipart/form-data')
                     .field('pdf_id', testPdf1._id.toString())
                     .field('last_edition_date', testPdf1.last_edition_date.valueOf())
@@ -764,7 +731,7 @@ describe('Pdfs', function () {
                         res.body.data.pdf.signers.pop().is_signed.should.be.eql(true);
                         // Check user
                         agent.get('/api/users/info')
-                            .set('Authorization', 'Bearer ' + token)
+                            .set('Authorization', 'Bearer ' + resToken.body.access_token)
                             .end(function (err, res3) {
                                 checkUser(res3);
                                 var nPdfsToSign1 = resUser.body.data.user.pdfs_to_sign.length;
@@ -799,11 +766,11 @@ describe('Pdfs', function () {
                 password: "test2"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 checkUser(res);
                 var tempPdf = {pdf_id: testPdf1._id};
                 agent.post('/api/pdfs/' + testPdf1._id.toString())
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .field('_method', 'put')
                     .field('content-type', 'multipart/form-data')
                     .field('pdf_id', testPdf1._id.toString())
@@ -823,10 +790,10 @@ describe('Pdfs', function () {
                 password: "test2"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 checkUser(res);
                 agent.put('/api/pdfs/' + testPdf2._id.toString())
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .field('pdf_id', testPdf2._id.toString())
                     .field('last_edition_date', testPdf2.last_edition_date.valueOf())
                     .field('content-type', 'multipart/form-data')
@@ -844,10 +811,10 @@ describe('Pdfs', function () {
                 password: "test2"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 checkUser(res);
                 agent.put('/api/pdfs/' + testPdf4._id)
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .field('pdf_id', testPdf4._id.toString())
                     .field('last_edition_date', testPdf4.last_edition_date.valueOf())
                     .field('content-type', 'multipart/form-data')
@@ -868,10 +835,10 @@ describe('Pdfs', function () {
                 signers: [testUser1._id]
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 checkUser(res);
                 agent.put('/api/pdfs/' + testPdf1._id.toString())
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .field('pdf_id', testPdf1._id.toString())
                     .field('last_edition_date', testPdf1.last_edition_date.valueOf())
                     .field('content-type', 'multipart/form-data')
@@ -892,10 +859,10 @@ describe('Pdfs', function () {
                 signers: [testUser1._id]
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 checkUser(res);
                 agent.put('/api/pdfs/' + testPdf1._id.toString())
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .field('content-type', 'multipart/form-data')
                     .field('pdf_id', testPdf1._id.toString())
                     .field('last_edition_date', testPdf1.last_edition_date.valueOf())
@@ -913,11 +880,11 @@ describe('Pdfs', function () {
                 password: "test2"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 checkUser(res);
                 var tempPdf = {pdf_id: testPdf1._id};
                 agent.put('/api/pdfs/' + testPdf1._id.toString())
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .field('content-type', 'multipart/form-data')
                     .field('pdf_id', testPdf1._id.toString())
                     .field('last_edition_date', testPdf1.last_edition_date.valueOf())
@@ -1027,24 +994,24 @@ describe('Pdfs', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 checkUser(res);
                 agent.get('/api/pdfs/info/' + testPdf1._id)
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .end(function (err, res) {
                         checkPdf(res);
                         done();
                     });
             });
         });
-        it('it should GET INFO of a PDF but I am not logged', function (done) {
+        it('it should GET INFO of a PDF but my token has expired', function (done) {
             var user = {
                 email: "test@test",
                 password: "test"
             };
             var agent = chai.request.agent(server);
             agent.get('/api/pdfs/info/' + testPdf1._id)
-                .set('Authorization', 'Bearer ' + token)
+                .set('Authorization', 'Bearer ' + "b9e1c4213859ef67181604502e596961ab57cbb0")
                 .end(function (err, res) {
                     checkPdf(res);
                     done();
@@ -1056,10 +1023,10 @@ describe('Pdfs', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 checkUser(res);
                 agent.get('/api/pdfs/info/' + "fdsjflk")
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .end(function (err, res) {
                         res.should.have.status(HttpStatus.INTERNAL_SERVER_ERROR);
                         checkError(res);
@@ -1073,10 +1040,10 @@ describe('Pdfs', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 checkUser(res);
                 agent.get('/api/pdfs/info/' + "5b9239b82a839517ac9e2011")
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .end(function (err, res) {
                         res.should.have.status(HttpStatus.NOT_FOUND);
                         checkError(res);
@@ -1090,10 +1057,10 @@ describe('Pdfs', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 checkUser(res);
                 agent.get('/api/pdfs/' + testPdf1._id)
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .end(function (err, res) {
                         res.should.have.status(200);
                         done();
@@ -1106,10 +1073,10 @@ describe('Pdfs', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 checkUser(res);
                 agent.get('/api/pdfs/' + testPdf1._id)
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .end(function (err, res) {
                         res.should.have.status(200);
                         done();
@@ -1122,10 +1089,10 @@ describe('Pdfs', function () {
                 password: "test2"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 checkUser(res);
                 agent.get('/api/pdfs/' + testPdf1._id)
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .end(function (err, res) {
                         res.should.have.status(200);
                         done();
@@ -1139,20 +1106,20 @@ describe('Pdfs', function () {
                 password: "test3"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 checkUser(res);
                 agent.get('/api/pdfs/' + testPdf1._id)
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .end(function (err, res) {
                         res.should.have.status(HttpStatus.UNAUTHORIZED);
                         done();
                     });
             });
         });
-        it('it should NOT DOWNLOAD a pdf cause I am not logged', function (done) {
+        it('it should NOT DOWNLOAD a pdf cause token has expired', function (done) {
             var agent = chai.request.agent(server);
             agent.get('/api/pdfs/' + testPdf1._id)
-                .set('Authorization', 'Bearer ' + token)
+                .set('Authorization', 'Bearer ' + "b9e1c4213859ef67181604502e596961ab57cbb0")
                 .end(function (err, res) {
                     res.should.have.status(HttpStatus.UNAUTHORIZED);
                     done();
@@ -1161,6 +1128,20 @@ describe('Pdfs', function () {
     });
 
     describe('DELETE tests', function () {
+        it('it should NOT DELETE a pdf cause token is invalid', function (done) {
+            var user = {
+                email: "test@test",
+                password: "test"
+            };
+            var agent = chai.request.agent(server);
+            agent.delete('/api/pdfs/' + testPdf1._id)
+                .set('Authorization', 'Bearer ' + "aaa")
+                .end(function (err, res) {
+                    res.should.have.status(HttpStatus.BAD_REQUEST);
+                    checkError(res);
+                    done();
+                });
+        });
         it('it should NOT DELETE a pdf cause I am not logged', function (done) {
             var user = {
                 email: "test@test",
@@ -1168,9 +1149,22 @@ describe('Pdfs', function () {
             };
             var agent = chai.request.agent(server);
             agent.delete('/api/pdfs/' + testPdf1._id)
-                .set('Authorization', 'Bearer ' + token)
                 .end(function (err, res) {
-                    res.should.have.status(HttpStatus.UNAUTHORIZED);
+                    res.should.have.status(HttpStatus.BAD_REQUEST);
+                    checkError(res);
+                    done();
+                });
+        });
+        it('it should NOT DELETE a pdf cause token has expired', function (done) {
+            var user = {
+                email: "test@test",
+                password: "test"
+            };
+            var agent = chai.request.agent(server);
+            agent.delete('/api/pdfs/' + testPdf1._id)
+                .set('Authorization', 'Bearer ' + "b9e1c4213859ef67181604502e596961ab57cba0")
+                .end(function (err, res) {
+                    res.should.have.status(HttpStatus.BAD_REQUEST);
                     checkError(res);
                     done();
                 });
@@ -1181,13 +1175,16 @@ describe('Pdfs', function () {
                 password: "test2"
             };
             var agent = chai.request.agent(server);
-            agent.delete('/api/pdfs/' + testPdf1._id)
-                .set('Authorization', 'Bearer ' + token)
-                .end(function (err, res) {
-                    res.should.have.status(HttpStatus.UNAUTHORIZED);
-                    checkError(res);
-                    done();
-                });
+            oauthLogin(user, function (err, res, resToken) {
+                agent.delete('/api/pdfs/' + testPdf1._id)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
+                    .end(function (err, res) {
+                        res.should.have.status(HttpStatus.UNAUTHORIZED);
+                        checkError(res);
+                        done();
+                    });
+            });
+
         });
         it('it should DELETE a pdf', function (done) {
             var user = {
@@ -1195,10 +1192,10 @@ describe('Pdfs', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 checkUser(res);
                 agent.delete('/api/pdfs/' + testPdf1._id.toString())
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .end(function (err, res) {
                         res.should.have.status(HttpStatus.OK);
                         res.body.should.have.property('code', AppStatus.PDF_DELETED);
@@ -1213,10 +1210,10 @@ describe('Pdfs', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 checkUser(res);
                 agent.post('/api/pdfs/' + testPdf1._id.toString())
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .field('_method', 'delete')
                     .end(function (err, res) {
                         res.should.have.status(HttpStatus.OK);
@@ -1232,10 +1229,10 @@ describe('Pdfs', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 checkUser(res);
                 agent.delete('/api/pdfs/' + "randomString")
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .end(function (err, res) {
                         res.should.have.status(HttpStatus.NOT_FOUND);
                         checkError(res);
@@ -1249,10 +1246,10 @@ describe('Pdfs', function () {
                 password: "test"
             };
             var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res) {
+            oauthLogin(user, function (err, res, resToken) {
                 checkUser(res);
                 agent.delete('/api/pdfs/' + "5b9239b82a839517ac9e2011")
-                    .set('Authorization', 'Bearer ' + token)
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .end(function (err, res) {
                         res.should.have.status(HttpStatus.NOT_FOUND);
                         checkError(res);

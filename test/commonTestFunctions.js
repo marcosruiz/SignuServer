@@ -2,6 +2,8 @@ var chai = require('chai');
 const should = chai.should();
 var HttpStatus = require('http-status-codes');
 var AppStatus = require('../public/routes/app-err-codes-en');
+var server = require('../app');
+var request = require('supertest');
 
 function checkUser(res) {
     res.should.have.status(HttpStatus.OK);
@@ -22,6 +24,38 @@ function checkUser(res) {
     res.body.data.user.users_related.should.be.an.Array;
     // res.body.users_related.length.should.be.eql(0);
 }
+
+/**
+ * Login using Oauth2 and return info user
+ * @param {Object} user - user: {email, password}
+ * @callback next(err, res)
+ */
+function oauthLogin(user, next) {
+    request(server).post('/oauth2/token')
+        .type('form')
+        .send({
+            grant_type: 'password',
+            username: user.email,
+            password: user.password,
+            client_id: "application",
+            client_secret: "secret"
+        })
+        .expect(HttpStatus.OK)
+        .expect(function (res) {
+            token = res.body.access_token;
+        })
+        .end(function (err, resToken) {
+            checkToken(resToken);
+            // Check user exists
+            request(server).get('/api/users/info')
+                .set('Authorization', 'Bearer ' + token)
+                .expect(HttpStatus.OK)
+                .end(function (err, resUser) {
+                    checkUser(resUser);
+                    next(err, resUser, resToken);
+                });
+        });
+};
 
 function checkToken(res) {
     res.body.should.have.property('access_token');
@@ -56,5 +90,6 @@ module.exports = {
     checkUser: checkUser,
     checkToken: checkToken,
     checkError: checkError,
-    checkPdf: checkPdf
+    checkPdf: checkPdf,
+    oauthLogin: oauthLogin
 }

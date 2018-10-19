@@ -49,7 +49,7 @@ statusCodes[exports.PDF_NOT_SIGNER = 3002] = "You can't sign this PDF";
 statusCodes[exports.PDF_LOCKED = 3003] = "PDF locked";
 statusCodes[exports.PDF_WITH_STAMP = 3004] = "PDF has stamp. You can not add new signatures";
 statusCodes[exports.PDF_TIMEOUT = 3005] = "PDF timeout";
-statusCodes[exports.PDF_SIGNED = 3006] = "PDF already signed by user";
+statusCodes[exports.PDF_ALREADY_SIGNED = 3006] = "PDF already signed by user";
 statusCodes[exports.PDF_NOT_LOCKED_BY_YOU = 3007] = "PDF not locked by you";
 statusCodes[exports.PDF_OUTDATED = 3008] = "PDF is outdated, download the last version of PDF and send it again";
 
