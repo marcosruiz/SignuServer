@@ -20,6 +20,7 @@ function userRoutes(app) {
     router.post('/create', createUser);
     router.post('/logout', app.oauth.authorise(), logOutUser);
     router.get('/info', app.oauth.authorise(), getInfoUser);
+    router.get('/info/ext', app.oauth.authorise(), getInfoUserPopulated);
 
     // Edit user fields
     router.put('/', app.oauth.authorise(), editUser);
@@ -419,7 +420,7 @@ function getInfoUserPopulated(req, res) {
                     res.json({
                         "code": AppStatus.SUCCESS,
                         "message": AppStatus.getStatusText(AppStatus.SUCCESS),
-                        "data": {user: user}
+                        "data": {user_ext: user}
                     });
                 }
             }).populate('pdfs_owned').populate('pdfs_to_sign').populate('pdfs_signed').populate('users_related', '-password -activation');
