@@ -12,6 +12,7 @@ var User = require('../routes/models/user');
 var Pdf = require('../routes/models/pdf');
 var Client = require('../routes/models/client');
 var config = require('config');
+var fs = require('fs');
 
 //Require the dev-dependencies
 var mocha = require('mocha');
@@ -31,7 +32,7 @@ var oauthLogin = require('./commonTestFunctions').oauthLogin;
 chai.use(chaiHttp);
 
 const userCredentials = {
-    email: 'test@test.com',
+    email: 'test@test',
     password: 'test'
 }
 var authenticatedUser = request.agent(server);
@@ -60,111 +61,225 @@ describe('Users', function () {
      * Create users and pdfs
      */
     beforeEach(function (done) {
-        // Add a test1@test user
-        var newUser1 = new User({
-            "password": "test",
-            "email": "test@test.com",
-            "name": "test",
-            "lastname": "test",
-            "activation.is_activated": true,
-            "creation_date": Date.now(),
-            "last_edition_date": Date.now(),
-            "pdfs_to_sign": [],
-            "pdfs_signed": [],
-            "pdfs_owned": [],
-            "users_related": []
-        });
-        newUser1.save(function (err, user) {
-            if (err) {
-                console.log(err);
-            } else {
+        // Delete all test files
+        var arrayFiles = fs.readdirSync(config.uploads_dir);
+        var i;
+        for (i = 0; i < arrayFiles.length; i++) {
+            fs.unlink(config.uploads_dir + arrayFiles[i]);
+        }
+        // End delete all test files
+
+        // Add users and pdfs
+        User.remove({}, function (err) {
+            // Owner on 1,2,3,4,5 and singer on 4,5
+            var newUser1 = new User({
+                "password": "test",
+                "email": "test@test",
+                "name": "test",
+                "lastname": "test",
+                "creation_date": Date.now(),
+                "last_edition_date": Date.now(),
+                "pdfs_to_sign": [],
+                "pdfs_signed": [],
+                "pdfs_owned": [],
+                "related_people": [],
+                "activation": {is_activated: true, when: Date.now()}
+            });
+            // Signer on 1,2,4,5
+            var newUser2 = new User({
+                "password": "test2",
+                "email": "test2@test2",
+                "name": "test2",
+                "lastname": "test2",
+                "creation_date": Date.now(),
+                "last_edition_date": Date.now(),
+                "pdfs_to_sign": [],
+                "pdfs_signed": [],
+                "pdfs_owned": [],
+                "related_people": [],
+                "activation": {is_activated: true, when: Date.now()}
+            });
+            // Independient user
+            var newUser3 = new User({
+                "password": "test3",
+                "email": "test3@test3",
+                "name": "test3",
+                "lastname": "test3",
+                "creation_date": Date.now(),
+                "last_edition_date": Date.now(),
+                "pdfs_to_sign": [],
+                "pdfs_signed": [],
+                "pdfs_owned": [],
+                "related_people": [],
+                "activation": {is_activated: true, when: Date.now()}
+            });
+
+            // Adding users
+            newUser1.save(function (err, user) {
                 testUser1 = user;
-                var newUser2 = new User({
-                    "password": "test2",
-                    "email": "test2@test.com",
-                    "name": "test2",
-                    "lastname": "test2",
-                    "activation.is_activated": true,
-                    "creation_date": Date.now(),
-                    "last_edition_date": Date.now(),
-                    "pdfs_to_sign": [],
-                    "pdfs_signed": [],
-                    "pdfs_owned": [],
-                    "users_related": [user._id]
-                });
                 newUser2.save(function (err, user) {
-                    if (err) {
-                        console.log(err);
-                    } else {
-                        testUser2 = user;
-                        var newUser3 = new User({
-                            "password": "test3",
-                            "email": "test3@test.com",
-                            "name": "test3",
-                            "lastname": "test3",
-                            "activation.is_activated": false,
-                            "creation_date": Date.now(),
-                            "last_edition_date": Date.now(),
-                            "pdfs_to_sign": [],
-                            "pdfs_signed": [],
-                            "pdfs_owned": [],
-                            "users_related": [user._id, testUser1._id]
+                    testUser2 = user;
+                    newUser3.save(function (err, user) {
+                        testUser3 = user;
+                        Pdf.remove({}, function () {
+                            var newPdf = new Pdf({
+                                original_name: "original_name",
+                                owner_id: testUser1._id,
+                                mime_type: "application/pdf",
+                                file_name: "test",
+                                path: config.uploads_dir + "test",
+                                destination: config.uploads_dir,
+                                encoding: "7bit",
+                                is_any_user_signing: undefined,
+                                creation_date: Date.now(),
+                                last_edition_date: Date.now(),
+                                signers: [{
+                                    _id: testUser2._id,
+                                    is_signed: false,
+                                    signature_date: undefined
+                                }]
+                            });
+                            var newPdf2 = new Pdf({
+                                original_name: "original_name",
+                                owner_id: testUser1._id,
+                                mime_type: "application/pdf",
+                                with_stamp: false,
+                                file_name: "test2",
+                                path: config.uploads_dir + "test2",
+                                destination: config.uploads_dir,
+                                encoding: "7bit",
+                                is_any_user_signing: undefined,
+                                creation_date: Date.now(),
+                                last_edition_date: Date.now(),
+                                signers: [{
+                                    _id: testUser2._id,
+                                    is_signed: true,
+                                    signature_date: Date.now()
+                                }]
+                            });
+                            var newPdf3 = new Pdf({
+                                original_name: "original_name",
+                                owner_id: testUser1._id,
+                                mime_type: "application/pdf",
+                                file_name: "test3",
+                                path: config.uploads_dir + "test3",
+                                destination: config.uploads_dir,
+                                encoding: "7bit",
+                                is_any_user_signing: undefined,
+                                creation_date: Date.now(),
+                                last_edition_date: Date.now(),
+                                signers: []
+                            });
+                            var newPdf4 = new Pdf({
+                                original_name: "original_name",
+                                owner_id: testUser1._id,
+                                mime_type: "application/pdf",
+                                file_name: "test4",
+                                path: config.uploads_dir + "test4",
+                                destination: config.uploads_dir,
+                                encoding: "7bit",
+                                is_any_user_signing: undefined,
+                                creation_date: Date.now(),
+                                last_edition_date: Date.now(),
+                                signers: [{
+                                    _id: testUser2._id,
+                                    is_signed: true,
+                                    signature_date: Date.now()
+                                }, {
+                                    _id: testUser1._id,
+                                    is_signed: false,
+                                    signature_date: undefined
+                                }],
+                                with_stamp: true
+                            });
+                            var newPdf5 = new Pdf({
+                                original_name: "original_name",
+                                owner_id: testUser1._id,
+                                mime_type: "application/pdf",
+                                file_name: "test5",
+                                path: config.uploads_dir + "test5",
+                                destination: config.uploads_dir,
+                                encoding: "7bit",
+                                is_any_user_signing: undefined,
+                                creation_date: Date.now(),
+                                last_edition_date: Date.now(),
+                                signers: [{
+                                    _id: testUser2._id,
+                                    is_signed: false,
+                                    signature_date: undefined
+                                }, {
+                                    _id: testUser1._id,
+                                    is_signed: false,
+                                    signature_date: undefined
+                                }],
+                                with_stamp: true
+                            });
+                            newPdf.save(function (err, pdf) {
+                                if (err) {
+                                    console.log(err);
+                                } else {
+                                    testPdf1 = pdf;
+                                    newPdf2.save(function (err, pdf) {
+                                        if (err) {
+                                            console.log(err);
+                                        } else {
+                                            testPdf2 = pdf;
+                                            newPdf3.save(function (err, pdf) {
+                                                if (err) {
+                                                    console.log(err);
+                                                } else {
+                                                    testPdf3 = pdf;
+                                                    newPdf4.save(function (err, pdf) {
+                                                        if (err) {
+                                                            console.log(err);
+                                                        } else {
+                                                            testPdf4 = pdf;
+                                                            newPdf5.save(function (err, pdf) {
+                                                                if (err) {
+                                                                    console.log(err);
+                                                                } else {
+                                                                    testPdf5 = pdf;
+                                                                    // Edit users
+                                                                    // TODO: ADD users
+                                                                    testUser1.password = "test";
+                                                                    testUser2.password = "test2";
+                                                                    testUser1.pdfs_owned = [testPdf1._id, testPdf2._id, testPdf3._id, testPdf4._id, testPdf5._id];
+                                                                    testUser1.pdfs_to_sign = [testPdf4._id, testPdf5._id];
+                                                                    testUser2.pdfs_to_sign = [testPdf1._id, testPdf2._id, testPdf4._id, testPdf5._id];
+                                                                    testUser1.save(function (err, res) {
+                                                                        if (err) {
+                                                                            console.log(err)
+                                                                        } else {
+                                                                            testUser2.save(function (err, res) {
+                                                                                if (err) {
+                                                                                    console.log(err)
+                                                                                } else {
+                                                                                    //Create a test file
+                                                                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test'));
+                                                                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test2'));
+                                                                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test3'));
+                                                                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test4'));
+                                                                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test5'));
+                                                                                    done();
+                                                                                }
+                                                                            });
+                                                                        }
+                                                                    });
+                                                                }
+                                                            });
+                                                        }
+                                                    });
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            });
                         });
-                        newUser3.save(function (err, user) {
-                            if (err) {
-                                console.log(err);
-                            } else {
-                                testUser3 = user;
-
-                                var newPdf1 = new Pdf({
-                                    original_name: "original_name",
-                                    owner_id: testUser1._id,
-                                    mime_type: "application/pdf",
-                                    file_name: "test",
-                                    path: config.uploads_dir + "test",
-                                    destination: config.uploads_dir,
-                                    encoding: "7bit",
-                                    is_any_user_signing: undefined,
-                                    creation_date: Date.now(),
-                                    last_edition_date: Date.now(),
-                                    signers: [{
-                                        _id: testUser2._id,
-                                        is_signed: false,
-                                        signature_date: undefined
-                                    }]
-                                });
-                                newPdf1.save(function (err, pdf) {
-                                    if (err) {
-                                        console.log(err);
-                                    } else {
-                                        testPdf1 = pdf;
-                                        testUser2.update({pdfs_owned: [testPdf1._id]}, function (err, user) {
-                                            if (err) {
-                                                console.log(err);
-                                            } else {
-                                                testUser1.update({users_related: [testUser2._id]}, function (err, user) {
-                                                    if (err) {
-                                                        console.log(err);
-                                                    } else {
-                                                        done();
-                                                    }
-                                                });
-
-                                            }
-                                        });
-
-                                    }
-                                });
-
-                            }
-                        });
-                    }
-
+                    });
                 });
-            }
-
+            });
         });
-
     });
 
     /**
@@ -256,7 +371,7 @@ describe('Users', function () {
         });
         it('it should NOT POST cause it is already activated', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 name: "TestName",
                 lastname: "TestLastName",
                 password: "TestPassword"
@@ -298,7 +413,7 @@ describe('Users', function () {
 
         it('it should LOGIN a user', function (done) {
             var user = {
-                email: "test2@test.com",
+                email: "test2@test2.com",
                 password: "test2"
             };
             oauthLogin(user, function (err, res) {
@@ -309,7 +424,7 @@ describe('Users', function () {
         });
         it('it should LOGIN a user with pdfs and related', function (done) {
             var user = {
-                email: "test2@test.com",
+                email: "test2@test2.com",
                 password: "test2"
             };
             oauthLogin(user, function (err, res) {
@@ -342,7 +457,7 @@ describe('Users', function () {
         });
         it('it should NOT LOGIN a user due to the password', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "wrong"
             };
             request(server).post('/oauth2/token')
@@ -387,11 +502,11 @@ describe('Users', function () {
     describe('EDIT user tests', function () {
         it('it should EDIT password of a user', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "test"
             };
             var editedUser = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "newPassTest"
             };
             var agent = chai.request.agent(server);
@@ -403,7 +518,7 @@ describe('Users', function () {
                         checkUser(res);
                         res.body.data.user.should.have.property('lastname', 'test');
                         res.body.data.user.should.have.property('name', 'test');
-                        res.body.data.user.should.have.property('email', 'test@test.com');
+                        res.body.data.user.should.have.property('email', 'test@test');
                         oauthLogin(editedUser, function (err, res) {
                             done();
                         });
@@ -412,7 +527,7 @@ describe('Users', function () {
         });
         it('it should EDIT password of a user using POST', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "test"
             };
             var editedUser = {
@@ -428,7 +543,7 @@ describe('Users', function () {
                         checkUser(res);
                         res.body.data.user.should.have.property('lastname', 'test');
                         res.body.data.user.should.have.property('name', 'test');
-                        res.body.data.user.should.have.property('email', 'test@test.com');
+                        res.body.data.user.should.have.property('email', 'test@test');
                         editedUser.email = user.email;
                         oauthLogin(editedUser, function (err, res) {
                             done();
@@ -438,7 +553,7 @@ describe('Users', function () {
         });
         it('it should EDIT the name a user', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "test"
             };
             var editedUser = {
@@ -453,7 +568,7 @@ describe('Users', function () {
                         checkUser(res);
                         res.body.data.user.should.have.property('lastname', 'test');
                         res.body.data.user.should.have.property('name', 'newNameTest');
-                        res.body.data.user.should.have.property('email', 'test@test.com');
+                        res.body.data.user.should.have.property('email', 'test@test');
                         done();
                     });
             });
@@ -461,7 +576,7 @@ describe('Users', function () {
 
         it('it should EDIT lastname and name of a user', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "test"
             };
             var editedUser = {
@@ -477,7 +592,7 @@ describe('Users', function () {
                         checkUser(res);
                         res.body.data.user.should.have.property('lastname', 'newLastnameTest');
                         res.body.data.user.should.have.property('name', 'newNameTest');
-                        res.body.data.user.should.have.property('email', 'test@test.com');
+                        res.body.data.user.should.have.property('email', 'test@test');
                         done();
                     });
             });
@@ -485,7 +600,7 @@ describe('Users', function () {
 
         it('it should EDIT lastname and name of a user using POST', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "test"
             };
             var editedUser = {
@@ -502,7 +617,7 @@ describe('Users', function () {
                         checkUser(res);
                         res.body.data.user.should.have.property('lastname', 'newLastnameTest');
                         res.body.data.user.should.have.property('name', 'newNameTest');
-                        res.body.data.user.should.have.property('email', 'test@test.com');
+                        res.body.data.user.should.have.property('email', 'test@test');
                         done();
                     });
             });
@@ -510,7 +625,7 @@ describe('Users', function () {
 
         it('it should EDIT lastname of a user', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "test"
             };
             var editedUser = {
@@ -525,7 +640,7 @@ describe('Users', function () {
                         checkUser(res);
                         res.body.data.user.should.have.property('lastname', 'newLastnameTest');
                         res.body.data.user.should.have.property('name', 'test');
-                        res.body.data.user.should.have.property('email', 'test@test.com');
+                        res.body.data.user.should.have.property('email', 'test@test');
                         done();
                     });
             });
@@ -534,7 +649,7 @@ describe('Users', function () {
 
         it('it should EDIT email of a user', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "test"
             };
             var editedUser = {
@@ -548,7 +663,7 @@ describe('Users', function () {
                     .end(function (err, res) {
                         checkUser(res);
                         res.body.data.user.next_email.should.have.property('email', 'sobrenombre@gmail.com');
-                        res.body.data.user.should.have.property('email', 'test@test.com');
+                        res.body.data.user.should.have.property('email', 'test@test');
                         res.body.data.user.next_email.should.have.property('code');
                         agent.put('/api/users/authnextemail')
                             .send({_id: testUser1._id, code: res.body.data.user.next_email.code})
@@ -563,7 +678,7 @@ describe('Users', function () {
 
         it('it should EDIT email of a user using POST', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "test"
             };
             var editedUser = {
@@ -578,7 +693,7 @@ describe('Users', function () {
                     .end(function (err, res) {
                         checkUser(res);
                         res.body.data.user.next_email.should.have.property('email', 'sobrenombre@gmail.com');
-                        res.body.data.user.should.have.property('email', 'test@test.com');
+                        res.body.data.user.should.have.property('email', 'test@test');
                         res.body.data.user.next_email.should.have.property('code');
                         agent.put('/api/users/authnextemail')
                             .send({_id: testUser1._id, code: res.body.data.user.next_email.code})
@@ -605,7 +720,7 @@ describe('Users', function () {
 
         it('it should NOT EDIT a user cause wrong req.body', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "test"
             };
             var editedUser = {
@@ -636,7 +751,7 @@ describe('Users', function () {
 
         it('it should ADD A RELATED_USER', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "test"
             };
             var agent = chai.request.agent(server);
@@ -657,7 +772,7 @@ describe('Users', function () {
         });
         it('it should ADD A RELATED_USER using POST', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "test"
             };
             var agent = chai.request.agent(server);
@@ -677,7 +792,7 @@ describe('Users', function () {
         });
         it('it should NOT ADD A RELATED_USER cause I am not logged', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "test"
             };
             var agent = chai.request.agent(server);
@@ -695,7 +810,7 @@ describe('Users', function () {
 
         it('it should NOT ADD A RELATED_USER cause it is already in it', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "test"
             };
             var agent = chai.request.agent(server);
@@ -716,7 +831,7 @@ describe('Users', function () {
 
         it('it should NOT ADD A RELATED_USER cause it is invalid', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "test"
             };
             var agent = chai.request.agent(server);
@@ -734,7 +849,7 @@ describe('Users', function () {
         });
         it('it should NOT ADD A RELATED_USER cause it not exists', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "test"
             };
             var agent = chai.request.agent(server);
@@ -755,7 +870,7 @@ describe('Users', function () {
 
         it('it should GET a user', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "test"
             };
             oauthLogin(user, function (err, res, resToken) {
@@ -764,6 +879,41 @@ describe('Users', function () {
                     .set('Authorization', 'Bearer ' + resToken.body.access_token)
                     .end(function (err, res) {
                         checkUser(res);
+                        done();
+                    });
+            });
+        });
+        it('it should GET a user EXT', function (done) {
+            var user = {
+                email: "test@test",
+                password: "test"
+            };
+            oauthLogin(user, function (err, res, resToken) {
+                var agent = chai.request.agent(server);
+                agent.get('/api/users/info/ext')
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
+                    .end(function (err, res) {
+                        //check user ext
+                        res.should.have.status(HttpStatus.OK);
+                        res.body.should.be.a('object');
+                        res.body.should.have.property('code');
+                        //res.body.code.should.be.under(1000);
+                        res.body.should.have.property('message');
+                        res.body.should.have.property('data');
+                        res.body.data.user_ext.should.have.property('name');
+                        res.body.data.user_ext.should.have.property('lastname');
+                        res.body.data.user_ext.should.have.property('email');
+                        res.body.data.user_ext.should.have.property('pdfs_to_sign');
+                        res.body.data.user_ext.should.have.property('pdfs_owned');
+                        res.body.data.user_ext.should.have.property('pdfs_signed');
+                        res.body.data.user_ext.should.have.property('users_related');
+                        res.body.data.user_ext.pdfs_to_sign.should.be.an.Array;
+                        res.body.data.user_ext.pdfs_signed.should.be.an.Array;
+                        res.body.data.user_ext.users_related.should.be.an.Array;
+
+                        res.body.data.user_ext.pdfs_to_sign[0].owner_id.should.be.a('object');
+                        res.body.data.user_ext.pdfs_to_sign[0].signers[0]._id.should.be.a('object');
+                        res.body.data.user_ext.pdfs_owned[0].signers[0]._id.should.be.a('object');
                         done();
                     });
             });
@@ -784,7 +934,7 @@ describe('Users', function () {
     describe('LOGOUT user tests', function () {
         it('it should LOGOUT a user', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "test"
             };
             oauthLogin(user, function (err, res, resToken) {
@@ -824,7 +974,7 @@ describe('Users', function () {
     describe('DELETE user tests', function () {
         it('it should DELETE a user', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "test"
             };
             oauthLogin(user, function (err, res, resToken) {
@@ -842,7 +992,7 @@ describe('Users', function () {
         });
         it('it should DELETE a user using POST', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "test"
             };
             oauthLogin(user, function (err, res, resToken) {
@@ -860,7 +1010,7 @@ describe('Users', function () {
         });
         it('it should NOT DELETE a user cause I am not logged', function (done) {
             var user = {
-                email: "test@test.com",
+                email: "test@test",
                 password: "test"
             };
             var agent = chai.request.agent(server);

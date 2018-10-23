@@ -416,14 +416,49 @@ function getInfoUserPopulated(req, res) {
                         "message": AppStatus.getStatusText(AppStatus.USER_NOT_FOUND)
                     });
                 } else {
-
-                    res.json({
-                        "code": AppStatus.SUCCESS,
-                        "message": AppStatus.getStatusText(AppStatus.SUCCESS),
-                        "data": {user_ext: user}
+                    User.populate(user, [{
+                        path: 'pdfs_to_sign.signers._id',
+                        select: '-password -activation',
+                        model: User
+                    },{
+                        path: 'pdfs_to_sign.owner_id',
+                        select: '-password -activation',
+                        model: User
+                    },{
+                        path: 'pdfs_signed.signers._id',
+                        select: '-password -activation',
+                        model: User
+                    },{
+                        path: 'pdfs_signed.owner_id',
+                        select: '-password -activation',
+                        model: User
+                    },{
+                        path: 'pdfs_owned.signers._id',
+                        select: '-password -activation',
+                        model: User
+                    },{
+                        path: 'pdfs_owned.owner_id',
+                        select: '-password -activation',
+                        model: User
+                    }], function (err, user) {
+                        if (err) {
+                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+                                "code": AppStatus.DATABASE_ERROR,
+                                "message": AppStatus.getStatusText(AppStatus.DATABASE_ERROR)
+                            });
+                        } else {
+                            res.json({
+                                "code": AppStatus.SUCCESS,
+                                "message": AppStatus.getStatusText(AppStatus.SUCCESS),
+                                "data": {user_ext: user}
+                            });
+                        }
                     });
                 }
-            }).populate('pdfs_owned').populate('pdfs_to_sign').populate('pdfs_signed').populate('users_related', '-password -activation');
+            }).populate('pdfs_owned')
+                .populate('pdfs_to_sign')
+                .populate('pdfs_signed')
+                .populate('users_related', '-password -activation');
         }
     });
 }
@@ -747,7 +782,7 @@ function deletePdfOfUsers(pdf) {
             console.log(err)
         }
     });
-    if(pdf.signers != null){
+    if (pdf.signers != null) {
         pdf.signers.forEach(function (signer) {
             if (signer.is_signed) {
                 User.findByIdAndUpdate(signer._id, {$pull: {"pdfs_to_sign": pdf._id}}, {new: true}, function (err, user) {
