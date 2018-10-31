@@ -76,6 +76,8 @@ function userRoutes(app) {
         }
     });
 
+    router.get('/search', searchUser);
+
     return router;
 }
 
@@ -468,6 +470,34 @@ function getInfoUserPopulated(req, res) {
  * @param {Object} req
  * @param {Object} res - 200 if user info is sended
  */
+function searchUser(req, res) {
+    var myToken = req.headers.authorization.split(" ", 2)[1];
+    AccessTokenModel.getAccessToken(myToken, function (err, token) {
+        if (err) {
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
+        } else if (token == null) {
+            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));
+        } else {
+            User.find({email: {$regex : req.query.email}, "activation.is_activated" : true}, function (err, users) {
+                if (err) {
+                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.INTERNAL_ERROR));
+                } else if (users == null) {
+                    res.status(HttpStatus.UNAUTHORIZED).json({
+                        "code": AppStatus.USER_NOT_FOUND,
+                        "message": AppStatus.getStatusText(AppStatus.USER_NOT_FOUND)
+                    });
+                } else {
+                    res.json({
+                        "code": AppStatus.SUCCESS,
+                        "message": AppStatus.getStatusText(AppStatus.SUCCESS),
+                        "data": {users: users}
+                    });
+                }
+            }).limit(20);
+        }
+    });
+}
+
 function getInfoUser(req, res) {
     var myToken = req.headers.authorization.split(" ", 2)[1];
     AccessTokenModel.getAccessToken(myToken, function (err, token) {
@@ -801,6 +831,24 @@ function deletePdfOfUsers(pdf) {
     }
 };
 
+function deletePdfFromUser(user_id, pdf_id){
+    User.findByIdAndUpdate(user_id, {$pull: {"pdfs_signed": pdf_id}}, {new: true}, function(err, user){
+        if (err) {
+            console.log(err)
+        }
+    });
+    User.findByIdAndUpdate(user_id, {$pull: {"pdfs_to_sign": pdf_id}}, {new: true}, function(err, user){
+        if (err) {
+            console.log(err)
+        }
+    });
+    User.findByIdAndUpdate(user_id, {$pull: {"pdfs_owned": pdf_id}}, {new: true}, function(err, user){
+        if (err) {
+            console.log(err)
+        }
+    });
+}
+
 /**
  * Add
  * @param user_id
@@ -821,3 +869,4 @@ module.exports.userRoutes = userRoutes;
 module.exports.addPdfToUsers = addPdfToUsers;
 module.exports.deletePdfOfUsers = deletePdfOfUsers;
 module.exports.notifySign = notifySign;
+module.exports.deletePdfFromUser = deletePdfFromUser;

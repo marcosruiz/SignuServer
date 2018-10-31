@@ -72,16 +72,24 @@ function downloadPdf(req, res) {
                 if (err) {
                     res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
                 } else if (pdf == null) {
+                    // If pdf do not exist on db delete from user
+                    UserRoutes.deletePdfFromUser(token.user_id, req.params.pdf_id);
                     res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
                 } else {
                     if (pdf.owner_id.toString() == token.user_id) {
                         res.download(pdf.path, pdf.original_name);
+                        if(res.statusCode.valueOf() == HttpStatus.NOT_FOUND){ // TODO check if works
+                            UserRoutes.deletePdfFromUser(token.user_id, req.params.pdf_id);
+                        }
                     } else {
                         var isSigner = pdf.signers.some(function (signer) {
                             return signer._id.toString() == token.user_id;
                         });
-                        if (isSigner) {
+                            if (isSigner) {
                             res.download(pdf.path, pdf.original_name);
+                            if(res.statusCode.valueOf() == HttpStatus.NOT_FOUND){ // TODO check if works
+                                UserRoutes.deletePdfFromUser(token.user_id, req.params.pdf_id);
+                            }
                         } else {
                             res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
                         }
