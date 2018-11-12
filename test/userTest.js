@@ -411,28 +411,28 @@ describe('Users', function () {
 
     describe('LOGIN tests with OAUTH2', function () {
 
-        it('it should LOGIN a user', function (done) {
-            var user = {
-                email: "test2@test2.com",
-                password: "test2"
-            };
-            oauthLogin(user, function (err, res) {
-                if (!err) {
-                    done();
-                }
-            });
-        });
-        it('it should LOGIN a user with pdfs and related', function (done) {
-            var user = {
-                email: "test2@test2.com",
-                password: "test2"
-            };
-            oauthLogin(user, function (err, res) {
-                if (!err) {
-                    done();
-                }
-            });
-        });
+        // it('it should LOGIN a user', function (done) {
+        //     var user = {
+        //         email: "test2@test2.com",
+        //         password: "test2"
+        //     };
+        //     oauthLogin(user, function (err, res) {
+        //         if (!err) {
+        //             done();
+        //         }
+        //     });
+        // });
+        // it('it should LOGIN a user with pdfs and related', function (done) {
+        //     var user = {
+        //         email: "test2@test2.com",
+        //         password: "test2"
+        //     };
+        //     oauthLogin(user, function (err, res) {
+        //         if (!err) {
+        //             done();
+        //         }
+        //     });
+        // });
         it('it should NOT LOGIN a user due to the email', function (done) {
             var user = {
                 email: "wrong@wrong",
@@ -808,26 +808,26 @@ describe('Users', function () {
         });
 
 
-        it('it should NOT ADD A RELATED_USER cause it is already in it', function (done) {
-            var user = {
-                email: "test@test",
-                password: "test"
-            };
-            var agent = chai.request.agent(server);
-            oauthLogin(user, function (err, res, resToken) {
-                var numUsers1 = res.body.data.user.users_related.length;
-                agent.put('/api/users/related/')
-                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
-                    .send({related_id: testUser2._id})
-                    .end(function (err, res) {
-                        checkUser(res);
-                        var numUsers2 = res.body.data.user.users_related.length;
-                        res.body.data.user.users_related.should.be.an.Array;
-                        numUsers2.should.be.equal(numUsers1);
-                        done();
-                    });
-            });
-        });
+        // it('it should NOT ADD A RELATED_USER cause it is already in it', function (done) {
+        //     var user = {
+        //         email: "test@test",
+        //         password: "test"
+        //     };
+        //     var agent = chai.request.agent(server);
+        //     oauthLogin(user, function (err, res, resToken) {
+        //         var numUsers1 = res.body.data.user.users_related.length;
+        //         agent.put('/api/users/related/')
+        //             .set('Authorization', 'Bearer ' + resToken.body.access_token)
+        //             .send({related_id: testUser2._id})
+        //             .end(function (err, res) {
+        //                 checkUser(res);
+        //                 var numUsers2 = res.body.data.user.users_related.length;
+        //                 res.body.data.user.users_related.should.be.an.Array;
+        //                 numUsers2.should.be.equal(numUsers1);
+        //                 done();
+        //             });
+        //     });
+        // });
 
         it('it should NOT ADD A RELATED_USER cause it is invalid', function (done) {
             var user = {

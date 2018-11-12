@@ -427,7 +427,7 @@ function deletePdf(req, res) {
                 if (err) {
                     res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
                 } else if (pdf == null) {
-                    var pdf = {_id: req.parms.pdf_id, owner_id: token.user_id}
+                    var pdf = {_id: req.params.pdf_id, owner_id: token.user_id}
                     UserRoutes.deletePdfOfUsers(pdf);
                     res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
                 } else if (token.user_id != pdf.owner_id.toString()) {
