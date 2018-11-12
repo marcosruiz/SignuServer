@@ -15,8 +15,9 @@ statusCodes[exports.PDF_UPDATED = 102] = "PDF updated successfully";
 statusCodes[exports.PDF_DELETED = 103] = "PDF deleted successfully";
 statusCodes[exports.PDF_DELETED = 104] = "PDF deleted successfully";
 statusCodes[exports.PDF_SIGNED = 105] = "PDF signed successfully";
-statusCodes[exports.PDF_UNLOCKED = 106] = "PDF unlocked successfully";
-statusCodes[exports.PDF_SIGNER_ADDED = 107] = "Added signer(s) to PDF successfully";
+statusCodes[exports.PDF_UNLOCKED_SUCCESS = 106] = "PDF unlocked successfully";
+statusCodes[exports.PDF_LOCKED_SUCCESS = 107] = "PDF locked successfully";
+statusCodes[exports.PDF_SIGNER_ADDED = 108] = "Added signer(s) to PDF successfully";
 
 // Generic errors
 statusCodes[exports.INTERNAL_ERROR = 1000] = "Internal error";
@@ -46,7 +47,7 @@ statusCodes[exports.USER_NOT_LOGGED = 2006] = "You are not logged";
 statusCodes[exports.PDF_NOT_FOUND = 3000] = "PDF not found";
 statusCodes[exports.PDF_NOT_LOCKED = 3001] = "Pdf is not locked";
 statusCodes[exports.PDF_NOT_SIGNER = 3002] = "You can't sign this PDF";
-statusCodes[exports.PDF_LOCKED = 3003] = "PDF locked";
+statusCodes[exports.PDF_LOCKED = 3003] = "PDF already locked by other signer";
 statusCodes[exports.PDF_WITH_STAMP = 3004] = "PDF has stamp. You can not add new signatures";
 statusCodes[exports.PDF_TIMEOUT = 3005] = "PDF timeout";
 statusCodes[exports.PDF_ALREADY_SIGNED = 3006] = "PDF already signed by user";

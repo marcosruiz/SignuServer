@@ -21,6 +21,7 @@ function userRoutes(app) {
     router.post('/logout', app.oauth.authorise(), logOutUser);
     router.get('/info', app.oauth.authorise(), getInfoUser);
     router.get('/info/ext', app.oauth.authorise(), getInfoUserPopulated);
+    router.get('/search', searchUser);
 
     // Edit user fields
     router.put('/', app.oauth.authorise(), editUser);
@@ -76,7 +77,7 @@ function userRoutes(app) {
         }
     });
 
-    router.get('/search', searchUser);
+
 
     return router;
 }
@@ -424,23 +425,23 @@ function getInfoUserPopulated(req, res) {
                         model: User
                     },{
                         path: 'pdfs_to_sign.owner_id',
-                        select: '-password -activation',
+                        select: '-email -password -activation',
                         model: User
                     },{
                         path: 'pdfs_signed.signers._id',
-                        select: '-password -activation',
+                        select: '-email -password -activation',
                         model: User
                     },{
                         path: 'pdfs_signed.owner_id',
-                        select: '-password -activation',
+                        select: '-email -password -activation',
                         model: User
                     },{
                         path: 'pdfs_owned.signers._id',
-                        select: '-password -activation',
+                        select: '-email -password -activation',
                         model: User
                     },{
                         path: 'pdfs_owned.owner_id',
-                        select: '-password -activation',
+                        select: '-email -password -activation',
                         model: User
                     }], function (err, user) {
                         if (err) {

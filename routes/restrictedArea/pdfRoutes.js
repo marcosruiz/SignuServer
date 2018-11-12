@@ -16,7 +16,7 @@ var HttpStatus = require('http-status-codes');
 var AppStatus = require('../../public/routes/app-err-codes-en');
 var getJsonAppError = AppStatus.getJsonApp;
 var newPdf;
-var LOCK_TIME = 60000; // 60 seg
+var LOCK_TIME_MILLIS = 60000; // 60 seg
 var UserRoutes = require('./userRoutes.js');
 
 function pdfRoutes(app) {
@@ -51,6 +51,8 @@ function pdfRoutes(app) {
     });
     router.put('/:pdf_id', upload.single('pdf'), app.oauth.authorise(), signPdf);
     router.delete('/:pdf_id', app.oauth.authorise(), deletePdf);
+    router.put('/lock/:pdf_id', upload.single('pdf'), app.oauth.authorise(), lockPdf);
+
 
     return router;
 }
@@ -78,16 +80,16 @@ function downloadPdf(req, res) {
                 } else {
                     if (pdf.owner_id.toString() == token.user_id) {
                         res.download(pdf.path, pdf.original_name);
-                        if(res.statusCode.valueOf() == HttpStatus.NOT_FOUND){ // TODO check if works
+                        if (res.statusCode.valueOf() == HttpStatus.NOT_FOUND) { // TODO check if works
                             UserRoutes.deletePdfFromUser(token.user_id, req.params.pdf_id);
                         }
                     } else {
                         var isSigner = pdf.signers.some(function (signer) {
                             return signer._id.toString() == token.user_id;
                         });
-                            if (isSigner) {
+                        if (isSigner) {
                             res.download(pdf.path, pdf.original_name);
-                            if(res.statusCode.valueOf() == HttpStatus.NOT_FOUND){ // TODO check if works
+                            if (res.statusCode.valueOf() == HttpStatus.NOT_FOUND) { // TODO check if works
                                 UserRoutes.deletePdfFromUser(token.user_id, req.params.pdf_id);
                             }
                         } else {
@@ -229,6 +231,56 @@ function addSignersToPdf(req, res) {
     });
 }
 
+function lockPdf(req, res) {
+    var myToken = req.headers.authorization.split(" ", 2)[1];
+    AccessTokenModel.getAccessToken(myToken, function (err, token) {
+        if (err) {
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
+        } else if (token == null) {
+            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));
+        } else {
+            PdfModel.findOne({
+                _id: req.params.pdf_id,
+                'signers._id': token.user_id
+            }, function (err, pdf) {
+                if (err) {
+                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                } else if (pdf == null) {
+                    res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
+                } else {
+                    var now = Date.now();
+                    if (pdf.was_locked == null || pdf.was_locked == false || (now.valueOf() - pdf.when_was_locked.valueOf()) > LOCK_TIME_MILLIS || token.user_id == pdf.was_locked_by) {
+                        PdfModel.findByIdAndUpdate(req.params.pdf_id, {
+                            was_locked: true,
+                            when_was_locked: now,
+                            was_locked_by: token.user_id
+                        }, {new: true}, function (err, pdf) {
+                            if (err) {
+                                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                            } else if (pdf == null) {
+                                res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
+                            } else {
+                                res.json({
+                                    code: AppStatus.PDF_LOCKED_SUCCESS,
+                                    message: AppStatus.getStatusText(AppStatus.PDF_LOCKED_SUCCESS),
+                                    data: {pdf: pdf}
+                                });
+                            }
+                        });
+                    } else {
+                        res.status(HttpStatus.LOCKED).json({
+                            code: AppStatus.PDF_LOCKED,
+                            message: AppStatus.getStatusText(AppStatus.PDF_LOCKED),
+                            data: {pdf: pdf}
+                        });
+                    }
+
+                }
+            });
+        }
+    });
+}
+
 /**
  * Add a signer to pdf
  * @param {Object} req - req.params.pdf_id req.body : {signer_id}
@@ -312,20 +364,26 @@ function signPdf(req, res) {
             } else if (err) {
                 res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
             } else {
+                var date = new Date(Date.now().valueOf() - LOCK_TIME_MILLIS);
                 var pdfToFind = {
                     _id: req.params.pdf_id,
                     encoding: req.file.encoding,
                     last_edition_date: req.body.last_edition_date,
-                    signers: {_id: token.user_id, is_signed: false}
+                    signers: {_id: token.user_id, is_signed: false},
+                    was_locked: true,
+                    when_was_locked: {$gt: date},
+                    was_locked_by: token.user_id
                 };
                 var now = Date.now();
                 var pdfToUpdate = {
                     path: req.file.path,
-                    filename: req.file.filename,
+                    file_name: req.file.filename,
                     mime_type: req.file.mime_type,
+                    destination: req.file.destination,
                     last_edition_date: now,
                     'signers.$.is_signed': true,
-                    'signers.$.signature_date': now
+                    'signers.$.signature_date': now,
+                    was_locked: false
                 };
                 PdfModel.findOneAndUpdate(pdfToFind, pdfToUpdate, {new: true}, function (err, pdf) {
                     if (err) {

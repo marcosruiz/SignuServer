@@ -20,7 +20,10 @@ const pdfSchema = new Schema({
         _id: {type: ObjectId, ref: 'Pdf'},
         is_signed: {type: Boolean, default: false},
         signature_date: {type: Date, default: null}
-    }]
+    }],
+    was_locked: {type: Boolean, default: false},
+    when_was_locked: {type: Date},
+    was_locked_by: {type: ObjectId, ref: 'User'}
 });
 
 var Pdf = mongoose.model('Pdf', pdfSchema);
