@@ -16,6 +16,7 @@ const userSchema = new Schema({
     last_edition_date: {type: Date},
     creation_date: {type: Date, required: true, default: Date.now()},
     users_related: [{type: ObjectId, ref: 'User'}],
+    followers: [{type: ObjectId, ref: 'User'}],
     pdfs_owned: [{type: ObjectId, ref: 'Pdf'}],
     pdfs_to_sign: [{type: ObjectId, ref: 'Pdf'}],
     pdfs_signed: [{type: ObjectId, ref: 'Pdf'}]

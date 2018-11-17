@@ -16,6 +16,30 @@ var GAP_TIME_TO_EMAIL = 1800000; // milliseconds
 var fromEmail = process.env.EMAIL_SECRET;
 var fromPass = process.env.PASS_SECRET;
 
+function deleteRelated(req, res) {
+    var myToken = req.headers.authorization.split(" ", 2)[1];
+    AccessTokenModel.getAccessToken(myToken, function (err, token) {
+        if (err) {
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
+        } else if (token == null) {
+            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));
+        } else {
+            User.findByIdAndUpdate(token.user_id, {$pull: {"users_related": req.params.user_id}}, {new: true}, function (err, user) {
+                if(err){
+                    res.status(HttpStatus.NOT_FOUND).json(getJsonApp(AppStatus.USER_NOT_FOUND));
+                } else if(user == null){
+                    res.status(HttpStatus.NOT_FOUND).json(getJsonApp(AppStatus.USER_RELATED_NOT_DEL));
+                } else {
+                    res.json({
+                        'code': AppStatus.USER_RELATED_DEL,
+                        'message': AppStatus.getStatusText(AppStatus.USER_RELATED_DEL)
+                    });
+                }
+            });
+        }});
+
+}
+
 function userRoutes(app) {
     router.post('/create', createUser);
     router.post('/logout', app.oauth.authorise(), logOutUser);
@@ -54,10 +78,13 @@ function userRoutes(app) {
     router.post('/related', app.oauth.authorise(), function (req, res, next) {
         if (req.body._method == 'put') {
             addRelated(req, res, next);
+        } else if (req.body._method == 'delete') {
+            deleteRelated(req, res, next);
         } else {
             res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
         }
     });
+    router.delete('/related/:user_id', app.oauth.authorise(), deleteRelated);
     router.delete('/', app.oauth.authorise(), deleteUser);
 
     router.put('/authemail', activateUser);
@@ -76,7 +103,6 @@ function userRoutes(app) {
             res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
         }
     });
-
 
 
     return router;
@@ -423,23 +449,23 @@ function getInfoUserPopulated(req, res) {
                         path: 'pdfs_to_sign.signers._id',
                         select: '-password -activation',
                         model: User
-                    },{
+                    }, {
                         path: 'pdfs_to_sign.owner_id',
                         select: '-email -password -activation',
                         model: User
-                    },{
+                    }, {
                         path: 'pdfs_signed.signers._id',
                         select: '-email -password -activation',
                         model: User
-                    },{
+                    }, {
                         path: 'pdfs_signed.owner_id',
                         select: '-email -password -activation',
                         model: User
-                    },{
+                    }, {
                         path: 'pdfs_owned.signers._id',
                         select: '-email -password -activation',
                         model: User
-                    },{
+                    }, {
                         path: 'pdfs_owned.owner_id',
                         select: '-email -password -activation',
                         model: User
@@ -479,7 +505,7 @@ function searchUser(req, res) {
         } else if (token == null) {
             res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));
         } else {
-            User.find({email: {$regex : req.query.email}, "activation.is_activated" : true}, function (err, users) {
+            User.find({email: {$regex: req.query.email}, "activation.is_activated": true}, function (err, users) {
                 if (err) {
                     res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.INTERNAL_ERROR));
                 } else if (users == null) {
@@ -832,18 +858,18 @@ function deletePdfOfUsers(pdf) {
     }
 };
 
-function deletePdfFromUser(user_id, pdf_id){
-    User.findByIdAndUpdate(user_id, {$pull: {"pdfs_signed": pdf_id}}, {new: true}, function(err, user){
+function deletePdfFromUser(user_id, pdf_id) {
+    User.findByIdAndUpdate(user_id, {$pull: {"pdfs_signed": pdf_id}}, {new: true}, function (err, user) {
         if (err) {
             console.log(err)
         }
     });
-    User.findByIdAndUpdate(user_id, {$pull: {"pdfs_to_sign": pdf_id}}, {new: true}, function(err, user){
+    User.findByIdAndUpdate(user_id, {$pull: {"pdfs_to_sign": pdf_id}}, {new: true}, function (err, user) {
         if (err) {
             console.log(err)
         }
     });
-    User.findByIdAndUpdate(user_id, {$pull: {"pdfs_owned": pdf_id}}, {new: true}, function(err, user){
+    User.findByIdAndUpdate(user_id, {$pull: {"pdfs_owned": pdf_id}}, {new: true}, function (err, user) {
         if (err) {
             console.log(err)
         }

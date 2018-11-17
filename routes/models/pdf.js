@@ -23,7 +23,8 @@ const pdfSchema = new Schema({
     }],
     was_locked: {type: Boolean, default: false},
     when_was_locked: {type: Date},
-    was_locked_by: {type: ObjectId, ref: 'User'}
+    was_locked_by: {type: ObjectId, ref: 'User'},
+    add_signers_enabled: {type: Boolean, default: false}
 });
 
 var Pdf = mongoose.model('Pdf', pdfSchema);

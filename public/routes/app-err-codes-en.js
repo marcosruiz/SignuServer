@@ -9,6 +9,7 @@ statusCodes[exports.USER_DESACTIVATED = 4] = "User desactivated successfully";
 statusCodes[exports.EMAIL_SENDED = 5] = "Email was sended successfully. Check your email to confirm your email";
 statusCodes[exports.USER_ACTIVATED = 6] = "User activated successfully";
 statusCodes[exports.USER_LOG_OUT = 7] = "User logged out successfully";
+statusCodes[exports.USER_RELATED_DEL = 8] = "User related deleted successfully";
 
 statusCodes[exports.PDF_CREATED = 101] = "PDF created successfully";
 statusCodes[exports.PDF_UPDATED = 102] = "PDF updated successfully";
@@ -42,6 +43,7 @@ statusCodes[exports.EMAIL_ERROR = 2003] = "Email was not valid";
 statusCodes[exports.USER_NOT_OWNER = 2004] = "User is not a owner";
 statusCodes[exports.USER_NOT_SIGNER = 2005] = "User is not a signer";
 statusCodes[exports.USER_NOT_LOGGED = 2006] = "You are not logged";
+statusCodes[exports.USER_RELATED_NOT_DEL = 2008] = "User related not deleted";
 
 // PDF errors
 statusCodes[exports.PDF_NOT_FOUND = 3000] = "PDF not found";

@@ -14,7 +14,7 @@ var config = require('config');
 var upload = multer({dest: config.uploads_dir});
 var HttpStatus = require('http-status-codes');
 var AppStatus = require('../../public/routes/app-err-codes-en');
-var getJsonAppError = AppStatus.getJsonApp;
+var getJsonApp = AppStatus.getJsonApp;
 var newPdf;
 var LOCK_TIME_MILLIS = 60000; // 60 seg
 var UserRoutes = require('./userRoutes.js');
@@ -28,7 +28,7 @@ function pdfRoutes(app) {
         if (req.body._method = 'put') {
             addSignersToPdf(req, res);
         } else {
-            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+            res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
         }
     });
     router.put('/addsigner/:pdf_id', upload.single('pdf'), app.oauth.authorise(), addSignerToPdf);
@@ -36,7 +36,7 @@ function pdfRoutes(app) {
         if (req.body._method == 'put') {
             addSignerToPdf(req, res, next);
         } else {
-            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+            res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
         }
     });
     router.post('/', upload.single('pdf'), app.oauth.authorise(), uploadPdf);
@@ -46,7 +46,7 @@ function pdfRoutes(app) {
         } else if (req.body._method == 'put') {
             signPdf(req, res, next); // Update pdf
         } else {
-            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+            res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
         }
     });
     router.put('/:pdf_id', upload.single('pdf'), app.oauth.authorise(), signPdf);
@@ -72,11 +72,11 @@ function downloadPdf(req, res) {
         } else {
             PdfModel.findById(req.params.pdf_id, function (err, pdf) {
                 if (err) {
-                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
                 } else if (pdf == null) {
                     // If pdf do not exist on db delete from user
                     UserRoutes.deletePdfFromUser(token.user_id, req.params.pdf_id);
-                    res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
+                    res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.PDF_NOT_FOUND));
                 } else {
                     if (pdf.owner_id.toString() == token.user_id) {
                         res.download(pdf.path, pdf.original_name);
@@ -93,7 +93,7 @@ function downloadPdf(req, res) {
                                 UserRoutes.deletePdfFromUser(token.user_id, req.params.pdf_id);
                             }
                         } else {
-                            res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
+                            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_LOGGED));
                         }
                     }
                 }
@@ -116,13 +116,20 @@ function uploadPdf(req, res) {
         } else if (token == null) {
             res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));
         } else {
+            // If we enabled add singers we can not have stamp
+            var withStamp = req.body.with_stamp;
+            // TODO add_signers_enabled should not be a string
+            if(req.body.add_signers_enabled == "true" || req.body.add_signers_enabled == true){
+                withStamp = false;
+            }
             newPdf = new PdfModel({
                 "original_name": req.file.originalname,
                 "mime_type": req.file.mimetype,
                 "file_name": req.file.filename,
                 "destination": req.file.destination,
                 "path": req.file.path,
-                "with_stamp": false,
+                "with_stamp": withStamp,
+                "add_signers_enabled" : req.body.add_signers_enabled,
                 "encoding": req.file.encoding,
                 "creation_date": Date.now(),
                 "last_edition_date": Date.now(),
@@ -152,7 +159,7 @@ function uploadPdf(req, res) {
 
             newPdf.save(function (err, pdf) {
                 if (err) {
-                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
                 } else {
                     UserRoutes.addPdfToUsers(pdf);
                     res.json({
@@ -181,13 +188,13 @@ function addSignersToPdf(req, res) {
         } else {
             PdfModel.findById(req.params.pdf_id, function (err, pdf) {
                 if (err) {
-                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
                 } else if (pdf == null) {
-                    res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
+                    res.status(HttpStatus.NOT_FOUND).json(getJsonApp(AppStatus.PDF_NOT_FOUND));
                 } else if (pdf.owner_id.toString() != token.user_id) {
-                    res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_OWNER));
+                    res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_OWNER));
                 } else if (pdf.with_stamp) {
-                    res.status(HttpStatus.FORBIDDEN).json(getJsonAppError(AppStatus.PDF_WITH_STAMP));
+                    res.status(HttpStatus.FORBIDDEN).json(getJsonApp(AppStatus.PDF_WITH_STAMP));
                 } else {
                     newPdf = {signers: []};
                     pdf.signers.forEach(function (signer) {
@@ -208,13 +215,13 @@ function addSignersToPdf(req, res) {
                     });
                     if (pdf.signers.length >= newPdf.signers.length) {
                         // There is no new correct signers
-                        res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+                        res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
                     } else {
                         PdfModel.findByIdAndUpdate(req.params.pdf_id, newPdf, {new: true}, function (err, pdf) {
                             if (err) {
-                                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
                             } else if (pdf == null) {
-                                res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
+                                res.status(HttpStatus.NOT_FOUND).json(getJsonApp(AppStatus.PDF_NOT_FOUND));
                             } else {
                                 UserRoutes.addPdfToUsers(pdf);
                                 res.json({
@@ -244,9 +251,9 @@ function lockPdf(req, res) {
                 'signers._id': token.user_id
             }, function (err, pdf) {
                 if (err) {
-                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
                 } else if (pdf == null) {
-                    res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
+                    res.status(HttpStatus.NOT_FOUND).json(getJsonApp(AppStatus.PDF_NOT_FOUND));
                 } else {
                     var now = Date.now();
                     if (pdf.was_locked == null || pdf.was_locked == false || (now.valueOf() - pdf.when_was_locked.valueOf()) > LOCK_TIME_MILLIS || token.user_id == pdf.was_locked_by) {
@@ -256,9 +263,9 @@ function lockPdf(req, res) {
                             was_locked_by: token.user_id
                         }, {new: true}, function (err, pdf) {
                             if (err) {
-                                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
                             } else if (pdf == null) {
-                                res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
+                                res.status(HttpStatus.NOT_FOUND).json(getJsonApp(AppStatus.PDF_NOT_FOUND));
                             } else {
                                 res.json({
                                     code: AppStatus.PDF_LOCKED_SUCCESS,
@@ -296,13 +303,13 @@ function addSignerToPdf(req, res) {
         } else {
             PdfModel.findById(req.params.pdf_id, function (err, pdf) {
                 if (err) {
-                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
                 } else if (pdf == null) {
-                    res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
+                    res.status(HttpStatus.NOT_FOUND).json(getJsonApp(AppStatus.PDF_NOT_FOUND));
                 } else if (pdf.owner_id.toString() != token.user_id) {
-                    res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_OWNER));
+                    res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_OWNER));
                 } else if (pdf.with_stamp) {
-                    res.status(HttpStatus.FORBIDDEN).json(getJsonAppError(AppStatus.PDF_WITH_STAMP));
+                    res.status(HttpStatus.FORBIDDEN).json(getJsonApp(AppStatus.PDF_WITH_STAMP));
                 } else {
                     var newSigner = {_id: req.body.signer_id, is_signed: false, when: undefined};
                     PdfModel.findOneAndUpdate({
@@ -310,11 +317,11 @@ function addSignerToPdf(req, res) {
                         'signers._id': {$ne: newSigner._id}
                     }, {$push: {signers: newSigner}}, {new: true, safe: false}, function (err, newPdf) {
                         if (err) {
-                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
                         } else if (newPdf == null) {
-                            res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
+                            res.status(HttpStatus.NOT_FOUND).json(getJsonApp(AppStatus.PDF_NOT_FOUND));
                         } else if (newPdf.signers.length == pdf.signers.length) {
-                            res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+                            res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
                         } else {
                             UserRoutes.addPdfToUsers(newPdf);
                             res.json({
@@ -360,9 +367,9 @@ function signPdf(req, res) {
             res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));
         } else {
             if (token.user_id == null) {
-                res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_LOGGED));
+                res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_LOGGED));
             } else if (err) {
-                res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.BAD_REQUEST));
+                res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.BAD_REQUEST));
             } else {
                 var date = new Date(Date.now().valueOf() - LOCK_TIME_MILLIS);
                 var pdfToFind = {
@@ -387,9 +394,9 @@ function signPdf(req, res) {
                 };
                 PdfModel.findOneAndUpdate(pdfToFind, pdfToUpdate, {new: true}, function (err, pdf) {
                     if (err) {
-                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
                     } else if (pdf == null) {
-                        res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
+                        res.status(HttpStatus.NOT_FOUND).json(getJsonApp(AppStatus.PDF_NOT_FOUND));
                     } else {
                         // Delete old file
                         fs.unlink(pdf.path, function (err) {
@@ -425,24 +432,24 @@ function deletePdf(req, res) {
         } else {
             PdfModel.findById(req.params.pdf_id, function (err, pdf) {
                 if (err) {
-                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
                 } else if (pdf == null) {
                     var pdf = {_id: req.params.pdf_id, owner_id: token.user_id}
                     UserRoutes.deletePdfOfUsers(pdf);
-                    res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
+                    res.status(HttpStatus.NOT_FOUND).json(getJsonApp(AppStatus.PDF_NOT_FOUND));
                 } else if (token.user_id != pdf.owner_id.toString()) {
-                    res.status(HttpStatus.UNAUTHORIZED).json(getJsonAppError(AppStatus.USER_NOT_OWNER));
+                    res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_OWNER));
                 } else {
                     fs.unlink(pdf.path, function (err, result) {
                         if (err) {
                             UserRoutes.deletePdfOfUsers(pdf);
-                            res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
+                            res.status(HttpStatus.NOT_FOUND).json(getJsonApp(AppStatus.PDF_NOT_FOUND));
                         } else {
                             PdfModel.findByIdAndRemove(req.params.pdf_id, function (err, pdf) {
                                 if (err) {
-                                    res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
+                                    res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.PDF_NOT_FOUND));
                                 } else if (pdf == null) {
-                                    res.status(HttpStatus.BAD_REQUEST).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
+                                    res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.PDF_NOT_FOUND));
                                 } else {
                                     UserRoutes.deletePdfOfUsers(pdf);
                                     res.json({
@@ -469,11 +476,11 @@ function getInfoPdf(req, res) {
     AccessTokenModel.getAccessToken(myToken, function (err, token) {
         PdfModel.findById(req.params.pdf_id, function (err, pdf) {
             if (err) {
-                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonAppError(AppStatus.DATABASE_ERROR));
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
             } else if (pdf == null) {
                 var pdf = {_id: req.params.pdf_id, owner_id: token.user_id}
                 UserRoutes.deletePdfOfUsers(pdf);
-                res.status(HttpStatus.NOT_FOUND).json(getJsonAppError(AppStatus.PDF_NOT_FOUND));
+                res.status(HttpStatus.NOT_FOUND).json(getJsonApp(AppStatus.PDF_NOT_FOUND));
             } else {
                 res.send({
                     code: AppStatus.SUCCESS,
