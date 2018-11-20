@@ -25,9 +25,9 @@ function deleteRelated(req, res) {
             res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));
         } else {
             User.findByIdAndUpdate(token.user_id, {$pull: {"users_related": req.params.user_id}}, {new: true}, function (err, user) {
-                if(err){
+                if (err) {
                     res.status(HttpStatus.NOT_FOUND).json(getJsonApp(AppStatus.USER_NOT_FOUND));
-                } else if(user == null){
+                } else if (user == null) {
                     res.status(HttpStatus.NOT_FOUND).json(getJsonApp(AppStatus.USER_RELATED_NOT_DEL));
                 } else {
                     res.json({
@@ -36,7 +36,8 @@ function deleteRelated(req, res) {
                     });
                 }
             });
-        }});
+        }
+    });
 
 }
 
@@ -877,7 +878,7 @@ function deletePdfFromUser(user_id, pdf_id) {
 }
 
 /**
- * Add
+ * Update pdf_id and put on the pdfs_signed list
  * @param user_id
  * @param pdf_id
  */
@@ -888,6 +889,8 @@ function notifySign(user_id, pdf_id) {
     }, function (err, res) {
         if (err) {
             console.log(err);
+        } else {
+            // console.log(res);
         }
     });
 }

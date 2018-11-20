@@ -61,224 +61,15 @@ describe('Users', function () {
      * Create users and pdfs
      */
     beforeEach(function (done) {
-        // Delete all test files
-        var arrayFiles = fs.readdirSync(config.uploads_dir);
-        var i;
-        for (i = 0; i < arrayFiles.length; i++) {
-            fs.unlink(config.uploads_dir + arrayFiles[i]);
-        }
-        // End delete all test files
-
-        // Add users and pdfs
-        User.remove({}, function (err) {
-            // Owner on 1,2,3,4,5 and singer on 4,5
-            var newUser1 = new User({
-                "password": "test",
-                "email": "test@test",
-                "name": "test",
-                "lastname": "test",
-                "creation_date": Date.now(),
-                "last_edition_date": Date.now(),
-                "pdfs_to_sign": [],
-                "pdfs_signed": [],
-                "pdfs_owned": [],
-                "related_people": [],
-                "activation": {is_activated: true, when: Date.now()}
-            });
-            // Signer on 1,2,4,5
-            var newUser2 = new User({
-                "password": "test2",
-                "email": "test2@test2",
-                "name": "test2",
-                "lastname": "test2",
-                "creation_date": Date.now(),
-                "last_edition_date": Date.now(),
-                "pdfs_to_sign": [],
-                "pdfs_signed": [],
-                "pdfs_owned": [],
-                "related_people": [],
-                "activation": {is_activated: true, when: Date.now()}
-            });
-            // Independient user
-            var newUser3 = new User({
-                "password": "test3",
-                "email": "test3@test3",
-                "name": "test3",
-                "lastname": "test3",
-                "creation_date": Date.now(),
-                "last_edition_date": Date.now(),
-                "pdfs_to_sign": [],
-                "pdfs_signed": [],
-                "pdfs_owned": [],
-                "related_people": [],
-                "activation": {is_activated: true, when: Date.now()}
-            });
-
-            // Adding users
-            newUser1.save(function (err, user) {
-                testUser1 = user;
-                newUser2.save(function (err, user) {
-                    testUser2 = user;
-                    newUser3.save(function (err, user) {
-                        testUser3 = user;
-                        Pdf.remove({}, function () {
-                            var newPdf = new Pdf({
-                                original_name: "original_name",
-                                owner_id: testUser1._id,
-                                mime_type: "application/pdf",
-                                file_name: "test",
-                                path: config.uploads_dir + "test",
-                                destination: config.uploads_dir,
-                                encoding: "7bit",
-                                is_any_user_signing: undefined,
-                                creation_date: Date.now(),
-                                last_edition_date: Date.now(),
-                                signers: [{
-                                    _id: testUser2._id,
-                                    is_signed: false,
-                                    signature_date: undefined
-                                }]
-                            });
-                            var newPdf2 = new Pdf({
-                                original_name: "original_name",
-                                owner_id: testUser1._id,
-                                mime_type: "application/pdf",
-                                with_stamp: false,
-                                file_name: "test2",
-                                path: config.uploads_dir + "test2",
-                                destination: config.uploads_dir,
-                                encoding: "7bit",
-                                is_any_user_signing: undefined,
-                                creation_date: Date.now(),
-                                last_edition_date: Date.now(),
-                                signers: [{
-                                    _id: testUser2._id,
-                                    is_signed: true,
-                                    signature_date: Date.now()
-                                }]
-                            });
-                            var newPdf3 = new Pdf({
-                                original_name: "original_name",
-                                owner_id: testUser1._id,
-                                mime_type: "application/pdf",
-                                file_name: "test3",
-                                path: config.uploads_dir + "test3",
-                                destination: config.uploads_dir,
-                                encoding: "7bit",
-                                is_any_user_signing: undefined,
-                                creation_date: Date.now(),
-                                last_edition_date: Date.now(),
-                                signers: []
-                            });
-                            var newPdf4 = new Pdf({
-                                original_name: "original_name",
-                                owner_id: testUser1._id,
-                                mime_type: "application/pdf",
-                                file_name: "test4",
-                                path: config.uploads_dir + "test4",
-                                destination: config.uploads_dir,
-                                encoding: "7bit",
-                                is_any_user_signing: undefined,
-                                creation_date: Date.now(),
-                                last_edition_date: Date.now(),
-                                signers: [{
-                                    _id: testUser2._id,
-                                    is_signed: true,
-                                    signature_date: Date.now()
-                                }, {
-                                    _id: testUser1._id,
-                                    is_signed: false,
-                                    signature_date: undefined
-                                }],
-                                with_stamp: true
-                            });
-                            var newPdf5 = new Pdf({
-                                original_name: "original_name",
-                                owner_id: testUser1._id,
-                                mime_type: "application/pdf",
-                                file_name: "test5",
-                                path: config.uploads_dir + "test5",
-                                destination: config.uploads_dir,
-                                encoding: "7bit",
-                                is_any_user_signing: undefined,
-                                creation_date: Date.now(),
-                                last_edition_date: Date.now(),
-                                signers: [{
-                                    _id: testUser2._id,
-                                    is_signed: false,
-                                    signature_date: undefined
-                                }, {
-                                    _id: testUser1._id,
-                                    is_signed: false,
-                                    signature_date: undefined
-                                }],
-                                with_stamp: true
-                            });
-                            newPdf.save(function (err, pdf) {
-                                if (err) {
-                                    console.log(err);
-                                } else {
-                                    testPdf1 = pdf;
-                                    newPdf2.save(function (err, pdf) {
-                                        if (err) {
-                                            console.log(err);
-                                        } else {
-                                            testPdf2 = pdf;
-                                            newPdf3.save(function (err, pdf) {
-                                                if (err) {
-                                                    console.log(err);
-                                                } else {
-                                                    testPdf3 = pdf;
-                                                    newPdf4.save(function (err, pdf) {
-                                                        if (err) {
-                                                            console.log(err);
-                                                        } else {
-                                                            testPdf4 = pdf;
-                                                            newPdf5.save(function (err, pdf) {
-                                                                if (err) {
-                                                                    console.log(err);
-                                                                } else {
-                                                                    testPdf5 = pdf;
-                                                                    // Edit users
-                                                                    // TODO: ADD users
-                                                                    testUser1.password = "test";
-                                                                    testUser2.password = "test2";
-                                                                    testUser1.pdfs_owned = [testPdf1._id, testPdf2._id, testPdf3._id, testPdf4._id, testPdf5._id];
-                                                                    testUser1.pdfs_to_sign = [testPdf4._id, testPdf5._id];
-                                                                    testUser2.pdfs_to_sign = [testPdf1._id, testPdf2._id, testPdf4._id, testPdf5._id];
-                                                                    testUser1.save(function (err, res) {
-                                                                        if (err) {
-                                                                            console.log(err)
-                                                                        } else {
-                                                                            testUser2.save(function (err, res) {
-                                                                                if (err) {
-                                                                                    console.log(err)
-                                                                                } else {
-                                                                                    //Create a test file
-                                                                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test'));
-                                                                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test2'));
-                                                                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test3'));
-                                                                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test4'));
-                                                                                    fs.createReadStream('test/testFiles/test.pdf').pipe(fs.createWriteStream(config.uploads_dir + 'test5'));
-                                                                                    done();
-                                                                                }
-                                                                            });
-                                                                        }
-                                                                    });
-                                                                }
-                                                            });
-                                                        }
-                                                    });
-                                                }
-                                            });
-                                        }
-                                    });
-                                }
-                            });
-                        });
-                    });
-                });
-            });
+        setUpDatabase(function(userArray, pdfArray){
+            testUser1 = userArray[0];
+            testUser2 = userArray[1];
+            testUser3 = userArray[2];
+            testPdf2 = pdfArray[0];
+            testPdf3 = pdfArray[1];
+            testPdf4 = pdfArray[2];
+            testPdf5 = pdfArray[3];
+            done();
         });
     });
 
@@ -411,28 +202,28 @@ describe('Users', function () {
 
     describe('LOGIN tests with OAUTH2', function () {
 
-        // it('it should LOGIN a user', function (done) {
-        //     var user = {
-        //         email: "test2@test2.com",
-        //         password: "test2"
-        //     };
-        //     oauthLogin(user, function (err, res) {
-        //         if (!err) {
-        //             done();
-        //         }
-        //     });
-        // });
-        // it('it should LOGIN a user with pdfs and related', function (done) {
-        //     var user = {
-        //         email: "test2@test2.com",
-        //         password: "test2"
-        //     };
-        //     oauthLogin(user, function (err, res) {
-        //         if (!err) {
-        //             done();
-        //         }
-        //     });
-        // });
+        it('it should LOGIN a user', function (done) {
+            var user = {
+                email: "test2@test2.com",
+                password: "test2"
+            };
+            oauthLogin(user, function (err, res) {
+                if (!err) {
+                    done();
+                }
+            });
+        });
+        it('it should LOGIN a user with pdfs and related', function (done) {
+            var user = {
+                email: "test2@test2.com",
+                password: "test2"
+            };
+            oauthLogin(user, function (err, res) {
+                if (!err) {
+                    done();
+                }
+            });
+        });
         it('it should NOT LOGIN a user due to the email', function (done) {
             var user = {
                 email: "wrong@wrong",
