@@ -20,7 +20,7 @@ var server = require('../app');
 var should = chai.should();
 var expect = chai.expect;
 var HttpStatus = require('http-status-codes');
-var AppStatus = require('../public/routes/app-err-codes-en');
+var AppStatus = require('../routes/app-err-codes-en');
 var request = require('supertest');
 
 var checkUser = require('./commonTestFunctions').checkUser;

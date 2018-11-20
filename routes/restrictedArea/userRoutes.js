@@ -10,36 +10,11 @@ var Pdf = require('../models/pdf');
 var AccessTokenModel = require('../authorisation/accessTokenModel');
 var bcrypt = require('bcrypt');
 var HttpStatus = require('http-status-codes');
-var AppStatus = require('../../public/routes/app-err-codes-en');
+var AppStatus = require('../app-err-codes-en');
 var getJsonApp = AppStatus.getJsonApp;
 var GAP_TIME_TO_EMAIL = 1800000; // milliseconds
 var fromEmail = process.env.EMAIL_SECRET;
 var fromPass = process.env.PASS_SECRET;
-
-function deleteRelated(req, res) {
-    var myToken = req.headers.authorization.split(" ", 2)[1];
-    AccessTokenModel.getAccessToken(myToken, function (err, token) {
-        if (err) {
-            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
-        } else if (token == null) {
-            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));
-        } else {
-            User.findByIdAndUpdate(token.user_id, {$pull: {"users_related": req.params.user_id}}, {new: true}, function (err, user) {
-                if (err) {
-                    res.status(HttpStatus.NOT_FOUND).json(getJsonApp(AppStatus.USER_NOT_FOUND));
-                } else if (user == null) {
-                    res.status(HttpStatus.NOT_FOUND).json(getJsonApp(AppStatus.USER_RELATED_NOT_DEL));
-                } else {
-                    res.json({
-                        'code': AppStatus.USER_RELATED_DEL,
-                        'message': AppStatus.getStatusText(AppStatus.USER_RELATED_DEL)
-                    });
-                }
-            });
-        }
-    });
-
-}
 
 function userRoutes(app) {
     router.post('/create', createUser);
@@ -107,6 +82,31 @@ function userRoutes(app) {
 
 
     return router;
+}
+
+function deleteRelated(req, res) {
+    var myToken = req.headers.authorization.split(" ", 2)[1];
+    AccessTokenModel.getAccessToken(myToken, function (err, token) {
+        if (err) {
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
+        } else if (token == null) {
+            res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.TOKEN_NOT_FOUND));
+        } else {
+            User.findByIdAndUpdate(token.user_id, {$pull: {"users_related": req.params.user_id}}, {new: true}, function (err, user) {
+                if (err) {
+                    res.status(HttpStatus.NOT_FOUND).json(getJsonApp(AppStatus.USER_NOT_FOUND));
+                } else if (user == null) {
+                    res.status(HttpStatus.NOT_FOUND).json(getJsonApp(AppStatus.USER_RELATED_NOT_DEL));
+                } else {
+                    res.json({
+                        'code': AppStatus.USER_RELATED_DEL,
+                        'message': AppStatus.getStatusText(AppStatus.USER_RELATED_DEL)
+                    });
+                }
+            });
+        }
+    });
+
 }
 
 /**
@@ -279,11 +279,14 @@ function activateUser(req, res) {
     } else {
         User.findById(req.body._id, function (err, user) {
             if (err) {
-                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
+                // res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR).render('useractivated', getJsonApp(AppStatus.DATABASE_ERROR));
             } else if (user == null) {
-                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.USER_NOT_FOUND));
+                // res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.USER_NOT_FOUND));
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR).render('useractivated', getJsonApp(AppStatus.USER_NOT_FOUND));
             } else if (user.activation.is_activated == true) {
-                res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.USER_ACTIVATED));
+                // res.status(HttpStatus.BAD_REQUEST).json(getJsonApp(AppStatus.USER_ACTIVATED));
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR).render('useractivated', getJsonApp(AppStatus.USER_ACTIVATED));
             } else {
                 if (req.body.code == user.activation.code) {
                     var gapOfTime = Date.now() - user.activation.when;
@@ -293,24 +296,29 @@ function activateUser(req, res) {
                             'activation.is_activated': true
                         }, {new: true}, function (err, user) {
                             if (err) {
-                                res.stat(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
+                                // res.stat(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.DATABASE_ERROR));
+                                res.status(HttpStatus.INTERNAL_SERVER_ERROR).render('useractivated', getJsonApp(AppStatus.DATABASE_ERROR));
                             } else if (user == null) {
-                                res.stat(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_FOUND));
+                                // res.stat(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.USER_NOT_FOUND));
+                                res.status(HttpStatus.INTERNAL_SERVER_ERROR).render('useractivated', getJsonApp(AppStatus.USER_NOT_FOUND));
                             } else {
                                 user.password = undefined;
                                 user.next_email = undefined;
-                                res.json({
-                                    "code": AppStatus.USER_ACTIVATED,
-                                    "message": AppStatus.getStatusText(AppStatus.USER_ACTIVATED),
-                                    "data": {user: user}
-                                });
+                                var response = {
+                                    code: AppStatus.USER_ACTIVATED,
+                                    message: AppStatus.getStatusText(AppStatus.USER_ACTIVATED),
+                                    data: {user: user}
+                                };
+                                res.render('useractivated', response);
                             }
                         });
                     } else {
-                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.TIMEOUT));
+                        // res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(getJsonApp(AppStatus.TIMEOUT));
+                        res.status(HttpStatus.INTERNAL_SERVER_ERROR).render('useractivated', getJsonApp(AppStatus.TIMEOUT));
                     }
                 } else {
-                    res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.AC_NOT_MATCH));
+                    // res.status(HttpStatus.UNAUTHORIZED).json(getJsonApp(AppStatus.AC_NOT_MATCH));
+                    res.status(HttpStatus.INTERNAL_SERVER_ERROR).render('useractivated', getJsonApp(AppStatus.AC_NOT_MATCH));
                 }
             }
         });

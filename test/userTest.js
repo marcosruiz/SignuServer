@@ -22,7 +22,7 @@ var expect = require('chai').expect;
 var chaiHttp = require('chai-http');
 var server = require('../app');
 var HttpStatus = require('http-status-codes');
-var AppStatus = require('../public/routes/app-err-codes-en');
+var AppStatus = require('../routes/app-err-codes-en');
 
 var checkUser = require('./commonTestFunctions').checkUser;
 var checkToken = require('./commonTestFunctions').checkToken;
@@ -601,26 +601,26 @@ describe('Users', function () {
         });
 
 
-        // it('it should NOT ADD A RELATED_USER cause it is already in it', function (done) {
-        //     var user = {
-        //         email: "test@test",
-        //         password: "test"
-        //     };
-        //     var agent = chai.request.agent(server);
-        //     oauthLogin(user, function (err, res, resToken) {
-        //         var numUsers1 = res.body.data.user.users_related.length;
-        //         agent.put('/api/users/related/')
-        //             .set('Authorization', 'Bearer ' + resToken.body.access_token)
-        //             .send({related_id: testUser2._id})
-        //             .end(function (err, res) {
-        //                 checkUser(res);
-        //                 var numUsers2 = res.body.data.user.users_related.length;
-        //                 res.body.data.user.users_related.should.be.an.Array;
-        //                 numUsers2.should.be.equal(numUsers1);
-        //                 done();
-        //             });
-        //     });
-        // });
+        it('it should NOT ADD A RELATED_USER cause it is already in it', function (done) {
+            var user = {
+                email: "test@test",
+                password: "test"
+            };
+            var agent = chai.request.agent(server);
+            oauthLogin(user, function (err, res, resToken) {
+                var numUsers1 = res.body.data.user.users_related.length;
+                agent.put('/api/users/related/')
+                    .set('Authorization', 'Bearer ' + resToken.body.access_token)
+                    .send({related_id: testUser2._id})
+                    .end(function (err, res) {
+                        checkUser(res);
+                        var numUsers2 = res.body.data.user.users_related.length;
+                        res.body.data.user.users_related.should.be.an.Array;
+                        numUsers2.should.be.equal(numUsers1);
+                        done();
+                    });
+            });
+        });
 
         it('it should NOT ADD A RELATED_USER cause it is invalid', function (done) {
             var user = {

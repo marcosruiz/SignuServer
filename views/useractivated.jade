@@ -1,0 +1,16 @@
+extends layout
+
+block content
+    h1= message
+    div
+        if code == 6
+            table
+                tr
+                    td Name
+                    td #{data.user.name}
+                tr
+                    td Lastname
+                    td #{data.user.lastname}
+                tr
+                    td Email
+                    td #{data.user.email}

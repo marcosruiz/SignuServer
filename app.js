@@ -14,7 +14,7 @@ const YAML = require('yamljs');
 const swaggerDocument = YAML.load('./swagger.yaml');
 var OAuth2Server = require('oauth2-server');
 var HttpStatus = require('http-status-codes');
-var AppStatus = require('./public/routes/app-err-codes-en');
+var AppStatus = require('./routes/app-err-codes-en');
 var Client = require('./routes/models/client');
 
 var app = express();
@@ -83,8 +83,10 @@ app.use(logger('dev'));
 app.use(expressValidator());
 app.use(cookieParser()); //TODO should I use cookies?
 app.use(express.static(path.join(__dirname, 'public')));
-
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+var optionsSwagger = {
+    customCss: '.swagger-ui .topbar { display: none }'
+};
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, optionsSwagger));
 app.use('/', index);
 app.use('/api/users', userRoutes);
 app.use('/api/pdfs', pdfRoutes);
