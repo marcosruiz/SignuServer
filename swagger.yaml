@@ -1,17 +1,52 @@
 swagger: '2.0'
 info:
-  version: 0.0.1
+  version: 0.0.2
   title: SignuSever API
-  description: A simple API for SignuApp
+  description: An API for SignuApp
   contact:
     email: sobrenombre@gmail.com
-host: 'localhost:3000'
+host: 'https://signu-server.herokuapp.com'
 schemes:
   - http
   - https
-basePath: /api/
+basePath: /
 paths:
-  /users/create:
+  '/oauth2/token':
+    get:
+      tags:
+        - token
+      summary: Get an access token
+      description: Get an access token. It is valid during 1 hour
+      parameters:
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              message:
+                type: string
+        '400':
+          description: Bad request
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              message:
+                type: string
+        '404':
+          description: Not found
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              message:
+                type: string
+  /api/users/create:
     post:
       tags:
         - user
@@ -75,7 +110,7 @@ paths:
                 type: integer
               message:
                 type: string
-  /users/authemail:
+  /api/users/authemail:
     put:
       tags:
         - user
@@ -134,7 +169,7 @@ paths:
                 type: integer
               message:
                 type: string
-  /users/login:
+  /api/users/login:
     post:
       deprecated: true
       tags:
@@ -195,7 +230,7 @@ paths:
                 type: integer
               message:
                 type: string
-  /users/info:
+  /api/users/info:
     get:
       tags:
         - user
@@ -234,7 +269,56 @@ paths:
                 type: integer
               message:
                 type: string
-  /users:
+  /api/users/info/ext:
+    get:
+      tags:
+        - user
+      summary: Get info of a user
+      description: Return an activated user with extended info (populated ids)
+      parameters:
+      responses:
+        '200':
+          description: Successful operation
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              message:
+                type: string
+              data:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/definitions/UserExt'
+        '400':
+          description: Bad request
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              message:
+                type: string
+        '401':
+          description: Unauthorized
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              message:
+                type: string
+        '500':
+          description: Internal error
+          schema:
+            type: object
+            properties:
+              code:
+                type: integer
+              message:
+                type: string
+  /api/users:
     put:
       security:
         - OAuth2: []
@@ -350,7 +434,7 @@ paths:
                 type: integer
               message:
                 type: string
-  /users/related:
+  /api/users/related:
     put:
       security:
         - OAuth2: []
@@ -411,7 +495,7 @@ paths:
                 type: integer
               message:
                 type: string
-  /users/password:
+  /api/users/password:
     put:
       security:
         - OAuth2: []
@@ -470,7 +554,7 @@ paths:
                 type: integer
               message:
                 type: string
-  /users/logout:
+  /api/users/logout:
     post:
       security:
         - OAuth2: []
@@ -515,7 +599,7 @@ paths:
                 type: integer
               message:
                 type: string
-  /users/email:
+  /api/users/email:
     put:
       security:
         - OAuth2: []
@@ -577,7 +661,7 @@ paths:
                 type: integer
               message:
                 type: string
-  /users/authnextemail:
+  /api/users/authnextemail:
     put:
       tags:
         - user
@@ -636,7 +720,7 @@ paths:
                 type: integer
               message:
                 type: string
-  '/pdfs/{pdf_id}':
+  '/api/pdfs/{pdf_id}':
     get:
       security:
         - OAuth2: []
@@ -816,7 +900,7 @@ paths:
                 type: integer
               message:
                 type: string
-  '/pdfs/status/{pdf_id}':
+  '/api/pdfs/status/{pdf_id}':
     get:
       security:
         - OAuth2: []
@@ -882,19 +966,19 @@ paths:
                 type: integer
               message:
                 type: string
-  '/pdfs/unlock/{pdf_id}':
+  '/api/pdfs/lock/{pdf_id}':
     put:
-      deprecated: true
+      deprecated: false
       security:
         - OAuth2: []
       tags:
         - pdf
-      summary: Unlock a PDF
-      description: Unlock a PDF allowing to sign it during 60 sec
+      summary: Lock a PDF to be able to sign it
+      description: Lock a PDF to be able to sign it during next 60 seconds
       parameters:
         - name: pdf_id
           in: path
-          description: ID of PDF to unlock
+          description: ID of PDF to unlock. It has to be a signer to lock it.
           required: true
           type: string
           format: ObjectId
@@ -949,7 +1033,7 @@ paths:
                 type: integer
               message:
                 type: string
-  '/pdfs/addsigner/{pdf_id}':
+  '/api/pdfs/addsigner/{pdf_id}':
     put:
       security:
         - OAuth2: []
