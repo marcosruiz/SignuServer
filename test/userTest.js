@@ -28,6 +28,7 @@ var checkUser = require('./commonTestFunctions').checkUser;
 var checkToken = require('./commonTestFunctions').checkToken;
 var checkError = require('./commonTestFunctions').checkError;
 var oauthLogin = require('./commonTestFunctions').oauthLogin;
+var setUpDatabase = require('./commonTestFunctions').setUpDatabase;
 
 chai.use(chaiHttp);
 
@@ -62,13 +63,14 @@ describe('Users', function () {
      */
     beforeEach(function (done) {
         setUpDatabase(function(userArray, pdfArray){
-            testUser1 = userArray[0];
-            testUser2 = userArray[1];
-            testUser3 = userArray[2];
-            testPdf2 = pdfArray[0];
-            testPdf3 = pdfArray[1];
-            testPdf4 = pdfArray[2];
-            testPdf5 = pdfArray[3];
+            testUser1 = userArray[0]; // Owner on 1,2,3,4,5 and singer on 4,5
+            testUser2 = userArray[1]; // Signer on 1,2,4,5
+            testUser3 = userArray[2]; // Independient user
+            testPdf1 = pdfArray[0];
+            testPdf2 = pdfArray[1];
+            testPdf3 = pdfArray[2];
+            testPdf4 = pdfArray[3];
+            testPdf5 = pdfArray[4];
             done();
         });
     });
@@ -116,7 +118,7 @@ describe('Users', function () {
         });
         it('it should POST a user and activate it', function (done) {
             var user = {
-                email: "sobrenombre@gmail.com",
+                email: "sobrenombre@gmail",
                 name: "TestName",
                 lastname: "TestLastName",
                 password: "TestPassword"
@@ -145,7 +147,7 @@ describe('Users', function () {
         });
         it('it should POST a user cause it is not activated', function (done) {
             var user = {
-                email: "test3@test.com",
+                email: "test3@test",
                 name: "TestName",
                 lastname: "TestLastName",
                 password: "TestPassword"
@@ -204,7 +206,7 @@ describe('Users', function () {
 
         it('it should LOGIN a user', function (done) {
             var user = {
-                email: "test2@test2.com",
+                email: "test2@test2",
                 password: "test2"
             };
             oauthLogin(user, function (err, res) {
@@ -215,7 +217,7 @@ describe('Users', function () {
         });
         it('it should LOGIN a user with pdfs and related', function (done) {
             var user = {
-                email: "test2@test2.com",
+                email: "test2@test2",
                 password: "test2"
             };
             oauthLogin(user, function (err, res) {
@@ -269,7 +271,7 @@ describe('Users', function () {
         });
         it('it should NOT LOGIN a user cause it is not activated', function (done) {
             var user = {
-                email: "test3@test.com",
+                email: "test3@test",
                 password: "test3"
             };
             request(server).post('/oauth2/token')
@@ -444,7 +446,7 @@ describe('Users', function () {
                 password: "test"
             };
             var editedUser = {
-                email: "sobrenombre@gmail.com"
+                email: "sobrenombre@gmail"
             };
             var agent = chai.request.agent(server);
             oauthLogin(user, function (err, res, resToken) {
@@ -453,14 +455,14 @@ describe('Users', function () {
                     .send(editedUser)
                     .end(function (err, res) {
                         checkUser(res);
-                        res.body.data.user.next_email.should.have.property('email', 'sobrenombre@gmail.com');
+                        res.body.data.user.next_email.should.have.property('email', 'sobrenombre@gmail');
                         res.body.data.user.should.have.property('email', 'test@test');
                         res.body.data.user.next_email.should.have.property('code');
                         agent.put('/api/users/authnextemail')
                             .send({_id: testUser1._id, code: res.body.data.user.next_email.code})
                             .end(function (err, res) {
                                 checkUser(res);
-                                res.body.data.user.should.have.property('email', 'sobrenombre@gmail.com');
+                                res.body.data.user.should.have.property('email', 'sobrenombre@gmail');
                                 done();
                             });
                     });
@@ -474,7 +476,7 @@ describe('Users', function () {
             };
             var editedUser = {
                 _method: "put",
-                email: "sobrenombre@gmail.com"
+                email: "sobrenombre@gmail"
             };
             var agent = chai.request.agent(server);
             oauthLogin(user, function (err, res, resToken) {
@@ -483,14 +485,14 @@ describe('Users', function () {
                     .send(editedUser)
                     .end(function (err, res) {
                         checkUser(res);
-                        res.body.data.user.next_email.should.have.property('email', 'sobrenombre@gmail.com');
+                        res.body.data.user.next_email.should.have.property('email', 'sobrenombre@gmail');
                         res.body.data.user.should.have.property('email', 'test@test');
                         res.body.data.user.next_email.should.have.property('code');
                         agent.put('/api/users/authnextemail')
                             .send({_id: testUser1._id, code: res.body.data.user.next_email.code})
                             .end(function (err, res) {
                                 checkUser(res);
-                                res.body.data.user.should.have.property('email', 'sobrenombre@gmail.com');
+                                res.body.data.user.should.have.property('email', 'sobrenombre@gmail');
                                 done();
                             });
                     });
